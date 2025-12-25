@@ -1,0 +1,289 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum UserStatus {
+  PENDING
+  ACTIVE
+  INACTIVE
+}
+
+enum SubmissionStatus {
+  PENDING
+  AI_CHECKED
+  TEACHER_REVIEWING
+  APPROVED
+  REJECTED
+}
+
+enum MaterialType {
+  PDF
+  LINK
+}
+
+enum VisibilityType {
+  MANUAL
+  DATE_BASED
+  PROGRESS_BASED
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  username      String   @unique
+  password      String
+  firstName     String
+  lastName      String
+  role          UserRole
+  status        UserStatus @default(PENDING)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  emailVerified DateTime?
+
+  // Relations
+  createdCourses      Course[]         @relation("TeacherCourses")
+  enrolledCourses     CourseEnrollment[]
+  submissions         Submission[]
+  notifications       Notification[]
+  createdBy           User?            @relation("CreatedUsers", fields: [createdById], references: [id])
+  createdById         String?
+  createdUsers        User[]           @relation("CreatedUsers")
+  teacherReviews      SubmissionReview[] @relation("TeacherReviews")
+  chapterVisibility   ChapterVisibility[]
+  subchapterVisibility SubchapterVisibility[]
+
+  @@index([email])
+  @@index([username])
+  @@index([role])
+  @@index([status])
+}
+
+model Course {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  teacherId   String
+
+  // Relations
+  teacher     User     @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
+  chapters    Chapter[]
+  enrollments CourseEnrollment[]
+
+  @@index([teacherId])
+}
+
+model CourseEnrollment {
+  id         String   @id @default(cuid())
+  courseId   String
+  studentId  String
+  enrolledAt DateTime @default(now())
+
+  // Relations
+  course     Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  student    User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, studentId])
+  @@index([courseId])
+  @@index([studentId])
+}
+
+model Chapter {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  order       Int
+  courseId    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Visibility settings
+  visibilityType    VisibilityType @default(MANUAL)
+  visibleFromDate   DateTime?
+  visibleUntilDate  DateTime?
+  requiresPrevious  Boolean        @default(false)
+
+  // Relations
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  subchapters Subchapter[]
+  visibility  ChapterVisibility[]
+
+  @@index([courseId])
+  @@index([order])
+}
+
+model ChapterVisibility {
+  id        String   @id @default(cuid())
+  chapterId String
+  studentId String
+  isVisible Boolean  @default(false)
+  unlockedAt DateTime?
+
+  // Relations
+  chapter   Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  student   User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([chapterId, studentId])
+  @@index([chapterId])
+  @@index([studentId])
+}
+
+model Subchapter {
+  id          String   @id @default(cuid())
+  title       String
+  description String?  @db.Text
+  order       Int
+  chapterId   String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Visibility settings
+  visibilityType    VisibilityType @default(MANUAL)
+  visibleFromDate   DateTime?
+  visibleUntilDate  DateTime?
+  requiresPrevious  Boolean        @default(false)
+
+  // Upload settings
+  allowSubmissions Boolean @default(false)
+
+  // Relations
+  chapter     Chapter      @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  materials   Material[]
+  submissions Submission[]
+  visibility  SubchapterVisibility[]
+
+  @@index([chapterId])
+  @@index([order])
+}
+
+model SubchapterVisibility {
+  id           String   @id @default(cuid())
+  subchapterId String
+  studentId    String
+  isVisible    Boolean  @default(false)
+  unlockedAt   DateTime?
+
+  // Relations
+  subchapter   Subchapter @relation(fields: [subchapterId], references: [id], onDelete: Cascade)
+  student      User       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([subchapterId, studentId])
+  @@index([subchapterId])
+  @@index([studentId])
+}
+
+model Material {
+  id           String       @id @default(cuid())
+  title        String
+  description  String?      @db.Text
+  type         MaterialType
+  content      String       @db.Text // URL for links, file path for PDFs
+  order        Int
+  subchapterId String
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // Relations
+  subchapter   Subchapter   @relation(fields: [subchapterId], references: [id], onDelete: Cascade)
+
+  @@index([subchapterId])
+  @@index([order])
+}
+
+model Submission {
+  id           String           @id @default(cuid())
+  subchapterId String
+  studentId    String
+  filePath     String
+  fileName     String
+  fileSize     Int
+  status       SubmissionStatus @default(PENDING)
+  submittedAt  DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  // Relations
+  subchapter   Subchapter         @relation(fields: [subchapterId], references: [id], onDelete: Cascade)
+  student      User               @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  aiResult     AIResult?
+  review       SubmissionReview?
+  tasks        Task[]
+
+  @@index([subchapterId])
+  @@index([studentId])
+  @@index([status])
+}
+
+model AIResult {
+  id           String   @id @default(cuid())
+  submissionId String   @unique
+  rawResponse  String   @db.Text
+  processedAt  DateTime @default(now())
+
+  // Relations
+  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+}
+
+model Task {
+  id               String   @id @default(cuid())
+  submissionId     String
+  taskNumber       Int
+  pointsEarned     Float
+  maxPoints        Float
+  comment          String?  @db.Text
+  teacherComment   String?  @db.Text
+  teacherEdited    Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  // Relations
+  submission       Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+}
+
+model SubmissionReview {
+  id              String   @id @default(cuid())
+  submissionId    String   @unique
+  teacherId       String
+  approved        Boolean
+  generalComment  String?  @db.Text
+  reviewedAt      DateTime @default(now())
+
+  // Relations
+  submission      Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  teacher         User       @relation("TeacherReviews", fields: [teacherId], references: [id])
+
+  @@index([teacherId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String   @db.Text
+  type      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([read])
+  @@index([createdAt])
+}

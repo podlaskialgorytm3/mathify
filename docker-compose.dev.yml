@@ -1,0 +1,22 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mathify-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: mathify
+      POSTGRES_PASSWORD: mathify_password
+      POSTGRES_DB: mathify
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - mathify-network
+
+volumes:
+  postgres_data:
+
+networks:
+  mathify-network:
+    driver: bridge
