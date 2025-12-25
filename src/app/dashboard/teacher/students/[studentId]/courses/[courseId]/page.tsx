@@ -92,26 +92,26 @@ export default function StudentCourseVisibilityPage() {
 
   const toggleChapterVisibility = (
     chapterId: string,
-    currentValue: boolean
+    currentEffectiveValue: boolean
   ) => {
     setChanges((prev) => ({
       ...prev,
       [chapterId]: {
         type: "chapter",
-        isVisible: !currentValue,
+        isVisible: !currentEffectiveValue,
       },
     }));
   };
 
   const toggleSubchapterVisibility = (
     subchapterId: string,
-    currentValue: boolean
+    currentEffectiveValue: boolean
   ) => {
     setChanges((prev) => ({
       ...prev,
       [subchapterId]: {
         type: "subchapter",
-        isVisible: !currentValue,
+        isVisible: !currentEffectiveValue,
       },
     }));
   };
@@ -278,10 +278,7 @@ export default function StudentCourseVisibilityPage() {
                       <Switch
                         checked={chapterVisible}
                         onCheckedChange={() =>
-                          toggleChapterVisibility(
-                            chapter.id,
-                            chapter.visibility?.isVisible || false
-                          )
+                          toggleChapterVisibility(chapter.id, chapterVisible)
                         }
                       />
                       <span className="text-sm font-normal text-gray-600">
@@ -330,6 +327,7 @@ export default function StudentCourseVisibilityPage() {
                                   )
                                 }
                               />
+                              Visibl
                               <span className="text-sm text-gray-600">
                                 {subchapterVisible ? "Widoczny" : "Ukryty"}
                               </span>
