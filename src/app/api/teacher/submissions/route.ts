@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const courseIds = teacherCourses.map((c) => c.id);
+    const courseIds = teacherCourses.map((c: { id: string }) => c.id);
 
     if (courseIds.length === 0) {
       return NextResponse.json({
@@ -96,17 +96,13 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        reviews: {
-          orderBy: {
-            createdAt: "desc",
-          },
-          take: 1,
+        review: {
           select: {
             id: true,
-            feedback: true,
-            score: true,
-            createdAt: true,
-            reviewer: {
+            generalComment: true,
+            approved: true,
+            reviewedAt: true,
+            teacher: {
               select: {
                 firstName: true,
                 lastName: true,
@@ -114,14 +110,20 @@ export async function GET(request: NextRequest) {
             },
           },
         },
-        _count: {
+        tasks: {
           select: {
-            reviews: true,
+            id: true,
+            taskNumber: true,
+            pointsEarned: true,
+            maxPoints: true,
+            comment: true,
+            teacherComment: true,
+            teacherEdited: true,
           },
         },
       },
       orderBy: {
-        createdAt: "desc",
+        submittedAt: "desc",
       },
     });
 
@@ -143,12 +145,16 @@ export async function GET(request: NextRequest) {
 
     const stats = {
       total: allSubmissions.length,
-      pending: allSubmissions.filter((s) => s.status === "PENDING").length,
-      aiChecked: allSubmissions.filter((s) => s.status === "AI_CHECKED").length,
-      reviewing: allSubmissions.filter((s) => s.status === "TEACHER_REVIEWING")
+      pending: allSubmissions.filter((s: any) => s.status === "PENDING").length,
+      aiChecked: allSubmissions.filter((s: any) => s.status === "AI_CHECKED")
         .length,
-      approved: allSubmissions.filter((s) => s.status === "APPROVED").length,
-      rejected: allSubmissions.filter((s) => s.status === "REJECTED").length,
+      reviewing: allSubmissions.filter(
+        (s: any) => s.status === "TEACHER_REVIEWING"
+      ).length,
+      approved: allSubmissions.filter((s: any) => s.status === "APPROVED")
+        .length,
+      rejected: allSubmissions.filter((s: any) => s.status === "REJECTED")
+        .length,
     };
 
     // Pobierz kursy z liczbą prac

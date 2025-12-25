@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    const courseIds = teacherCourses.map((c) => c.id);
+    const courseIds = teacherCourses.map((c: { id: string }) => c.id);
 
     // Buduj zapytanie dla uczniów
     const whereClause: any = {
@@ -92,8 +92,13 @@ export async function GET(request: NextRequest) {
           select: {
             id: true,
             status: true,
-            score: true,
-            createdAt: true,
+            submittedAt: true,
+            tasks: {
+              select: {
+                pointsEarned: true,
+                maxPoints: true,
+              },
+            },
           },
         },
       },
@@ -103,19 +108,26 @@ export async function GET(request: NextRequest) {
     });
 
     // Oblicz statystyki dla każdego ucznia
-    const studentsWithStats = students.map((student) => {
+    const studentsWithStats = students.map((student: any) => {
       const totalSubmissions = student.submissions.length;
       const approvedSubmissions = student.submissions.filter(
-        (s) => s.status === "APPROVED"
+        (s: any) => s.status === "APPROVED"
       ).length;
       const pendingSubmissions = student.submissions.filter(
-        (s) => s.status === "PENDING" || s.status === "AI_CHECKED"
+        (s: any) => s.status === "PENDING" || s.status === "AI_CHECKED"
       ).length;
+
+      // Oblicz średnią ocenę z zadań
+      let totalScore = 0;
+      let totalMaxScore = 0;
+      student.submissions.forEach((submission: any) => {
+        submission.tasks.forEach((task: any) => {
+          totalScore += task.pointsEarned;
+          totalMaxScore += task.maxPoints;
+        });
+      });
       const averageScore =
-        totalSubmissions > 0
-          ? student.submissions.reduce((sum, s) => sum + (s.score || 0), 0) /
-            totalSubmissions
-          : 0;
+        totalMaxScore > 0 ? (totalScore / totalMaxScore) * 100 : 0;
 
       return {
         id: student.id,

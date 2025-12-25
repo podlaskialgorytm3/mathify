@@ -23,6 +23,8 @@ import {
   Download,
   Link as LinkIcon,
   X,
+  UserPlus,
+  Search,
 } from "lucide-react";
 
 interface Material {
@@ -89,6 +91,7 @@ export default function CourseDetailsPage({
   const [showChapterModal, setShowChapterModal] = useState(false);
   const [showSubchapterModal, setShowSubchapterModal] = useState(false);
   const [showMaterialModal, setShowMaterialModal] = useState(false);
+  const [showEnrollModal, setShowEnrollModal] = useState(false);
   const [editingChapter, setEditingChapter] = useState<Chapter | null>(null);
   const [editingSubchapter, setEditingSubchapter] = useState<{
     chapter: Chapter;
@@ -105,6 +108,10 @@ export default function CourseDetailsPage({
     string | null
   >(null);
   const [uploadingFile, setUploadingFile] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searching, setSearching] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
   const { toast } = useToast();
 
   const fetchCourse = async () => {
@@ -548,6 +555,79 @@ export default function CourseDetailsPage({
     }
   };
 
+  const searchStudents = async (query: string) => {
+    if (!query || query.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      setSearching(true);
+      const response = await fetch(
+        `/api/teacher/students/search?query=${encodeURIComponent(
+          query
+        )}&courseId=${courseId}`
+      );
+      const data = await response.json();
+
+      if (response.ok) {
+        setSearchResults(data.students);
+      } else {
+        toast({
+          title: "Błąd",
+          description: data.error || "Nie udało się wyszukać uczniów",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Błąd",
+        description: "Wystąpił błąd podczas wyszukiwania uczniów",
+        variant: "destructive",
+      });
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const enrollStudent = async (studentId: string) => {
+    try {
+      setEnrolling(true);
+      const response = await fetch(`/api/teacher/courses/${courseId}/enroll`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Sukces",
+          description: data.message,
+        });
+        setShowEnrollModal(false);
+        setSearchQuery("");
+        setSearchResults([]);
+        fetchCourse();
+      } else {
+        toast({
+          title: "Błąd",
+          description: data.error,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Błąd",
+        description: "Wystąpił błąd podczas zapisywania ucznia",
+        variant: "destructive",
+      });
+    } finally {
+      setEnrolling(false);
+    }
+  };
+
   const getVisibilityIcon = (visibilityType: string) => {
     switch (visibilityType) {
       case "MANUAL":
@@ -592,10 +672,16 @@ export default function CourseDetailsPage({
             </p>
           </div>
         </div>
-        <Button onClick={() => setShowChapterModal(true)}>
-          <Plus className="w-4 h-4 mr-2" />
-          Nowy Rozdział
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowEnrollModal(true)}>
+            <UserPlus className="w-4 h-4 mr-2" />
+            Dodaj ucznia
+          </Button>
+          <Button onClick={() => setShowChapterModal(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Nowy Rozdział
+          </Button>
+        </div>
       </div>
 
       {/* Chapters List */}
@@ -923,6 +1009,24 @@ export default function CourseDetailsPage({
           onClose={() => setEditingMaterial(null)}
           onSubmit={updateMaterial}
           defaultValues={editingMaterial.material}
+        />
+      )}
+
+      {/* Enroll Student Modal */}
+      {showEnrollModal && (
+        <EnrollStudentModal
+          onClose={() => {
+            setShowEnrollModal(false);
+            setSearchQuery("");
+            setSearchResults([]);
+          }}
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          searchResults={searchResults}
+          searching={searching}
+          enrolling={enrolling}
+          onSearch={searchStudents}
+          onEnroll={enrollStudent}
         />
       )}
     </div>
@@ -1354,6 +1458,145 @@ function SubchapterModal({
               <Button type="submit">Zapisz</Button>
             </div>
           </form>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+// Enroll Student Modal Component
+function EnrollStudentModal({
+  onClose,
+  searchQuery,
+  setSearchQuery,
+  searchResults,
+  searching,
+  enrolling,
+  onSearch,
+  onEnroll,
+}: {
+  onClose: () => void;
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  searchResults: any[];
+  searching: boolean;
+  enrolling: boolean;
+  onSearch: (query: string) => void;
+  onEnroll: (studentId: string) => void;
+}) {
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (value.length >= 2) {
+      onSearch(value);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <Card className="w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle>Dodaj ucznia do kursu</CardTitle>
+            <Button variant="ghost" size="sm" onClick={onClose}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="flex-1 overflow-y-auto">
+          <div className="space-y-4">
+            {/* Search Input */}
+            <div>
+              <Label htmlFor="student-search">
+                <Search className="w-4 h-4 inline mr-2" />
+                Wyszukaj ucznia
+              </Label>
+              <Input
+                id="student-search"
+                placeholder="Wpisz imię, nazwisko, email lub username..."
+                value={searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                autoComplete="off"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Minimum 2 znaki do wyszukania
+              </p>
+            </div>
+
+            {/* Search Results */}
+            {searching && (
+              <div className="text-center py-8">
+                <p className="text-gray-600">Wyszukiwanie...</p>
+              </div>
+            )}
+
+            {!searching &&
+              searchQuery.length >= 2 &&
+              searchResults.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-gray-600">Nie znaleziono uczniów</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Spróbuj innego zapytania lub sprawdź, czy uczeń nie jest już
+                    zapisany na ten kurs
+                  </p>
+                </div>
+              )}
+
+            {searchResults.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700">
+                  Znaleziono uczniów ({searchResults.length}):
+                </p>
+                {searchResults.map((student) => (
+                  <Card key={student.id} className="hover:shadow-md transition">
+                    <CardContent className="p-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                            <span className="text-sm font-semibold text-blue-600">
+                              {student.firstName[0]}
+                              {student.lastName[0]}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-medium">
+                              {student.firstName} {student.lastName}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              @{student.username} • {student.email}
+                            </p>
+                            {student.enrolledCourses.length > 0 && (
+                              <p className="text-xs text-gray-500 mt-1">
+                                Zapisany na {student.enrolledCourses.length}{" "}
+                                {student.enrolledCourses.length === 1
+                                  ? "kurs"
+                                  : "kursy"}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => onEnroll(student.id)}
+                          disabled={enrolling}
+                        >
+                          <UserPlus className="w-4 h-4 mr-2" />
+                          {enrolling ? "Dodawanie..." : "Dodaj"}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+
+            {searchQuery.length === 0 && (
+              <div className="text-center py-8">
+                <Search className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600">
+                  Rozpocznij wpisywanie, aby wyszukać uczniów
+                </p>
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>
