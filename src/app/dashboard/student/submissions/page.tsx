@@ -154,6 +154,42 @@ export default function StudentSubmissionsPage() {
     return { earned, max, percentage: max > 0 ? (earned / max) * 100 : 0 };
   };
 
+  const handleDelete = async (submissionId: string) => {
+    if (!confirm("Czy na pewno chcesz usunąć tę pracę domową?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `/api/student/submissions?id=${submissionId}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete submission");
+      }
+
+      toast({
+        title: "Sukces",
+        description: "Praca domowa została usunięta",
+      });
+
+      // Odśwież listę
+      await fetchSubmissions();
+    } catch (error) {
+      console.error("Error deleting submission:", error);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się usunąć pracy",
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredSubmissions = submissions.filter((submission) => {
     const matchesSearch =
       submission.fileName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -470,17 +506,31 @@ export default function StudentSubmissionsPage() {
                     {getStatusConfig(selectedSubmission.status).label}
                   </p>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="mt-3 gap-2"
-                  onClick={() =>
-                    window.open(selectedSubmission.filePath, "_blank")
-                  }
-                >
-                  <Download className="h-4 w-4" />
-                  Pobierz plik
-                </Button>
+                <div className="flex gap-2 mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() =>
+                      window.open(selectedSubmission.filePath, "_blank")
+                    }
+                  >
+                    <Download className="h-4 w-4" />
+                    Pobierz plik
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    className="gap-2"
+                    onClick={() => {
+                      handleDelete(selectedSubmission.id);
+                      setSelectedSubmission(null);
+                    }}
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Usuń
+                  </Button>
+                </div>
               </div>
 
               {/* Tasks */}

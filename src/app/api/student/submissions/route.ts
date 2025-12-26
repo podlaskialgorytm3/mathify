@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { writeFile, mkdir } from "fs/promises";
+import { writeFile, mkdir, unlink } from "fs/promises";
 import path from "path";
+import { checkSubmissionWithAI } from "@/lib/gemini";
 
 export async function GET() {
   try {
@@ -225,6 +226,94 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Sprawdź czy kurs ma przypisany szablon AI
+    const subchapterWithCourse = await prisma.subchapter.findUnique({
+      where: { id: subchapterId },
+      include: {
+        chapter: {
+          include: {
+            course: {
+              include: {
+                aiPromptTemplate: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const aiPromptTemplate =
+      subchapterWithCourse?.chapter.course.aiPromptTemplate;
+
+    // Jeśli istnieje szablon AI, uruchom automatyczne sprawdzanie
+    if (aiPromptTemplate?.prompt) {
+      try {
+        // Uruchom sprawdzanie AI - używamy submission.filePath (względna ścieżka z DB)
+        const aiResult = await checkSubmissionWithAI(
+          submission.filePath,
+          submission.id,
+          aiPromptTemplate.prompt
+        );
+
+        // Utwórz zadania na podstawie odpowiedzi AI
+        const tasksData = aiResult.tasks.map((task) => ({
+          submissionId: submission.id,
+          taskNumber: task.taskNumber,
+          pointsEarned: task.pointsEarned,
+          maxPoints: task.maxPoints,
+          comment: task.comment,
+          teacherEdited: false,
+        }));
+
+        // Zapisz wszystko w transakcji
+        await prisma.$transaction([
+          // Utwórz zadania
+          prisma.task.createMany({
+            data: tasksData,
+          }),
+          // Zapisz surową odpowiedź AI
+          prisma.aIResult.create({
+            data: {
+              submissionId: submission.id,
+              rawResponse: aiResult.rawResponse,
+            },
+          }),
+          // Zaktualizuj status na AI_CHECKED
+          prisma.submission.update({
+            where: { id: submission.id },
+            data: { status: "AI_CHECKED" },
+          }),
+        ]);
+
+        return NextResponse.json({
+          message: "Submission uploaded and checked by AI successfully",
+          submission: {
+            id: submission.id,
+            fileName: submission.fileName,
+            status: "AI_CHECKED",
+            submittedAt: submission.submittedAt,
+          },
+          aiChecked: true,
+        });
+      } catch (aiError) {
+        // Jeśli sprawdzanie AI się nie powiodło, nadal zwróć sukces ale bez AI
+        console.error("AI checking failed:", aiError);
+        return NextResponse.json({
+          message: "Submission uploaded successfully but AI checking failed",
+          submission: {
+            id: submission.id,
+            fileName: submission.fileName,
+            status: submission.status,
+            submittedAt: submission.submittedAt,
+          },
+          aiChecked: false,
+          aiError:
+            aiError instanceof Error ? aiError.message : "Unknown AI error",
+        });
+      }
+    }
+
+    // Jeśli nie ma szablonu AI, zwróć normalny sukces
     return NextResponse.json({
       message: "Submission uploaded successfully",
       submission: {
@@ -233,11 +322,79 @@ export async function POST(request: NextRequest) {
         status: submission.status,
         submittedAt: submission.submittedAt,
       },
+      aiChecked: false,
     });
   } catch (error) {
     console.error("Error uploading submission:", error);
     return NextResponse.json(
       { error: "Failed to upload submission" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const session = await auth();
+
+    if (!session || session.user.role !== "STUDENT") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const submissionId = searchParams.get("id");
+
+    if (!submissionId) {
+      return NextResponse.json(
+        { error: "Submission ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Znajdź submission i sprawdź czy należy do ucznia
+    const submission = await prisma.submission.findUnique({
+      where: {
+        id: submissionId,
+      },
+    });
+
+    if (!submission) {
+      return NextResponse.json(
+        { error: "Submission not found" },
+        { status: 404 }
+      );
+    }
+
+    if (submission.studentId !== session.user.id) {
+      return NextResponse.json(
+        { error: "You can only delete your own submissions" },
+        { status: 403 }
+      );
+    }
+
+    // Usuń plik z dysku
+    try {
+      const filePath = path.join(process.cwd(), "public", submission.filePath);
+      await unlink(filePath);
+    } catch (fileError) {
+      console.error("Error deleting file:", fileError);
+      // Kontynuuj nawet jeśli plik nie istnieje
+    }
+
+    // Usuń rekord z bazy (cascade usunie Tasks i AIResult)
+    await prisma.submission.delete({
+      where: {
+        id: submissionId,
+      },
+    });
+
+    return NextResponse.json({
+      message: "Submission deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting submission:", error);
+    return NextResponse.json(
+      { error: "Failed to delete submission" },
       { status: 500 }
     );
   }

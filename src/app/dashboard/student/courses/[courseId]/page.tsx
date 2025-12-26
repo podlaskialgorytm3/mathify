@@ -148,6 +148,11 @@ export default function StudentCourseDetailsPage() {
   };
 
   const deleteSubmission = async (subchapterId: string) => {
+    const submission = submissions[subchapterId];
+    if (!submission) {
+      return;
+    }
+
     if (
       !confirm(
         "Czy na pewno chcesz usunąć przesłaną pracę? Tej operacji nie można cofnąć."
@@ -160,7 +165,7 @@ export default function StudentCourseDetailsPage() {
 
     try {
       const response = await fetch(
-        `/api/student/submissions/subchapter/${subchapterId}`,
+        `/api/student/submissions?id=${submission.id}`,
         {
           method: "DELETE",
         }
@@ -401,7 +406,9 @@ export default function StudentCourseDetailsPage() {
                                             <p className="text-xs text-gray-500">
                                               Status:{" "}
                                               {submissions[subchapter.id]!
-                                                .status === "PENDING"
+                                                .status === "PENDING" ||
+                                              submissions[subchapter.id]!
+                                                .status === "AI_CHECKED"
                                                 ? "Oczekuje na sprawdzenie"
                                                 : submissions[subchapter.id]!
                                                     .status ===
@@ -416,7 +423,7 @@ export default function StudentCourseDetailsPage() {
                                         </div>
                                         <div className="flex gap-2 ml-3">
                                           <Button
-                                            variant="ghost"
+                                            variant="outline"
                                             size="sm"
                                             onClick={() =>
                                               window.open(
@@ -425,16 +432,19 @@ export default function StudentCourseDetailsPage() {
                                                 "_blank"
                                               )
                                             }
-                                            className="text-blue-600 hover:text-blue-800"
+                                            className="gap-2"
                                           >
                                             <Download className="h-4 w-4" />
+                                            Pobierz
                                           </Button>
                                           {(submissions[subchapter.id]!
                                             .status === "PENDING" ||
                                             submissions[subchapter.id]!
+                                              .status === "AI_CHECKED" ||
+                                            submissions[subchapter.id]!
                                               .status === "REJECTED") && (
                                             <Button
-                                              variant="ghost"
+                                              variant="destructive"
                                               size="sm"
                                               onClick={() =>
                                                 deleteSubmission(subchapter.id)
@@ -443,9 +453,13 @@ export default function StudentCourseDetailsPage() {
                                                 deletingSubmission ===
                                                 subchapter.id
                                               }
-                                              className="text-red-600 hover:text-red-800"
+                                              className="gap-2"
                                             >
                                               <Trash2 className="h-4 w-4" />
+                                              {deletingSubmission ===
+                                              subchapter.id
+                                                ? "Usuwanie..."
+                                                : "Usuń"}
                                             </Button>
                                           )}
                                         </div>

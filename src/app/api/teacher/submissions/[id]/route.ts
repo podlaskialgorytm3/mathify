@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { unlink } from "fs/promises";
+import path from "path";
 
 export async function GET(
   request: NextRequest,
@@ -206,6 +208,80 @@ export async function PUT(
     console.error("Error updating submission:", error);
     return NextResponse.json(
       { error: "Failed to update submission" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth();
+
+    if (!session || session.user.role !== "TEACHER") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    // Znajdź submission i sprawdź czy nauczyciel ma dostęp
+    const submission = await prisma.submission.findUnique({
+      where: { id },
+      include: {
+        subchapter: {
+          include: {
+            chapter: {
+              include: {
+                course: {
+                  select: {
+                    teacherId: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!submission) {
+      return NextResponse.json(
+        { error: "Submission not found" },
+        { status: 404 }
+      );
+    }
+
+    // Sprawdź czy nauczyciel prowadzi ten kurs
+    if (submission.subchapter.chapter.course.teacherId !== session.user.id) {
+      return NextResponse.json(
+        { error: "You can only delete submissions from your courses" },
+        { status: 403 }
+      );
+    }
+
+    // Usuń plik z dysku
+    try {
+      const filePath = path.join(process.cwd(), "public", submission.filePath);
+      await unlink(filePath);
+    } catch (fileError) {
+      console.error("Error deleting file:", fileError);
+      // Kontynuuj nawet jeśli plik nie istnieje
+    }
+
+    // Usuń rekord z bazy (cascade usunie Tasks i AIResult)
+    await prisma.submission.delete({
+      where: { id },
+    });
+
+    return NextResponse.json({
+      message: "Submission deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting submission:", error);
+    return NextResponse.json(
+      { error: "Failed to delete submission" },
       { status: 500 }
     );
   }

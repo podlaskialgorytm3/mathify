@@ -19,6 +19,7 @@ import {
   Download,
   X,
   Star,
+  Trash2,
 } from "lucide-react";
 
 interface Submission {
@@ -138,6 +139,44 @@ export default function TeacherSubmissionsPage() {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (submissionId: string) => {
+    if (!confirm("Czy na pewno chcesz usunąć tę pracę domową?")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/teacher/submissions/${submissionId}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to delete submission");
+      }
+
+      toast({
+        title: "Sukces",
+        description: "Praca domowa została usunięta",
+      });
+
+      // Zamknij modal jeśli był otwarty
+      if (selectedSubmission?.id === submissionId) {
+        setSelectedSubmission(null);
+      }
+
+      // Odśwież listę
+      await fetchSubmissions();
+    } catch (error) {
+      console.error("Error deleting submission:", error);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się usunąć pracy",
+        variant: "destructive",
+      });
     }
   };
 
@@ -622,6 +661,15 @@ export default function TeacherSubmissionsPage() {
                       <Download className="w-4 h-4" />
                       Pobierz
                     </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(selectedSubmission.id)}
+                      className="gap-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Usuń
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -732,8 +780,8 @@ export default function TeacherSubmissionsPage() {
                             className="p-3 border rounded-lg bg-gray-50"
                           >
                             <div className="flex items-start gap-3">
-                              <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
-                                <div>
+                              <div className="flex-1 flex gap-3 items-end">
+                                <div className="w-32">
                                   <Label className="text-xs">Zadanie</Label>
                                   <Input
                                     value={`Zadanie ${task.taskNumber}`}
@@ -741,7 +789,7 @@ export default function TeacherSubmissionsPage() {
                                     className="bg-white"
                                   />
                                 </div>
-                                <div>
+                                <div className="w-32">
                                   <Label className="text-xs">
                                     Punkty zdobyte
                                   </Label>
@@ -763,7 +811,7 @@ export default function TeacherSubmissionsPage() {
                                     className="bg-white"
                                   />
                                 </div>
-                                <div>
+                                <div className="w-32">
                                   <Label className="text-xs">Max punktów</Label>
                                   <Input
                                     type="number"
@@ -782,10 +830,12 @@ export default function TeacherSubmissionsPage() {
                                     className="bg-white"
                                   />
                                 </div>
-                                <div>
+                                <div className="flex-1">
                                   <Label className="text-xs">Komentarz</Label>
                                   <Input
-                                    value={task.teacherComment}
+                                    value={
+                                      task.teacherComment || task.comment || ""
+                                    }
                                     onChange={(e) =>
                                       updateTask(
                                         task.taskNumber,
