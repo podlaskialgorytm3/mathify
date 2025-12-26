@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { studentId: string; courseId: string } }
+  { params }: { params: Promise<{ studentId: string; courseId: string }> }
 ) {
   try {
     const session = await auth();
@@ -13,7 +13,7 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { studentId, courseId } = params;
+    const { studentId, courseId } = await params;
 
     // Sprawdź czy nauczyciel jest właścicielem kursu
     const course = await prisma.course.findFirst({
@@ -90,6 +90,7 @@ export async function GET(
             id: true,
             title: true,
             order: true,
+            allowSubmissions: true,
             visibility: {
               where: {
                 studentId: studentId,
@@ -97,6 +98,7 @@ export async function GET(
               select: {
                 id: true,
                 isVisible: true,
+                canSubmit: true,
                 unlockedAt: true,
               },
             },
@@ -118,6 +120,7 @@ export async function GET(
         id: subchapter.id,
         title: subchapter.title,
         order: subchapter.order,
+        allowSubmissions: subchapter.allowSubmissions,
         visibility: subchapter.visibility[0] || null,
       })),
     }));
@@ -138,7 +141,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { studentId: string; courseId: string } }
+  { params }: { params: Promise<{ studentId: string; courseId: string }> }
 ) {
   try {
     const session = await auth();
@@ -147,7 +150,7 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { studentId, courseId } = params;
+    const { studentId, courseId } = await params;
     const body = await request.json();
     const { changes } = body;
 
@@ -188,10 +191,19 @@ export async function PUT(
       for (const [id, change] of Object.entries(changes)) {
         const changeData = change as {
           type: "chapter" | "subchapter";
-          isVisible: boolean;
+          isVisible?: boolean;
+          canSubmit?: boolean;
         };
 
         if (changeData.type === "chapter") {
+          const updateData: { isVisible?: boolean; unlockedAt?: Date | null } =
+            {};
+
+          if (changeData.isVisible !== undefined) {
+            updateData.isVisible = changeData.isVisible;
+            updateData.unlockedAt = changeData.isVisible ? new Date() : null;
+          }
+
           await tx.chapterVisibility.upsert({
             where: {
               chapterId_studentId: {
@@ -199,18 +211,30 @@ export async function PUT(
                 studentId: studentId,
               },
             },
-            update: {
-              isVisible: changeData.isVisible,
-              unlockedAt: changeData.isVisible ? new Date() : null,
-            },
+            update: updateData,
             create: {
               chapterId: id,
               studentId: studentId,
-              isVisible: changeData.isVisible,
+              isVisible: changeData.isVisible ?? false,
               unlockedAt: changeData.isVisible ? new Date() : null,
             },
           });
         } else if (changeData.type === "subchapter") {
+          const updateData: {
+            isVisible?: boolean;
+            canSubmit?: boolean;
+            unlockedAt?: Date | null;
+          } = {};
+
+          if (changeData.isVisible !== undefined) {
+            updateData.isVisible = changeData.isVisible;
+            updateData.unlockedAt = changeData.isVisible ? new Date() : null;
+          }
+
+          if (changeData.canSubmit !== undefined) {
+            updateData.canSubmit = changeData.canSubmit;
+          }
+
           await tx.subchapterVisibility.upsert({
             where: {
               subchapterId_studentId: {
@@ -218,14 +242,12 @@ export async function PUT(
                 studentId: studentId,
               },
             },
-            update: {
-              isVisible: changeData.isVisible,
-              unlockedAt: changeData.isVisible ? new Date() : null,
-            },
+            update: updateData,
             create: {
               subchapterId: id,
               studentId: studentId,
-              isVisible: changeData.isVisible,
+              isVisible: changeData.isVisible ?? false,
+              canSubmit: changeData.canSubmit ?? false,
               unlockedAt: changeData.isVisible ? new Date() : null,
             },
           });

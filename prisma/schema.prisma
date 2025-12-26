@@ -176,6 +176,7 @@ model SubchapterVisibility {
   subchapterId String
   studentId    String
   isVisible    Boolean  @default(false)
+  canSubmit    Boolean  @default(false)
   unlockedAt   DateTime?
 
   // Relations

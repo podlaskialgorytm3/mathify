@@ -673,6 +673,15 @@ export default function CourseDetailsPage({
           </div>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() =>
+              router.push(`/dashboard/teacher/courses/${id}/submissions`)
+            }
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            Prace domowe
+          </Button>
           <Button variant="outline" onClick={() => setShowEnrollModal(true)}>
             <UserPlus className="w-4 h-4 mr-2" />
             Dodaj ucznia

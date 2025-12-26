@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -13,7 +13,7 @@ export async function GET(
       return NextResponse.json({ error: "Brak uprawnień" }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     const course = await prisma.course.findUnique({
       where: {
@@ -90,7 +90,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -99,7 +99,7 @@ export async function PUT(
       return NextResponse.json({ error: "Brak uprawnień" }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
     const { title, description } = body;
 
@@ -150,7 +150,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -159,7 +159,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Brak uprawnień" }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = await params;
 
     // Check if course belongs to teacher
     const course = await prisma.course.findUnique({
