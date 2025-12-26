@@ -77,6 +77,15 @@ interface Stats {
   rejected: number;
 }
 
+interface TaskInput {
+  id?: string;
+  taskNumber: number;
+  pointsEarned: number;
+  maxPoints: number;
+  comment: string;
+  teacherComment: string;
+}
+
 export default function TeacherSubmissionsPage() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [courses, setCourses] = useState<any[]>([]);
@@ -95,6 +104,7 @@ export default function TeacherSubmissionsPage() {
     useState<Submission | null>(null);
   const [reviewComment, setReviewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [editedTasks, setEditedTasks] = useState<TaskInput[]>([]);
   const { toast } = useToast();
 
   const fetchSubmissions = async () => {
@@ -178,6 +188,40 @@ export default function TeacherSubmissionsPage() {
     );
   };
 
+  const addTask = () => {
+    const nextTaskNumber =
+      editedTasks.length > 0
+        ? Math.max(...editedTasks.map((t) => t.taskNumber)) + 1
+        : 1;
+
+    setEditedTasks([
+      ...editedTasks,
+      {
+        taskNumber: nextTaskNumber,
+        pointsEarned: 0,
+        maxPoints: 0,
+        comment: "",
+        teacherComment: "",
+      },
+    ]);
+  };
+
+  const removeTask = (taskNumber: number) => {
+    setEditedTasks(editedTasks.filter((t) => t.taskNumber !== taskNumber));
+  };
+
+  const updateTask = (
+    taskNumber: number,
+    field: keyof TaskInput,
+    value: any
+  ) => {
+    setEditedTasks(
+      editedTasks.map((t) =>
+        t.taskNumber === taskNumber ? { ...t, [field]: value } : t
+      )
+    );
+  };
+
   const openSubmissionDetails = async (submission: Submission) => {
     try {
       const response = await fetch(`/api/teacher/submissions/${submission.id}`);
@@ -186,6 +230,8 @@ export default function TeacherSubmissionsPage() {
       if (response.ok) {
         setSelectedSubmission(data.submission);
         setReviewComment("");
+        // Załaduj istniejące zadania
+        setEditedTasks(data.submission.tasks || []);
       } else {
         toast({
           title: "Błąd",
@@ -216,6 +262,7 @@ export default function TeacherSubmissionsPage() {
             status: newStatus,
             approved: approved,
             generalComment: reviewComment || null,
+            tasks: editedTasks,
           }),
         }
       );
@@ -611,6 +658,105 @@ export default function TeacherSubmissionsPage() {
               <div className="border-t pt-6">
                 <h3 className="font-semibold mb-4">Twoja ocena</h3>
                 <div className="space-y-4">
+                  {/* Tasks Section */}
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <Label>Zadania</Label>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addTask}
+                      >
+                        Dodaj Zadanie
+                      </Button>
+                    </div>
+
+                    {editedTasks.length > 0 && (
+                      <div className="space-y-2">
+                        {editedTasks.map((task) => (
+                          <div
+                            key={task.taskNumber}
+                            className="p-3 border rounded-lg bg-gray-50"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="flex-1 grid grid-cols-1 md:grid-cols-4 gap-3">
+                                <div>
+                                  <Label className="text-xs">Zadanie</Label>
+                                  <Input
+                                    value={`Zadanie ${task.taskNumber}`}
+                                    disabled
+                                    className="bg-white"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">
+                                    Punkty zdobyte
+                                  </Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.5"
+                                    value={task.pointsEarned}
+                                    onChange={(e) =>
+                                      updateTask(
+                                        task.taskNumber,
+                                        "pointsEarned",
+                                        parseFloat(e.target.value) || 0
+                                      )
+                                    }
+                                    className="bg-white"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Max punktów</Label>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.5"
+                                    value={task.maxPoints}
+                                    onChange={(e) =>
+                                      updateTask(
+                                        task.taskNumber,
+                                        "maxPoints",
+                                        parseFloat(e.target.value) || 0
+                                      )
+                                    }
+                                    className="bg-white"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-xs">Komentarz</Label>
+                                  <Input
+                                    value={task.teacherComment}
+                                    onChange={(e) =>
+                                      updateTask(
+                                        task.taskNumber,
+                                        "teacherComment",
+                                        e.target.value
+                                      )
+                                    }
+                                    placeholder="Komentarz..."
+                                    className="bg-white"
+                                  />
+                                </div>
+                              </div>
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeTask(task.taskNumber)}
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <div>
                     <Label htmlFor="review-feedback">Komentarz</Label>
                     <textarea

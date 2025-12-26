@@ -408,25 +408,29 @@ export default function StudentSubmissionsPage() {
                           )}
                         </span>
 
-                        {submission.tasks.length > 0 && (
-                          <span className="text-sm font-semibold">
-                            Ocena: {score.earned.toFixed(1)} /{" "}
-                            {score.max.toFixed(1)} (
-                            {score.percentage.toFixed(0)}%)
-                          </span>
-                        )}
+                        {submission.status === "APPROVED" &&
+                          submission.tasks.length > 0 && (
+                            <span className="text-sm font-semibold text-green-700">
+                              Ocena: {score.earned.toFixed(1)} /{" "}
+                              {score.max.toFixed(1)} (
+                              {score.percentage.toFixed(0)}%)
+                            </span>
+                          )}
                       </div>
                     </div>
 
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => openSubmissionDetails(submission)}
-                      className="gap-2"
-                    >
-                      <Eye className="h-4 w-4" />
-                      Szczegóły
-                    </Button>
+                    {(submission.status === "APPROVED" ||
+                      submission.status === "REJECTED") && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openSubmissionDetails(submission)}
+                        className="gap-2"
+                      >
+                        <Eye className="h-4 w-4" />
+                        Szczegóły
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>

@@ -100,7 +100,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { status, approved, generalComment } = body;
+    const { status, approved, generalComment, tasks } = body;
 
     // Sprawdź czy submission istnieje i czy nauczyciel ma do niego dostęp
     const submission = await prisma.submission.findUnique({
@@ -171,6 +171,29 @@ export async function PUT(
             approved: approved || false,
             generalComment: generalComment || null,
           },
+        });
+      }
+    }
+
+    // Zarządzanie zadaniami (tasks)
+    if (tasks && Array.isArray(tasks)) {
+      // Usuń wszystkie istniejące zadania
+      await prisma.task.deleteMany({
+        where: { submissionId: id },
+      });
+
+      // Utwórz nowe zadania
+      if (tasks.length > 0) {
+        await prisma.task.createMany({
+          data: tasks.map((task: any) => ({
+            submissionId: id,
+            taskNumber: task.taskNumber,
+            pointsEarned: task.pointsEarned,
+            maxPoints: task.maxPoints,
+            comment: task.comment || null,
+            teacherComment: task.teacherComment || null,
+            teacherEdited: true,
+          })),
         });
       }
     }
