@@ -23,12 +23,14 @@ import {
 
 interface Submission {
   id: string;
-  content: string;
+  filePath: string;
+  fileName: string;
+  fileSize: number;
   status: string;
   score: number | null;
   aiScore: number | null;
   aiFeedback: string | null;
-  createdAt: string;
+  submittedAt: string;
   student: {
     id: string;
     firstName: string;
@@ -49,19 +51,22 @@ interface Submission {
       };
     };
   };
-  reviews: Array<{
+  review: {
     id: string;
-    feedback: string;
-    score: number | null;
-    createdAt: string;
-    reviewer: {
+    generalComment: string | null;
+    approved: boolean;
+    reviewedAt: string;
+    teacher: {
       firstName: string;
       lastName: string;
     };
+  } | null;
+  tasks: Array<{
+    id: string;
+    taskNumber: number;
+    pointsEarned: number;
+    maxPoints: number;
   }>;
-  _count: {
-    reviews: number;
-  };
 }
 
 interface Stats {
@@ -436,7 +441,7 @@ export default function TeacherSubmissionsPage() {
                           </p>
                           <p>
                             <strong>Przesłano:</strong>{" "}
-                            {new Date(submission.createdAt).toLocaleString(
+                            {new Date(submission.submittedAt).toLocaleString(
                               "pl-PL"
                             )}
                           </p>
@@ -536,15 +541,34 @@ export default function TeacherSubmissionsPage() {
               <div>
                 <h3 className="font-semibold mb-2">Przesłana praca</h3>
                 <div className="p-4 border rounded-lg bg-white">
-                  <a
-                    href={selectedSubmission.content}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-blue-600 hover:underline"
-                  >
-                    <Download className="w-4 h-4" />
-                    Pobierz plik pracy
-                  </a>
+                  <div className="mb-2">
+                    <p className="text-sm text-gray-600">Nazwa pliku:</p>
+                    <p className="font-medium">{selectedSubmission.fileName}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        window.open(selectedSubmission.filePath, "_blank")
+                      }
+                      className="gap-2"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Zobacz
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        window.open(selectedSubmission.filePath, "_blank")
+                      }
+                      className="gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Pobierz
+                    </Button>
+                  </div>
                 </div>
               </div>
 
@@ -563,35 +587,33 @@ export default function TeacherSubmissionsPage() {
                 </div>
               )}
 
-              {/* Previous Reviews */}
-              {selectedSubmission.reviews.length > 0 && (
+              {/* Previous Review */}
+              {selectedSubmission.review && (
                 <div>
-                  <h3 className="font-semibold mb-2">Historia ocen</h3>
-                  <div className="space-y-2">
-                    {selectedSubmission.reviews.map((review) => (
-                      <div
-                        key={review.id}
-                        className="p-3 border rounded-lg bg-gray-50"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="font-medium text-sm">
-                            {review.reviewer.firstName}{" "}
-                            {review.reviewer.lastName}
-                          </span>
-                          <span className="text-xs text-gray-600">
-                            {new Date(review.createdAt).toLocaleString("pl-PL")}
-                          </span>
-                        </div>
-                        {review.score !== null && (
-                          <p className="text-sm font-semibold mb-1">
-                            Ocena: {review.score}/100
-                          </p>
-                        )}
-                        <p className="text-sm text-gray-700">
-                          {review.feedback}
-                        </p>
-                      </div>
-                    ))}
+                  <h3 className="font-semibold mb-2">Poprzednia ocena</h3>
+                  <div className="p-3 border rounded-lg bg-gray-50">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium text-sm">
+                        {selectedSubmission.review.teacher.firstName}{" "}
+                        {selectedSubmission.review.teacher.lastName}
+                      </span>
+                      <span className="text-xs text-gray-600">
+                        {new Date(
+                          selectedSubmission.review.reviewedAt
+                        ).toLocaleString("pl-PL")}
+                      </span>
+                    </div>
+                    <p className="text-sm font-semibold mb-1">
+                      Status:{" "}
+                      {selectedSubmission.review.approved
+                        ? "Zaakceptowana"
+                        : "Odrzucona"}
+                    </p>
+                    {selectedSubmission.review.generalComment && (
+                      <p className="text-sm text-gray-700">
+                        {selectedSubmission.review.generalComment}
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

@@ -49,12 +49,9 @@ export async function GET(
             },
           },
         },
-        reviews: {
-          orderBy: {
-            createdAt: "desc",
-          },
+        review: {
           include: {
-            reviewer: {
+            teacher: {
               select: {
                 firstName: true,
                 lastName: true,
@@ -63,6 +60,8 @@ export async function GET(
             },
           },
         },
+        tasks: true,
+        aiResult: true,
       },
     });
 

@@ -13,15 +13,18 @@ import {
   EyeOff,
   Save,
   ChevronRight,
+  Upload,
 } from "lucide-react";
 
 interface Subchapter {
   id: string;
   title: string;
   order: number;
+  allowSubmissions: boolean;
   visibility: {
     id: string;
     isVisible: boolean;
+    canSubmit: boolean;
     unlockedAt: string | null;
   } | null;
 }
@@ -58,7 +61,14 @@ export default function StudentCourseVisibilityPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [changes, setChanges] = useState<
-    Record<string, { type: "chapter" | "subchapter"; isVisible: boolean }>
+    Record<
+      string,
+      {
+        type: "chapter" | "subchapter";
+        isVisible?: boolean;
+        canSubmit?: boolean;
+      }
+    >
   >({});
 
   useEffect(() => {
@@ -107,21 +117,56 @@ export default function StudentCourseVisibilityPage() {
     subchapterId: string,
     currentEffectiveValue: boolean
   ) => {
-    setChanges((prev) => ({
-      ...prev,
-      [subchapterId]: {
-        type: "subchapter",
-        isVisible: !currentEffectiveValue,
-      },
-    }));
+    setChanges((prev) => {
+      const existingChange = prev[subchapterId] || {
+        type: "subchapter" as const,
+      };
+      return {
+        ...prev,
+        [subchapterId]: {
+          ...existingChange,
+          type: "subchapter",
+          isVisible: !currentEffectiveValue,
+        },
+      };
+    });
+  };
+
+  const toggleSubchapterSubmission = (
+    subchapterId: string,
+    currentEffectiveValue: boolean
+  ) => {
+    setChanges((prev) => {
+      const existingChange = prev[subchapterId] || {
+        type: "subchapter" as const,
+      };
+      return {
+        ...prev,
+        [subchapterId]: {
+          ...existingChange,
+          type: "subchapter",
+          canSubmit: !currentEffectiveValue,
+        },
+      };
+    });
   };
 
   const getEffectiveVisibility = (
     id: string,
     originalValue: boolean
   ): boolean => {
-    if (changes[id]) {
-      return changes[id].isVisible;
+    if (changes[id] && changes[id].isVisible !== undefined) {
+      return changes[id].isVisible!;
+    }
+    return originalValue;
+  };
+
+  const getEffectiveCanSubmit = (
+    id: string,
+    originalValue: boolean
+  ): boolean => {
+    if (changes[id] && changes[id].canSubmit !== undefined) {
+      return changes[id].canSubmit!;
     }
     return originalValue;
   };
@@ -299,6 +344,10 @@ export default function StudentCourseVisibilityPage() {
                           subchapter.id,
                           subchapter.visibility?.isVisible || false
                         );
+                        const canSubmit = getEffectiveCanSubmit(
+                          subchapter.id,
+                          subchapter.visibility?.canSubmit || false
+                        );
 
                         return (
                           <div
@@ -311,26 +360,59 @@ export default function StudentCourseVisibilityPage() {
                                 {chapter.order}.{subchapter.order}{" "}
                                 {subchapter.title}
                               </span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {subchapterVisible ? (
-                                <Eye className="h-4 w-4 text-green-600" />
-                              ) : (
-                                <EyeOff className="h-4 w-4 text-gray-400" />
+                              {subchapter.allowSubmissions && (
+                                <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded">
+                                  Praca domowa
+                                </span>
                               )}
-                              <Switch
-                                checked={subchapterVisible}
-                                onCheckedChange={() =>
-                                  toggleSubchapterVisibility(
-                                    subchapter.id,
-                                    subchapter.visibility?.isVisible || false
-                                  )
-                                }
-                              />
-                              Visibl
-                              <span className="text-sm text-gray-600">
-                                {subchapterVisible ? "Widoczny" : "Ukryty"}
-                              </span>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              {/* Widoczność */}
+                              <div className="flex items-center gap-2">
+                                {subchapterVisible ? (
+                                  <Eye className="h-4 w-4 text-green-600" />
+                                ) : (
+                                  <EyeOff className="h-4 w-4 text-gray-400" />
+                                )}
+                                <Switch
+                                  checked={subchapterVisible}
+                                  onCheckedChange={() =>
+                                    toggleSubchapterVisibility(
+                                      subchapter.id,
+                                      subchapterVisible
+                                    )
+                                  }
+                                />
+                                <span className="text-sm text-gray-600">
+                                  {subchapterVisible ? "Widoczny" : "Ukryty"}
+                                </span>
+                              </div>
+
+                              {/* Możliwość wysyłania pracy */}
+                              {subchapter.allowSubmissions && (
+                                <div className="flex items-center gap-2 pl-4 border-l">
+                                  {canSubmit ? (
+                                    <Upload className="h-4 w-4 text-blue-600" />
+                                  ) : (
+                                    <Upload className="h-4 w-4 text-gray-400" />
+                                  )}
+                                  <Switch
+                                    checked={canSubmit}
+                                    onCheckedChange={() =>
+                                      toggleSubchapterSubmission(
+                                        subchapter.id,
+                                        canSubmit
+                                      )
+                                    }
+                                    disabled={!subchapterVisible}
+                                  />
+                                  <span className="text-sm text-gray-600">
+                                    {canSubmit
+                                      ? "Wysyłanie włączone"
+                                      : "Wysyłanie wyłączone"}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
