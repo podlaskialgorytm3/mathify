@@ -216,9 +216,27 @@ export default function TeacherSubmissionsPage() {
     value: any
   ) => {
     setEditedTasks(
-      editedTasks.map((t) =>
-        t.taskNumber === taskNumber ? { ...t, [field]: value } : t
-      )
+      editedTasks.map((t) => {
+        if (t.taskNumber !== taskNumber) return t;
+
+        const updatedTask = { ...t, [field]: value };
+
+        // Walidacja: punkty zdobyte nie mogą być większe niż max punktów
+        if (
+          field === "pointsEarned" &&
+          value > t.maxPoints &&
+          t.maxPoints > 0
+        ) {
+          updatedTask.pointsEarned = t.maxPoints;
+        }
+
+        // Walidacja: max punktów nie może być mniejsze niż punkty zdobyte
+        if (field === "maxPoints" && value < t.pointsEarned && value >= 0) {
+          updatedTask.maxPoints = t.pointsEarned;
+        }
+
+        return updatedTask;
+      })
     );
   };
 
@@ -608,14 +626,48 @@ export default function TeacherSubmissionsPage() {
                 </div>
               </div>
 
-              {/* AI Feedback */}
+              {/* AI Feedback with Student Score */}
               {selectedSubmission.aiFeedback && (
                 <div className="p-4 bg-blue-50 rounded-lg">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Bot className="w-5 h-5 text-blue-600" />
-                    <h3 className="font-semibold text-blue-900">
-                      Ocena AI ({selectedSubmission.aiScore}/100)
-                    </h3>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Bot className="w-5 h-5 text-blue-600" />
+                      <h3 className="font-semibold text-blue-900">
+                        Ocena AI ({selectedSubmission.aiScore}/100)
+                      </h3>
+                    </div>
+                    {selectedSubmission.tasks &&
+                      selectedSubmission.tasks.length > 0 && (
+                        <div className="text-right">
+                          {(() => {
+                            const totalEarned = selectedSubmission.tasks.reduce(
+                              (sum, t) => sum + t.pointsEarned,
+                              0
+                            );
+                            const totalMax = selectedSubmission.tasks.reduce(
+                              (sum, t) => sum + t.maxPoints,
+                              0
+                            );
+                            const percentage =
+                              totalMax > 0 ? (totalEarned / totalMax) * 100 : 0;
+
+                            return (
+                              <div className="bg-green-100 px-3 py-1 rounded-lg border border-green-300">
+                                <p className="text-xs text-green-700 font-medium">
+                                  Wynik ucznia
+                                </p>
+                                <p className="text-xl font-bold text-green-700">
+                                  {percentage.toFixed(0)}%
+                                </p>
+                                <p className="text-xs text-green-600">
+                                  {totalEarned.toFixed(1)} /{" "}
+                                  {totalMax.toFixed(1)} pkt
+                                </p>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
                   </div>
                   <p className="text-sm text-blue-800">
                     {selectedSubmission.aiFeedback}
@@ -696,15 +748,18 @@ export default function TeacherSubmissionsPage() {
                                   <Input
                                     type="number"
                                     min="0"
+                                    max={task.maxPoints || undefined}
                                     step="0.5"
                                     value={task.pointsEarned}
-                                    onChange={(e) =>
+                                    onChange={(e) => {
+                                      const val =
+                                        parseFloat(e.target.value) || 0;
                                       updateTask(
                                         task.taskNumber,
                                         "pointsEarned",
-                                        parseFloat(e.target.value) || 0
-                                      )
-                                    }
+                                        val
+                                      );
+                                    }}
                                     className="bg-white"
                                   />
                                 </div>
@@ -712,16 +767,18 @@ export default function TeacherSubmissionsPage() {
                                   <Label className="text-xs">Max punktów</Label>
                                   <Input
                                     type="number"
-                                    min="0"
+                                    min={task.pointsEarned || 0}
                                     step="0.5"
                                     value={task.maxPoints}
-                                    onChange={(e) =>
+                                    onChange={(e) => {
+                                      const val =
+                                        parseFloat(e.target.value) || 0;
                                       updateTask(
                                         task.taskNumber,
                                         "maxPoints",
-                                        parseFloat(e.target.value) || 0
-                                      )
-                                    }
+                                        val
+                                      );
+                                    }}
                                     className="bg-white"
                                   />
                                 </div>
