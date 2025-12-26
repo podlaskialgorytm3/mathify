@@ -27,7 +27,6 @@ interface Submission {
   fileName: string;
   fileSize: number;
   status: string;
-  score: number | null;
   aiScore: number | null;
   aiFeedback: string | null;
   submittedAt: string;
@@ -94,8 +93,7 @@ export default function TeacherSubmissionsPage() {
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
   const [selectedSubmission, setSelectedSubmission] =
     useState<Submission | null>(null);
-  const [reviewFeedback, setReviewFeedback] = useState("");
-  const [reviewScore, setReviewScore] = useState<number>(0);
+  const [reviewComment, setReviewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
@@ -187,8 +185,7 @@ export default function TeacherSubmissionsPage() {
 
       if (response.ok) {
         setSelectedSubmission(data.submission);
-        setReviewFeedback("");
-        setReviewScore(data.submission.score || 0);
+        setReviewComment("");
       } else {
         toast({
           title: "Błąd",
@@ -205,7 +202,7 @@ export default function TeacherSubmissionsPage() {
     }
   };
 
-  const submitReview = async (newStatus: string) => {
+  const submitReview = async (newStatus: string, approved?: boolean) => {
     if (!selectedSubmission) return;
 
     try {
@@ -217,8 +214,8 @@ export default function TeacherSubmissionsPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             status: newStatus,
-            score: reviewScore,
-            feedback: reviewFeedback,
+            approved: approved,
+            generalComment: reviewComment || null,
           }),
         }
       );
@@ -446,14 +443,6 @@ export default function TeacherSubmissionsPage() {
                             )}
                           </p>
                         </div>
-                        {submission.score !== null && (
-                          <div className="mt-2 flex items-center gap-2">
-                            <Star className="w-4 h-4 text-yellow-500" />
-                            <span className="font-semibold">
-                              Ocena: {submission.score}/100
-                            </span>
-                          </div>
-                        )}
                         {submission.aiScore !== null && (
                           <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
                             <div className="flex items-center gap-2 mb-1">
@@ -623,24 +612,11 @@ export default function TeacherSubmissionsPage() {
                 <h3 className="font-semibold mb-4">Twoja ocena</h3>
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="review-score">Ocena (0-100)</Label>
-                    <Input
-                      id="review-score"
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={reviewScore}
-                      onChange={(e) =>
-                        setReviewScore(parseInt(e.target.value) || 0)
-                      }
-                    />
-                  </div>
-                  <div>
                     <Label htmlFor="review-feedback">Komentarz</Label>
                     <textarea
                       id="review-feedback"
-                      value={reviewFeedback}
-                      onChange={(e) => setReviewFeedback(e.target.value)}
+                      value={reviewComment}
+                      onChange={(e) => setReviewComment(e.target.value)}
                       className="w-full p-2 border rounded-md min-h-[120px]"
                       placeholder="Dodaj swój komentarz do pracy ucznia..."
                     />
@@ -649,21 +625,21 @@ export default function TeacherSubmissionsPage() {
                     <Button
                       variant="outline"
                       onClick={() => submitReview("TEACHER_REVIEWING")}
-                      disabled={submitting || !reviewFeedback}
+                      disabled={submitting}
                     >
                       Zapisz jako wersję roboczą
                     </Button>
                     <Button
                       variant="destructive"
-                      onClick={() => submitReview("REJECTED")}
-                      disabled={submitting || !reviewFeedback}
+                      onClick={() => submitReview("REJECTED", false)}
+                      disabled={submitting}
                     >
                       <XCircle className="w-4 h-4 mr-2" />
                       Odrzuć
                     </Button>
                     <Button
-                      onClick={() => submitReview("APPROVED")}
-                      disabled={submitting || !reviewFeedback}
+                      onClick={() => submitReview("APPROVED", true)}
+                      disabled={submitting}
                     >
                       <CheckCircle className="w-4 h-4 mr-2" />
                       Zaakceptuj

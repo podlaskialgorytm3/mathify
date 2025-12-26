@@ -100,7 +100,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { status, score, feedback } = body;
+    const { status, approved, generalComment } = body;
 
     // Sprawdź czy submission istnieje i czy nauczyciel ma do niego dostęp
     const submission = await prisma.submission.findUnique({
@@ -133,25 +133,46 @@ export async function PUT(
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    // Aktualizuj submission
+    // Aktualizuj status submission
     const updatedSubmission = await prisma.submission.update({
       where: { id },
       data: {
         status: status || submission.status,
-        score: score !== undefined ? score : submission.score,
       },
     });
 
-    // Dodaj review jeśli podano feedback
-    if (feedback) {
-      await prisma.submissionReview.create({
-        data: {
-          submissionId: id,
-          reviewerId: session.user.id,
-          feedback,
-          score: score !== undefined ? score : null,
-        },
+    // Utwórz lub zaktualizuj review
+    if (approved !== undefined || generalComment) {
+      // Sprawdź czy review już istnieje
+      const existingReview = await prisma.submissionReview.findUnique({
+        where: { submissionId: id },
       });
+
+      if (existingReview) {
+        // Aktualizuj istniejący review
+        await prisma.submissionReview.update({
+          where: { submissionId: id },
+          data: {
+            approved:
+              approved !== undefined ? approved : existingReview.approved,
+            generalComment:
+              generalComment !== undefined
+                ? generalComment
+                : existingReview.generalComment,
+            reviewedAt: new Date(),
+          },
+        });
+      } else {
+        // Utwórz nowy review
+        await prisma.submissionReview.create({
+          data: {
+            submissionId: id,
+            teacherId: session.user.id,
+            approved: approved || false,
+            generalComment: generalComment || null,
+          },
+        });
+      }
     }
 
     return NextResponse.json({
