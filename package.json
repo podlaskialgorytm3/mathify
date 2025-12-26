@@ -47,6 +47,7 @@
     "react-dom": "^19.0.0",
     "react-dropzone": "^14.3.5",
     "react-hook-form": "^7.54.0",
+    "react-markdown": "^10.1.0",
     "swagger-ui-react": "^5.18.2",
     "tailwind-merge": "^2.5.4",
     "tailwindcss-animate": "^1.0.7",

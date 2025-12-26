@@ -65,6 +65,7 @@ model User {
   teacherReviews      SubmissionReview[] @relation("TeacherReviews")
   chapterVisibility   ChapterVisibility[]
   subchapterVisibility SubchapterVisibility[]
+  aiPromptTemplates   AIPromptTemplate[] @relation("TeacherAIPrompts")
 
   @@index([email])
   @@index([username])
@@ -287,4 +288,19 @@ model Notification {
   @@index([userId])
   @@index([read])
   @@index([createdAt])
+}
+
+model AIPromptTemplate {
+  id          String   @id @default(cuid())
+  teacherId   String
+  name        String
+  prompt      String   @db.Text
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  teacher     User     @relation("TeacherAIPrompts", fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([teacherId])
 }

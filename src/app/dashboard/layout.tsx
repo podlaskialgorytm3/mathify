@@ -10,6 +10,7 @@ import {
   Users,
   Settings,
   BarChart,
+  Bot,
 } from "lucide-react";
 
 export default async function DashboardLayout({
@@ -43,6 +44,11 @@ export default async function DashboardLayout({
         name: "Sprawdzanie prac",
         href: "/dashboard/teacher/submissions",
         icon: BarChart,
+      },
+      {
+        name: "Ustawienia Zapytań AI",
+        href: "/dashboard/teacher/ai-prompts",
+        icon: Bot,
       },
       { name: "Uczniowie", href: "/dashboard/teacher/students", icon: Users },
     ],
