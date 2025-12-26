@@ -69,10 +69,21 @@ interface Course {
   id: string;
   title: string;
   description: string | null;
+  aiPromptTemplate?: {
+    id: string;
+    name: string;
+    description: string | null;
+  } | null;
   chapters: Chapter[];
   _count: {
     enrollments: number;
   };
+}
+
+interface AIPromptTemplate {
+  id: string;
+  name: string;
+  description: string | null;
 }
 
 export default function CourseDetailsPage({
@@ -112,6 +123,9 @@ export default function CourseDetailsPage({
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searching, setSearching] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
+  const [aiTemplates, setAiTemplates] = useState<AIPromptTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [updatingTemplate, setUpdatingTemplate] = useState(false);
   const { toast } = useToast();
 
   const fetchCourse = async () => {
@@ -122,6 +136,7 @@ export default function CourseDetailsPage({
 
       if (response.ok) {
         setCourse(data.course);
+        setSelectedTemplateId(data.course.aiPromptTemplate?.id || "");
       } else {
         toast({
           title: "Błąd",
@@ -142,8 +157,60 @@ export default function CourseDetailsPage({
     }
   };
 
+  const fetchAITemplates = async () => {
+    try {
+      const response = await fetch("/api/teacher/ai-prompts");
+      const data = await response.json();
+
+      if (response.ok) {
+        setAiTemplates(data.templates);
+      }
+    } catch (error) {
+      console.error("Error fetching AI templates:", error);
+    }
+  };
+
+  const updateAITemplate = async (templateId: string) => {
+    try {
+      setUpdatingTemplate(true);
+      const response = await fetch(`/api/teacher/courses/${courseId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          aiPromptTemplateId: templateId || null,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Sukces",
+          description: "Szablon AI został zaktualizowany",
+        });
+        setSelectedTemplateId(templateId);
+        fetchCourse();
+      } else {
+        toast({
+          title: "Błąd",
+          description: data.error,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Błąd",
+        description: "Wystąpił błąd podczas aktualizacji szablonu",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingTemplate(false);
+    }
+  };
+
   useEffect(() => {
     fetchCourse();
+    fetchAITemplates();
   }, [courseId]);
 
   const toggleChapter = (chapterId: string) => {
@@ -673,15 +740,6 @@ export default function CourseDetailsPage({
           </div>
         </div>
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() =>
-              router.push(`/dashboard/teacher/courses/${id}/submissions`)
-            }
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Prace domowe
-          </Button>
           <Button variant="outline" onClick={() => setShowEnrollModal(true)}>
             <UserPlus className="w-4 h-4 mr-2" />
             Dodaj ucznia
@@ -692,6 +750,42 @@ export default function CourseDetailsPage({
           </Button>
         </div>
       </div>
+
+      {/* AI Template Selector */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Szablon Zapytania AI</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-4">
+            <div className="flex-1">
+              <Label htmlFor="ai-template">
+                Wybierz szablon do sprawdzania prac domowych
+              </Label>
+              <select
+                id="ai-template"
+                value={selectedTemplateId}
+                onChange={(e) => updateAITemplate(e.target.value)}
+                disabled={updatingTemplate}
+                className="w-full p-2 border rounded-md mt-1"
+              >
+                <option value="">Brak szablonu</option>
+                {aiTemplates.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                    {template.description && ` - ${template.description}`}
+                  </option>
+                ))}
+              </select>
+              {course.aiPromptTemplate && (
+                <p className="text-sm text-green-600 mt-2">
+                  Aktualnie używany: {course.aiPromptTemplate.name}
+                </p>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Chapters List */}
       {course.chapters.length === 0 ? (

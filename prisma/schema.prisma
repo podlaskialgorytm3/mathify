@@ -74,19 +74,22 @@ model User {
 }
 
 model Course {
-  id          String   @id @default(cuid())
-  title       String
-  description String?  @db.Text
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  teacherId   String
+  id                  String   @id @default(cuid())
+  title               String
+  description         String?  @db.Text
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  teacherId           String
+  aiPromptTemplateId  String?
 
   // Relations
-  teacher     User     @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
-  chapters    Chapter[]
-  enrollments CourseEnrollment[]
+  teacher            User                @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
+  aiPromptTemplate   AIPromptTemplate?   @relation("CourseAIPrompt", fields: [aiPromptTemplateId], references: [id], onDelete: SetNull)
+  chapters           Chapter[]
+  enrollments        CourseEnrollment[]
 
   @@index([teacherId])
+  @@index([aiPromptTemplateId])
 }
 
 model CourseEnrollment {
@@ -301,6 +304,7 @@ model AIPromptTemplate {
 
   // Relations
   teacher     User     @relation("TeacherAIPrompts", fields: [teacherId], references: [id], onDelete: Cascade)
+  courses     Course[] @relation("CourseAIPrompt")
 
   @@index([teacherId])
 }

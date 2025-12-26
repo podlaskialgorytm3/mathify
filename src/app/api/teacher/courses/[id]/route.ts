@@ -21,6 +21,13 @@ export async function GET(
         teacherId: session.user.id, // Only teacher's own courses
       },
       include: {
+        aiPromptTemplate: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
         chapters: {
           include: {
             subchapters: {
@@ -101,7 +108,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { title, description } = body;
+    const { title, description, aiPromptTemplateId } = body;
 
     // Check if course belongs to teacher
     const existingCourse = await prisma.course.findUnique({
@@ -118,14 +125,40 @@ export async function PUT(
       );
     }
 
+    // If aiPromptTemplateId is provided, verify it belongs to the teacher
+    if (aiPromptTemplateId) {
+      const template = await prisma.aIPromptTemplate.findFirst({
+        where: {
+          id: aiPromptTemplateId,
+          teacherId: session.user.id,
+        },
+      });
+
+      if (!template) {
+        return NextResponse.json(
+          { error: "Szablon nie istnieje lub nie masz do niego dostępu" },
+          { status: 404 }
+        );
+      }
+    }
+
     const updateData: any = {};
     if (title) updateData.title = title;
     if (description !== undefined) updateData.description = description;
+    if (aiPromptTemplateId !== undefined) {
+      updateData.aiPromptTemplateId = aiPromptTemplateId || null;
+    }
 
     const course = await prisma.course.update({
       where: { id },
       data: updateData,
       include: {
+        aiPromptTemplate: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         _count: {
           select: {
             chapters: true,
