@@ -37,7 +37,7 @@ export async function GET() {
   }
 }
 
-// PATCH - aktualizuj imię i nazwisko
+// PATCH - aktualizuj imię, nazwisko i nazwę użytkownika
 export async function PATCH(request: NextRequest) {
   try {
     const session = await auth();
@@ -47,13 +47,27 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { firstName, lastName } = body;
+    const { firstName, lastName, username } = body;
 
-    if (!firstName || !lastName) {
+    if (!firstName || !lastName || !username) {
       return NextResponse.json(
-        { error: "First name and last name are required" },
+        { error: "First name, last name and username are required" },
         { status: 400 }
       );
+    }
+
+    // Sprawdź czy username nie jest już zajęty przez innego użytkownika
+    if (username.trim() !== session.user.username) {
+      const existingUser = await prisma.user.findUnique({
+        where: { username: username.trim() },
+      });
+
+      if (existingUser) {
+        return NextResponse.json(
+          { error: "Username already taken" },
+          { status: 400 }
+        );
+      }
     }
 
     const updatedUser = await prisma.user.update({
@@ -61,6 +75,7 @@ export async function PATCH(request: NextRequest) {
       data: {
         firstName: firstName.trim(),
         lastName: lastName.trim(),
+        username: username.trim(),
       },
       select: {
         id: true,

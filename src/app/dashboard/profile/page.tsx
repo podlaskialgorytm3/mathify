@@ -20,6 +20,7 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
+  const [username, setUsername] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [message, setMessage] = useState<{
     type: "success" | "error";
@@ -38,6 +39,7 @@ export default function ProfilePage() {
         setProfile(data);
         setFirstName(data.firstName);
         setLastName(data.lastName);
+        setUsername(data.username);
       }
     } catch (error) {
       console.error("Error fetching profile:", error);
@@ -47,8 +49,11 @@ export default function ProfilePage() {
   };
 
   const handleUpdateName = async () => {
-    if (!firstName.trim() || !lastName.trim()) {
-      setMessage({ type: "error", text: "Imię i nazwisko są wymagane" });
+    if (!firstName.trim() || !lastName.trim() || !username.trim()) {
+      setMessage({
+        type: "error",
+        text: "Imię, nazwisko i nazwa użytkownika są wymagane",
+      });
       return;
     }
 
@@ -59,7 +64,7 @@ export default function ProfilePage() {
       const response = await fetch("/api/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ firstName, lastName }),
+        body: JSON.stringify({ firstName, lastName, username }),
       });
 
       if (response.ok) {
@@ -226,12 +231,13 @@ export default function ProfilePage() {
             </label>
             <input
               type="text"
-              value={profile.username}
-              disabled
-              className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-gray-500"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Nazwa użytkownika do logowania"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Nazwy użytkownika nie można zmienić
+              Użyj tej nazwy do logowania się w systemie
             </p>
           </div>
 

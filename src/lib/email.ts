@@ -165,7 +165,7 @@ export async function sendPasswordResetEmail(
             <h2>Cześć ${userName}!</h2>
             <p>Otrzymaliśmy prośbę o zresetowanie hasła do Twojego konta.</p>
             <p>Kliknij poniższy przycisk, aby ustawić nowe hasło:</p>
-            <a href="${resetUrl}" class="button">Zresetuj hasło</a>
+            <a href="${resetUrl}" class="button" style="display: inline-block; background-color: #2563eb; color: #ffffff !important; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0;">Zresetuj hasło</a>
             <p>Lub skopiuj i wklej ten link do przeglądarki:</p>
             <p style="word-break: break-all; color: #2563eb;">${resetUrl}</p>
             <p><strong>Link jest ważny przez 1 godzinę.</strong></p>
@@ -216,7 +216,7 @@ export async function sendEmailChangeConfirmation(
             <h2>Cześć ${userName}!</h2>
             <p>Otrzymaliśmy prośbę o zmianę adresu email Twojego konta na: <strong>${newEmail}</strong></p>
             <p>Aby potwierdzić zmianę, kliknij poniższy przycisk:</p>
-            <a href="${confirmUrl}" class="button">Potwierdź zmianę email</a>
+            <a href="${confirmUrl}" class="button" style="display: inline-block; background-color: #2563eb; color: #ffffff !important; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0;">Potwierdź zmianę email</a>
             <p>Lub skopiuj i wklej ten link do przeglądarki:</p>
             <p style="word-break: break-all; color: #2563eb;">${confirmUrl}</p>
             <p><strong>Link jest ważny przez 1 godzinę.</strong></p>
