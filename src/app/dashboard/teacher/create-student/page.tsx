@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
-import { UserPlus, X, CheckCircle, Copy } from "lucide-react";
+import { UserPlus, X, CheckCircle, Copy, Users } from "lucide-react";
+import Link from "next/link";
 
 interface Course {
   id: string;
@@ -288,10 +289,16 @@ export default function CreateStudentPage() {
               </p>
             </div>
 
-            <div className="flex justify-center">
+            <div className="flex justify-center gap-3">
               <Button onClick={handleCreateAnother}>
                 <UserPlus className="h-4 w-4 mr-2" />
                 Utwórz kolejne konto
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/dashboard/teacher/created-students">
+                  <Users className="h-4 w-4 mr-2" />
+                  Zobacz wszystkie utworzone konta
+                </Link>
               </Button>
             </div>
           </CardContent>
@@ -302,6 +309,16 @@ export default function CreateStudentPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">Tworzenie kont uczniom</h1>
+        <Button asChild variant="outline">
+          <Link href="/dashboard/teacher/created-students">
+            <Users className="h-4 w-4 mr-2" />
+            Zobacz utworzone konta
+          </Link>
+        </Button>
+      </div>
+
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
