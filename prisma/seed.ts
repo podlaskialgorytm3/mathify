@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import bcrypt from "bcryptjs";
 
 const prisma = new PrismaClient();
 
@@ -12,30 +11,13 @@ async function main() {
   });
 
   if (existingAdmin) {
-    console.log("✅ Admin already exists:", existingAdmin.email);
+    console.log("✅ Admin already exists");
     return;
   }
 
-  // Create default admin
-  const hashedPassword = await bcrypt.hash("Admin123!", 10);
-
-  const admin = await prisma.user.create({
-    data: {
-      email: "admin@mathify.app",
-      username: "admin",
-      password: hashedPassword,
-      firstName: "Admin",
-      lastName: "Mathify",
-      role: "ADMIN",
-      status: "ACTIVE",
-    },
-  });
-
-  console.log("✅ Created admin user:");
-  console.log("   Email:", admin.email);
-  console.log("   Username:", admin.username);
-  console.log("   Password: Admin123!");
-  console.log("");
+  console.log(
+    "⚠️  No admin found. Please create one manually or run the initial migration."
+  );
   console.log("🎉 Seeding completed!");
 }
 

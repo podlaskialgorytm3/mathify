@@ -45,3 +45,6 @@ prisma/migrations
 
 # docker
 docker-compose.override.yml
+
+# admin setup (may contain sensitive data)
+ADMIN_SETUP.md
