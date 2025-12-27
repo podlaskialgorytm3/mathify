@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import LaTeXRenderer from "@/components/LaTeXRenderer";
 import {
   FileText,
   Search,
@@ -110,6 +111,7 @@ export default function TeacherSubmissionsPage() {
   const [showJsonEditor, setShowJsonEditor] = useState(false);
   const [aiJsonData, setAiJsonData] = useState("");
   const [editedJsonData, setEditedJsonData] = useState("");
+  const [showLatexPreview, setShowLatexPreview] = useState(false);
   const { toast } = useToast();
 
   const fetchSubmissions = async () => {
@@ -873,14 +875,25 @@ export default function TeacherSubmissionsPage() {
                   <div>
                     <div className="flex items-center justify-between mb-3">
                       <Label>Zadania</Label>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={addTask}
-                      >
-                        Dodaj Zadanie
-                      </Button>
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowLatexPreview(!showLatexPreview)}
+                        >
+                          <Eye className="w-4 h-4 mr-2" />
+                          {showLatexPreview ? "Edycja" : "Podgląd LaTeX"}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={addTask}
+                        >
+                          Dodaj Zadanie
+                        </Button>
+                      </div>
                     </div>
 
                     {editedTasks.length > 0 && (
@@ -943,20 +956,40 @@ export default function TeacherSubmissionsPage() {
                                 </div>
                                 <div className="flex-1">
                                   <Label className="text-xs">Komentarz</Label>
-                                  <Input
-                                    value={
-                                      task.teacherComment || task.comment || ""
-                                    }
-                                    onChange={(e) =>
-                                      updateTask(
-                                        task.taskNumber,
-                                        "teacherComment",
-                                        e.target.value
-                                      )
-                                    }
-                                    placeholder="Komentarz..."
-                                    className="bg-white"
-                                  />
+                                  {showLatexPreview ? (
+                                    <div className="w-full p-2 border rounded-md min-h-[60px] bg-white">
+                                      {task.teacherComment || task.comment ? (
+                                        <LaTeXRenderer
+                                          content={
+                                            task.teacherComment ||
+                                            task.comment ||
+                                            ""
+                                          }
+                                        />
+                                      ) : (
+                                        <p className="text-gray-400 italic text-xs">
+                                          Brak komentarza
+                                        </p>
+                                      )}
+                                    </div>
+                                  ) : (
+                                    <input
+                                      value={
+                                        task.teacherComment ||
+                                        task.comment ||
+                                        ""
+                                      }
+                                      onChange={(e) =>
+                                        updateTask(
+                                          task.taskNumber,
+                                          "teacherComment",
+                                          e.target.value
+                                        )
+                                      }
+                                      placeholder="Komentarz..."
+                                      className="bg-white w-full p-2 border rounded-md min-h-[40px] resize-y"
+                                    />
+                                  )}
                                 </div>
                               </div>
                               <Button
@@ -976,7 +1009,7 @@ export default function TeacherSubmissionsPage() {
                   </div>
 
                   <div>
-                    <Label htmlFor="review-feedback">Komentarz</Label>
+                    <Label htmlFor="review-feedback">Komentarz ogólny</Label>
                     <textarea
                       id="review-feedback"
                       value={reviewComment}
