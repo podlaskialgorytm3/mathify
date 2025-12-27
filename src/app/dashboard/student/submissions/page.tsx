@@ -6,6 +6,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import LaTeXRenderer from "@/components/LaTeXRenderer";
 import {
   Select,
   SelectContent,
@@ -556,7 +557,10 @@ export default function StudentSubmissionsPage() {
                             <p className="text-sm text-gray-600">
                               <strong>Analiza:</strong>
                             </p>
-                            <p className="text-sm">{task.comment}</p>
+                            <LaTeXRenderer
+                              content={task.comment}
+                              className="text-sm"
+                            />
                           </div>
                         )}
                         {task.teacherComment && (
@@ -564,9 +568,10 @@ export default function StudentSubmissionsPage() {
                             <p className="text-sm text-blue-900">
                               <strong>Komentarz nauczyciela:</strong>
                             </p>
-                            <p className="text-sm text-blue-800">
-                              {task.teacherComment}
-                            </p>
+                            <LaTeXRenderer
+                              content={task.teacherComment}
+                              className="text-sm text-blue-800"
+                            />
                           </div>
                         )}
                       </div>
@@ -604,9 +609,10 @@ export default function StudentSubmissionsPage() {
                   {selectedSubmission.review.generalComment && (
                     <div className="mt-3">
                       <p className="text-sm font-semibold">Komentarz ogólny:</p>
-                      <p className="text-sm mt-1">
-                        {selectedSubmission.review.generalComment}
-                      </p>
+                      <LaTeXRenderer
+                        content={selectedSubmission.review.generalComment}
+                        className="text-sm mt-1"
+                      />
                     </div>
                   )}
                 </div>
