@@ -134,3 +134,105 @@ export async function sendWelcomeEmail(email: string, firstName: string) {
     html,
   });
 }
+
+export async function sendPasswordResetEmail(
+  email: string,
+  token: string,
+  userName: string
+) {
+  const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+          .button { display: inline-block; background-color: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Mathify</h1>
+          </div>
+          <div class="content">
+            <h2>Cześć ${userName}!</h2>
+            <p>Otrzymaliśmy prośbę o zresetowanie hasła do Twojego konta.</p>
+            <p>Kliknij poniższy przycisk, aby ustawić nowe hasło:</p>
+            <a href="${resetUrl}" class="button">Zresetuj hasło</a>
+            <p>Lub skopiuj i wklej ten link do przeglądarki:</p>
+            <p style="word-break: break-all; color: #2563eb;">${resetUrl}</p>
+            <p><strong>Link jest ważny przez 1 godzinę.</strong></p>
+            <p>Jeśli nie prosiłeś o zresetowanie hasła, zignoruj tę wiadomość.</p>
+          </div>
+          <div class="footer">
+            <p>© 2025 Mathify. Wszystkie prawa zastrzeżone.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to: email,
+    subject: "Mathify - Resetowanie hasła",
+    html,
+  });
+}
+
+export async function sendEmailChangeConfirmation(
+  newEmail: string,
+  token: string,
+  userName: string
+) {
+  const confirmUrl = `${process.env.NEXT_PUBLIC_APP_URL}/confirm-email?token=${token}`;
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background-color: #2563eb; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }
+          .content { background-color: #f9fafb; padding: 30px; border-radius: 0 0 8px 8px; }
+          .button { display: inline-block; background-color: #2563eb; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Mathify</h1>
+          </div>
+          <div class="content">
+            <h2>Cześć ${userName}!</h2>
+            <p>Otrzymaliśmy prośbę o zmianę adresu email Twojego konta na: <strong>${newEmail}</strong></p>
+            <p>Aby potwierdzić zmianę, kliknij poniższy przycisk:</p>
+            <a href="${confirmUrl}" class="button">Potwierdź zmianę email</a>
+            <p>Lub skopiuj i wklej ten link do przeglądarki:</p>
+            <p style="word-break: break-all; color: #2563eb;">${confirmUrl}</p>
+            <p><strong>Link jest ważny przez 1 godzinę.</strong></p>
+            <p>Jeśli nie prosiłeś o zmianę adresu email, zignoruj tę wiadomość lub skontaktuj się z administratorem.</p>
+          </div>
+          <div class="footer">
+            <p>© 2025 Mathify. Wszystkie prawa zastrzeżone.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  return sendEmail({
+    to: newEmail,
+    subject: "Mathify - Potwierdzenie zmiany adresu email",
+    html,
+  });
+}

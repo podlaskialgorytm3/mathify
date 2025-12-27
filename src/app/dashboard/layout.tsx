@@ -11,6 +11,7 @@ import {
   Settings,
   BarChart,
   Bot,
+  UserCircle,
 } from "lucide-react";
 
 export default async function DashboardLayout({
@@ -106,6 +107,12 @@ export default async function DashboardLayout({
                     : "Uczeń"}
                 </p>
               </div>
+              <Link href="/dashboard/profile">
+                <Button variant="outline" size="sm" type="button">
+                  <UserCircle className="w-4 h-4 mr-2" />
+                  Profil
+                </Button>
+              </Link>
               <form action={handleSignOut}>
                 <Button variant="outline" size="sm" type="submit">
                   <LogOut className="w-4 h-4 mr-2" />
