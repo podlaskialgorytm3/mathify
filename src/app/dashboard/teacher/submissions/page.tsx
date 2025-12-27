@@ -106,6 +106,9 @@ export default function TeacherSubmissionsPage() {
   const [reviewComment, setReviewComment] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [editedTasks, setEditedTasks] = useState<TaskInput[]>([]);
+  const [showJsonEditor, setShowJsonEditor] = useState(false);
+  const [aiJsonData, setAiJsonData] = useState("");
+  const [editedJsonData, setEditedJsonData] = useState("");
   const { toast } = useToast();
 
   const fetchSubmissions = async () => {
@@ -289,6 +292,14 @@ export default function TeacherSubmissionsPage() {
         setReviewComment("");
         // Załaduj istniejące zadania
         setEditedTasks(data.submission.tasks || []);
+        // Załaduj JSON z AI (lub pusty jeśli nie ma)
+        if (data.submission.aiResult?.rawResponse) {
+          setAiJsonData(data.submission.aiResult.rawResponse);
+          setEditedJsonData(data.submission.aiResult.rawResponse);
+        } else {
+          setAiJsonData("");
+          setEditedJsonData("");
+        }
       } else {
         toast({
           title: "Błąd",
@@ -300,6 +311,52 @@ export default function TeacherSubmissionsPage() {
       toast({
         title: "Błąd",
         description: "Wystąpił błąd podczas pobierania szczegółów",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const applyJsonToTasks = () => {
+    try {
+      // Parse JSON
+      const parsed = JSON.parse(editedJsonData);
+
+      if (!Array.isArray(parsed)) {
+        toast({
+          title: "Błąd",
+          description: "JSON musi być tablicą zadań",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Mapuj JSON do TaskInput
+      const newTasks: TaskInput[] = parsed.map((task: any, index: number) => {
+        const taskNumberMatch = task.Zadanie?.match(/\d+/);
+        const taskNumber = taskNumberMatch
+          ? parseInt(taskNumberMatch[0])
+          : index + 1;
+
+        return {
+          taskNumber,
+          pointsEarned: task["Punkty Zdobyte"] || 0,
+          maxPoints: task["Max punktów"] || 10,
+          comment: task.Komentarz || "",
+          teacherComment: "",
+        };
+      });
+
+      setEditedTasks(newTasks);
+      setShowJsonEditor(false);
+
+      toast({
+        title: "Sukces",
+        description: `Zaktualizowano ${newTasks.length} zadań z JSON`,
+      });
+    } catch (error) {
+      toast({
+        title: "Błąd parsowania",
+        description: "Nieprawidłowy format JSON",
         variant: "destructive",
       });
     }
@@ -670,6 +727,15 @@ export default function TeacherSubmissionsPage() {
                       <Trash2 className="w-4 h-4" />
                       Usuń
                     </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowJsonEditor(true)}
+                      className="gap-2 border-blue-600 text-blue-600 hover:bg-blue-50 ml-auto"
+                    >
+                      <Bot className="w-4 h-4" />
+                      Podejrzyj JSON od AI
+                    </Button>
                   </div>
                 </div>
               </div>
@@ -900,6 +966,116 @@ export default function TeacherSubmissionsPage() {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* JSON Editor Modal */}
+      {showJsonEditor && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle className="flex items-center gap-2">
+                  <Bot className="w-5 h-5 text-blue-600" />
+                  Edycja JSON od AI
+                </CardTitle>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowJsonEditor(false);
+                    setEditedJsonData(aiJsonData); // Reset do oryginalnego
+                  }}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent className="flex-1 flex flex-col gap-4">
+              {editedJsonData ? (
+                <>
+                  <div className="bg-blue-50 p-3 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-800">
+                      <strong>Instrukcja:</strong> Edytuj poniższy JSON, aby
+                      dostosować wyniki sprawdzenia AI. Po zatwierdzeniu zadania
+                      zostaną zaktualizowane na podstawie tego JSON.
+                    </p>
+                  </div>
+
+                  <div className="flex-1 flex flex-col">
+                    <Label htmlFor="json-editor" className="mb-2">
+                      JSON z wynikami zadań:
+                    </Label>
+                    <textarea
+                      id="json-editor"
+                      value={editedJsonData}
+                      onChange={(e) => setEditedJsonData(e.target.value)}
+                      className="flex-1 min-h-[400px] p-4 border rounded-lg font-mono text-sm resize-none"
+                      placeholder='[{"Zadanie":"Zadanie 1","Punkty Zdobyte":8,"Max punktów":10,"Komentarz":"..."}]'
+                    />
+                  </div>
+
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowJsonEditor(false);
+                        setEditedJsonData(aiJsonData);
+                      }}
+                    >
+                      Anuluj
+                    </Button>
+                    <Button onClick={applyJsonToTasks} className="gap-2">
+                      <CheckCircle className="w-4 h-4" />
+                      Zatwierdź i zastosuj
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
+                    <p className="text-sm text-yellow-800">
+                      <strong>Brak odpowiedzi od AI</strong>
+                    </p>
+                    <p className="text-sm text-yellow-700 mt-2">
+                      Ta praca domowa nie została jeszcze sprawdzona przez AI
+                      lub AI nie zwróciło żadnej odpowiedzi. Możesz ręcznie
+                      wprowadzić JSON z zadaniami poniżej.
+                    </p>
+                  </div>
+
+                  <div className="flex-1 flex flex-col">
+                    <Label htmlFor="json-editor" className="mb-2">
+                      Wprowadź JSON z wynikami zadań:
+                    </Label>
+                    <textarea
+                      id="json-editor"
+                      value={editedJsonData}
+                      onChange={(e) => setEditedJsonData(e.target.value)}
+                      className="flex-1 min-h-[400px] p-4 border rounded-lg font-mono text-sm resize-none"
+                      placeholder='[{"Zadanie":"Zadanie 1","Punkty Zdobyte":8,"Max punktów":10,"Komentarz":"..."}]'
+                    />
+                  </div>
+
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowJsonEditor(false);
+                        setEditedJsonData("");
+                      }}
+                    >
+                      Anuluj
+                    </Button>
+                    <Button onClick={applyJsonToTasks} className="gap-2">
+                      <CheckCircle className="w-4 h-4" />
+                      Zastosuj JSON
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
         </div>
