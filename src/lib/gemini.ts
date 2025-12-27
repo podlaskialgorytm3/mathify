@@ -31,6 +31,16 @@ interface AITaskResponse {
   Komentarz: string;
 }
 
+// Funkcja pomocnicza do parsowania JSON z niestandarowym escapowaniem (np. LaTeX w komentarzach matematycznych)
+function safeJsonParse(rawString: string) {
+  // Naprawia znaki ucieczki, które nie są standardowe dla JSON (jak LaTeX)
+  const fixedString = rawString.replace(
+    /\\(?![bfnrtv"\\/]|u[0-9a-fA-F]{4})/g,
+    "\\\\"
+  );
+  return JSON.parse(fixedString);
+}
+
 export async function checkSubmissionWithAI(
   filePath: string,
   submissionId: string,
@@ -144,7 +154,7 @@ WAŻNE: Odpowiedź MUSI być w formacie JSON, bez markdown formatowania. Zwróć
       // Spróbuj sparsować JSON
       let aiTasks: AITaskResponse[];
       try {
-        aiTasks = JSON.parse(jsonText) as AITaskResponse[];
+        aiTasks = safeJsonParse(jsonText) as AITaskResponse[];
         console.log("Parsed tasks count:", aiTasks.length);
         console.log("Tasks:", JSON.stringify(aiTasks, null, 2));
       } catch (parseError) {
@@ -247,7 +257,7 @@ WAŻNE: Odpowiedź MUSI być w formacie JSON, bez markdown formatowania. Zwróć
       console.log("Cleaned JSON text:", jsonText);
 
       // Parse JSON
-      const aiTasks = JSON.parse(jsonText) as AITaskResponse[];
+      const aiTasks = safeJsonParse(jsonText) as AITaskResponse[];
       console.log("Parsed tasks count:", aiTasks.length);
       console.log("Tasks:", JSON.stringify(aiTasks, null, 2));
 

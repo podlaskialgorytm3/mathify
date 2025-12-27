@@ -245,75 +245,65 @@ export async function POST(request: NextRequest) {
     const aiPromptTemplate =
       subchapterWithCourse?.chapter.course.aiPromptTemplate;
 
-    // Jeśli istnieje szablon AI, uruchom automatyczne sprawdzanie
+    // Jeśli istnieje szablon AI, uruchom automatyczne sprawdzanie w tle (asynchronicznie)
     if (aiPromptTemplate?.prompt) {
-      try {
-        // Uruchom sprawdzanie AI - używamy submission.filePath (względna ścieżka z DB)
-        const aiResult = await checkSubmissionWithAI(
-          submission.filePath,
-          submission.id,
-          aiPromptTemplate.prompt
-        );
-
-        // Utwórz zadania na podstawie odpowiedzi AI
-        const tasksData = aiResult.tasks.map((task) => ({
-          submissionId: submission.id,
-          taskNumber: task.taskNumber,
-          pointsEarned: task.pointsEarned,
-          maxPoints: task.maxPoints,
-          comment: task.comment,
-          teacherEdited: false,
-        }));
-
-        // Zapisz wszystko w transakcji
-        await prisma.$transaction([
-          // Utwórz zadania
-          prisma.task.createMany({
-            data: tasksData,
-          }),
-          // Zapisz surową odpowiedź AI
-          prisma.aIResult.create({
-            data: {
+      // Nie czekamy na zakończenie - AI działa w tle
+      checkSubmissionWithAI(
+        submission.filePath,
+        submission.id,
+        aiPromptTemplate.prompt
+      )
+        .then(async (aiResult) => {
+          try {
+            // Utwórz zadania na podstawie odpowiedzi AI
+            const tasksData = aiResult.tasks.map((task) => ({
               submissionId: submission.id,
-              rawResponse: aiResult.rawResponse,
-            },
-          }),
-          // Zaktualizuj status na AI_CHECKED
-          prisma.submission.update({
-            where: { id: submission.id },
-            data: { status: "AI_CHECKED" },
-          }),
-        ]);
+              taskNumber: task.taskNumber,
+              pointsEarned: task.pointsEarned,
+              maxPoints: task.maxPoints,
+              comment: task.comment,
+              teacherEdited: false,
+            }));
 
-        return NextResponse.json({
-          message: "Submission uploaded and checked by AI successfully",
-          submission: {
-            id: submission.id,
-            fileName: submission.fileName,
-            status: "AI_CHECKED",
-            submittedAt: submission.submittedAt,
-          },
-          aiChecked: true,
+            // Zapisz wszystko w transakcji
+            await prisma.$transaction([
+              // Utwórz zadania
+              prisma.task.createMany({
+                data: tasksData,
+              }),
+              // Zapisz surową odpowiedź AI
+              prisma.aIResult.create({
+                data: {
+                  submissionId: submission.id,
+                  rawResponse: aiResult.rawResponse,
+                },
+              }),
+              // Zaktualizuj status na AI_CHECKED
+              prisma.submission.update({
+                where: { id: submission.id },
+                data: { status: "AI_CHECKED" },
+              }),
+            ]);
+
+            console.log(
+              `AI checking completed successfully for submission ${submission.id}`
+            );
+          } catch (saveError) {
+            console.error(
+              `Failed to save AI results for submission ${submission.id}:`,
+              saveError
+            );
+          }
+        })
+        .catch((aiError) => {
+          console.error(
+            `AI checking failed for submission ${submission.id}:`,
+            aiError
+          );
         });
-      } catch (aiError) {
-        // Jeśli sprawdzanie AI się nie powiodło, nadal zwróć sukces ale bez AI
-        console.error("AI checking failed:", aiError);
-        return NextResponse.json({
-          message: "Submission uploaded successfully but AI checking failed",
-          submission: {
-            id: submission.id,
-            fileName: submission.fileName,
-            status: submission.status,
-            submittedAt: submission.submittedAt,
-          },
-          aiChecked: false,
-          aiError:
-            aiError instanceof Error ? aiError.message : "Unknown AI error",
-        });
-      }
     }
 
-    // Jeśli nie ma szablonu AI, zwróć normalny sukces
+    // Zwróć odpowiedź natychmiast (nie czekamy na AI)
     return NextResponse.json({
       message: "Submission uploaded successfully",
       submission: {
@@ -322,7 +312,7 @@ export async function POST(request: NextRequest) {
         status: submission.status,
         submittedAt: submission.submittedAt,
       },
-      aiChecked: false,
+      aiProcessing: !!aiPromptTemplate?.prompt, // Informacja czy AI działa w tle
     });
   } catch (error) {
     console.error("Error uploading submission:", error);

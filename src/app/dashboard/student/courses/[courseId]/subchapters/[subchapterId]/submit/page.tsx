@@ -182,7 +182,7 @@ export default function SubmitHomeworkPage() {
         description: "Praca domowa została przesłana",
       });
 
-      // Wróć do strony kursu
+      // Przekieruj natychmiast do strony kursu (nie czekamy na AI)
       router.push(`/dashboard/student/courses/${params.courseId}`);
     } catch (error) {
       console.error("Error uploading homework:", error);
