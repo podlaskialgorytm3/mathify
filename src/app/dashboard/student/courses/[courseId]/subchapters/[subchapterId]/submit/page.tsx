@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
+import { Switch } from "@/components/ui/switch";
 import {
   ArrowLeft,
   Upload,
@@ -12,6 +13,7 @@ import {
   AlertCircle,
   Trash2,
   Download,
+  Image,
 } from "lucide-react";
 
 interface SubchapterInfo {
@@ -42,6 +44,8 @@ export default function SubmitHomeworkPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [uploadMode, setUploadMode] = useState<"pdf" | "images">("pdf");
   const [existingSubmission, setExistingSubmission] =
     useState<Submission | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -149,11 +153,63 @@ export default function SubmitHomeworkPage() {
     }
   };
 
-  const handleSubmit = async () => {
-    if (!selectedFile) {
+  const handleImagesSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+
+    if (files.length > 10) {
       toast({
         title: "Błąd",
-        description: "Wybierz plik do przesłania",
+        description: "Możesz przesłać maksymalnie 10 zdjęć.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Sprawdź czy wszystkie pliki to obrazy
+    const invalidFiles = files.filter(
+      (file) => !file.type.startsWith("image/")
+    );
+    if (invalidFiles.length > 0) {
+      toast({
+        title: "Błąd",
+        description: "Wszystkie pliki muszą być zdjęciami (JPG, PNG).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Sprawdź rozmiar każdego pliku (max 5MB)
+    const oversizedFiles = files.filter((file) => file.size > 1 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      toast({
+        title: "Błąd",
+        description: "Każde zdjęcie może mieć maksymalnie 1MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedImages(files);
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async () => {
+    if (uploadMode === "pdf" && !selectedFile) {
+      toast({
+        title: "Błąd",
+        description: "Wybierz plik PDF do przesłania",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (uploadMode === "images" && selectedImages.length === 0) {
+      toast({
+        title: "Błąd",
+        description: "Wybierz przynajmniej jedno zdjęcie",
         variant: "destructive",
       });
       return;
@@ -163,8 +219,18 @@ export default function SubmitHomeworkPage() {
 
     try {
       const formData = new FormData();
-      formData.append("file", selectedFile);
+
+      if (uploadMode === "pdf") {
+        formData.append("file", selectedFile!);
+      } else {
+        // Dodaj wszystkie zdjęcia
+        selectedImages.forEach((image) => {
+          formData.append("images", image);
+        });
+      }
+
       formData.append("subchapterId", params.subchapterId as string);
+      formData.append("uploadMode", uploadMode);
 
       const response = await fetch("/api/student/submissions", {
         method: "POST",
@@ -441,56 +507,162 @@ export default function SubmitHomeworkPage() {
       {/* Upload Form */}
       <Card>
         <CardHeader>
-          <CardTitle>Wybierz plik do przesłania</CardTitle>
+          <CardTitle>Wybierz sposób przesłania</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-            <input
-              type="file"
-              id="file-upload"
-              className="hidden"
-              onChange={handleFileSelect}
-              accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+        <CardContent className="space-y-6">
+          {/* Toggle between PDF and Images */}
+          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-3">
+              <FileText
+                className={`h-5 w-5 ${
+                  uploadMode === "pdf" ? "text-blue-600" : "text-gray-400"
+                }`}
+              />
+              <span
+                className={`font-medium ${
+                  uploadMode === "pdf" ? "text-gray-900" : "text-gray-500"
+                }`}
+              >
+                Plik PDF
+              </span>
+            </div>
+            <Switch
+              checked={uploadMode === "images"}
+              onCheckedChange={(checked) =>
+                setUploadMode(checked ? "images" : "pdf")
+              }
             />
-            <label htmlFor="file-upload" className="cursor-pointer">
-              <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-lg font-semibold text-gray-700">
-                Kliknij, aby wybrać plik
-              </p>
-              <p className="text-sm text-gray-500 mt-2">
-                Maksymalny rozmiar: 10MB
-              </p>
-              <p className="text-xs text-gray-400 mt-1">
-                Obsługiwane formaty: PDF, DOC, DOCX, TXT, PNG, JPG
-              </p>
-            </label>
+            <div className="flex items-center gap-3">
+              <span
+                className={`font-medium ${
+                  uploadMode === "images" ? "text-gray-900" : "text-gray-500"
+                }`}
+              >
+                Zdjęcia
+              </span>
+              <Image
+                className={`h-5 w-5 ${
+                  uploadMode === "images" ? "text-blue-600" : "text-gray-400"
+                }`}
+              />
+            </div>
           </div>
 
-          {selectedFile && (
-            <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <FileText className="h-5 w-5 text-blue-600" />
-              <div className="flex-1">
-                <p className="font-semibold text-gray-900">
-                  {selectedFile.name}
-                </p>
-                <p className="text-sm text-gray-600">
-                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                </p>
+          {/* PDF Upload */}
+          {uploadMode === "pdf" && (
+            <>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <input
+                  type="file"
+                  id="file-upload"
+                  className="hidden"
+                  onChange={handleFileSelect}
+                  accept=".pdf"
+                />
+                <label htmlFor="file-upload" className="cursor-pointer">
+                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-lg font-semibold text-gray-700">
+                    Kliknij, aby wybrać plik PDF
+                  </p>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Maksymalny rozmiar: 10MB
+                  </p>
+                </label>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSelectedFile(null)}
-              >
-                Usuń
-              </Button>
-            </div>
+
+              {selectedFile && (
+                <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <FileText className="h-5 w-5 text-blue-600" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-gray-900">
+                      {selectedFile.name}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedFile(null)}
+                  >
+                    Usuń
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Images Upload */}
+          {uploadMode === "images" && (
+            <>
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <input
+                  type="file"
+                  id="images-upload"
+                  className="hidden"
+                  onChange={handleImagesSelect}
+                  accept="image/*"
+                  multiple
+                />
+                <label htmlFor="images-upload" className="cursor-pointer">
+                  <Image className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-lg font-semibold text-gray-700">
+                    Kliknij, aby wybrać zdjęcia
+                  </p>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Maksymalnie 10 zdjęć, każde do 1MB
+                  </p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Obsługiwane formaty: JPG, PNG
+                  </p>
+                </label>
+              </div>
+
+              {selectedImages.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-gray-700">
+                    Wybrane zdjęcia ({selectedImages.length}/10):
+                  </p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {selectedImages.map((image, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg"
+                      >
+                        <Image className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {image.name}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            {(image.size / 1024 / 1024).toFixed(2)} MB
+                          </p>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeImage(index)}
+                          className="flex-shrink-0"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
 
           <div className="flex gap-3 pt-4">
             <Button
               onClick={handleSubmit}
-              disabled={!selectedFile || uploading}
+              disabled={
+                (uploadMode === "pdf" && !selectedFile) ||
+                (uploadMode === "images" && selectedImages.length === 0) ||
+                uploading
+              }
               className="flex-1"
             >
               {uploading ? "Przesyłanie..." : "Prześlij pracę"}
@@ -515,14 +687,29 @@ export default function SubmitHomeworkPage() {
             <div className="text-sm text-blue-900">
               <p className="font-semibold mb-1">Ważne informacje:</p>
               <ul className="list-disc list-inside space-y-1">
-                <li>Możesz przesłać tylko jeden plik</li>
+                {uploadMode === "pdf" ? (
+                  <>
+                    <li>Możesz przesłać jeden plik PDF z pracą domową</li>
+                    <li>
+                      Po przesłaniu pracy, nauczyciel otrzyma powiadomienie i
+                      będzie mógł ją ocenić
+                    </li>
+                  </>
+                ) : (
+                  <>
+                    <li>Możesz przesłać od 1 do 10 zdjęć jednocześnie</li>
+                    <li>
+                      Zdjęcia zostaną automatycznie połączone w jeden plik PDF
+                    </li>
+                    <li>
+                      PDF ze zdjęć zostanie połączony z plikiem pracy domowej z
+                      podrozdziału
+                    </li>
+                  </>
+                )}
                 <li>
-                  Po przesłaniu pracy, nauczyciel otrzyma powiadomienie i będzie
-                  mógł ją ocenić
-                </li>
-                <li>
-                  Upewnij się, że przesyłasz właściwy plik - nie będzie można go
-                  zmienić
+                  Upewnij się, że przesyłasz właściwe pliki - nie będzie można
+                  ich zmienić
                 </li>
               </ul>
             </div>

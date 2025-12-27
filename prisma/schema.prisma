@@ -92,6 +92,7 @@ model Course {
   updatedAt           DateTime @updatedAt
   teacherId           String
   aiPromptTemplateId  String?
+  homeworkFileName    String   @default("Praca Domowa")
 
   // Relations
   teacher            User                @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)

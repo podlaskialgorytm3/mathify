@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { writeFile, mkdir, unlink } from "fs/promises";
+import { writeFile, mkdir, unlink, readFile } from "fs/promises";
 import path from "path";
 import { checkSubmissionWithAI } from "@/lib/gemini";
+import { convertImagesToPDF, mergePDFs } from "@/lib/pdf-utils";
 
 export async function GET() {
   try {
@@ -106,12 +107,120 @@ export async function POST(request: NextRequest) {
     }
 
     const formData = await request.formData();
-    const file = formData.get("file") as File;
+    const uploadMode = formData.get("uploadMode") as string;
     const subchapterId = formData.get("subchapterId") as string;
 
-    if (!file || !subchapterId) {
+    if (!subchapterId) {
       return NextResponse.json(
         { error: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    let finalPdfBuffer: Buffer;
+    let fileName = "homework.pdf";
+
+    if (uploadMode === "pdf") {
+      const file = formData.get("file") as File;
+
+      if (!file) {
+        return NextResponse.json(
+          { error: "No file provided" },
+          { status: 400 }
+        );
+      }
+
+      fileName = file.name;
+      const bytes = await file.arrayBuffer();
+      finalPdfBuffer = Buffer.from(bytes);
+    } else if (uploadMode === "images") {
+      const images = formData.getAll("images") as File[];
+
+      if (!images || images.length === 0) {
+        return NextResponse.json(
+          { error: "No images provided" },
+          { status: 400 }
+        );
+      }
+
+      if (images.length > 10) {
+        return NextResponse.json(
+          { error: "Maximum 10 images allowed" },
+          { status: 400 }
+        );
+      }
+
+      // Konwertuj zdjęcia do bufferów
+      const imageBuffers: Buffer[] = [];
+      for (const image of images) {
+        const bytes = await image.arrayBuffer();
+        imageBuffers.push(Buffer.from(bytes));
+      }
+
+      // Konwertuj zdjęcia do PDF
+      const imagesPdf = await convertImagesToPDF(imageBuffers);
+
+      // Pobierz nazwę pliku pracy domowej z kursu
+      const subchapterWithCourse = await prisma.subchapter.findUnique({
+        where: { id: subchapterId },
+        include: {
+          chapter: {
+            include: {
+              course: {
+                select: {
+                  homeworkFileName: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      const homeworkFileName =
+        subchapterWithCourse?.chapter.course.homeworkFileName || "Praca Domowa";
+
+      // Sprawdź czy istnieje plik z pracą domową w materiałach podrozdziału
+      const homeworkMaterial = await prisma.material.findFirst({
+        where: {
+          subchapterId: subchapterId,
+          type: "PDF",
+          OR: [
+            { title: { contains: homeworkFileName, mode: "insensitive" } },
+            { content: { contains: ".pdf", mode: "insensitive" } },
+          ],
+        },
+        orderBy: {
+          order: "asc",
+        },
+      });
+
+      if (homeworkMaterial && homeworkMaterial.content) {
+        // Odczytaj plik pracy domowej
+        try {
+          const homeworkPdfPath = path.join(
+            process.cwd(),
+            "public",
+            homeworkMaterial.content
+          );
+          const homeworkPdfBuffer = await readFile(homeworkPdfPath);
+
+          // Połącz PDF ze zdjęć z pracą domową
+          finalPdfBuffer = await mergePDFs(imagesPdf, homeworkPdfBuffer);
+          fileName = `${homeworkFileName}_with_images.pdf`;
+        } catch (error) {
+          console.error("Error reading homework PDF:", error);
+          // Jeśli nie można odczytać pracy domowej, użyj tylko zdjęć
+          finalPdfBuffer = imagesPdf;
+          fileName = "images_submission.pdf";
+        }
+      } else {
+        // Jeśli nie ma pliku pracy domowej, użyj tylko zdjęć
+        finalPdfBuffer = imagesPdf;
+        fileName = "images_submission.pdf";
+      }
+    } else {
+      return NextResponse.json(
+        { error: "Invalid upload mode" },
         { status: 400 }
       );
     }
@@ -188,14 +297,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Zapisz plik
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
     // Utwórz unikalną nazwę pliku
     const timestamp = Date.now();
-    const fileExtension = path.extname(file.name);
-    const safeFileName = file.name
-      .replace(fileExtension, "")
+    const fileExtension = ".pdf"; // Zawsze PDF
+    const safeFileName = fileName
+      .replace(/\.pdf$/i, "")
       .replace(/[^a-zA-Z0-9]/g, "_");
     const uniqueFileName = `${timestamp}_${safeFileName}${fileExtension}`;
 
@@ -212,7 +318,7 @@ export async function POST(request: NextRequest) {
     await mkdir(uploadDir, { recursive: true });
 
     // Zapisz plik
-    await writeFile(filePath, buffer);
+    await writeFile(filePath, finalPdfBuffer);
 
     // Utwórz rekord w bazie danych
     const submission = await prisma.submission.create({
@@ -220,8 +326,8 @@ export async function POST(request: NextRequest) {
         subchapterId: subchapterId,
         studentId: session.user.id,
         filePath: `/uploads/submissions/${uniqueFileName}`,
-        fileName: file.name,
-        fileSize: file.size,
+        fileName: fileName,
+        fileSize: finalPdfBuffer.length,
         status: "PENDING",
       },
     });
