@@ -56,8 +56,14 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    // Pobierz aktualny username użytkownika z bazy
+    const currentUser = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { username: true },
+    });
+
     // Sprawdź czy username nie jest już zajęty przez innego użytkownika
-    if (username.trim() !== session.user.username) {
+    if (username.trim() !== currentUser?.username) {
       const existingUser = await prisma.user.findUnique({
         where: { username: username.trim() },
       });
