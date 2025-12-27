@@ -313,7 +313,6 @@ export default function ProfilePage() {
           <Button
             onClick={handleRequestEmailChange}
             disabled={saving}
-            variant="outline"
             className="w-full md:w-auto"
           >
             {saving ? (
@@ -348,7 +347,6 @@ export default function ProfilePage() {
           <Button
             onClick={handleRequestPasswordReset}
             disabled={saving}
-            variant="outline"
             className="w-full md:w-auto"
           >
             {saving ? (
