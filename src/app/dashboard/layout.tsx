@@ -64,7 +64,11 @@ export default async function DashboardLayout({
         href: "/dashboard/student/submissions",
         icon: BarChart,
       },
-      { name: "Statystyki", href: "/dashboard/student/stats", icon: BarChart },
+      {
+        name: "Statystyki",
+        href: "/dashboard/student/statistics",
+        icon: BarChart,
+      },
     ],
   };
 
