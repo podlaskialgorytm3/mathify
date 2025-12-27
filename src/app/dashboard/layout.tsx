@@ -12,6 +12,7 @@ import {
   BarChart,
   Bot,
   UserCircle,
+  UserPlus,
 } from "lucide-react";
 
 export default async function DashboardLayout({
@@ -52,6 +53,11 @@ export default async function DashboardLayout({
         icon: Bot,
       },
       { name: "Uczniowie", href: "/dashboard/teacher/students", icon: Users },
+      {
+        name: "Tworzenie kont uczniom",
+        href: "/dashboard/teacher/create-student",
+        icon: UserPlus,
+      },
     ],
     STUDENT: [
       { name: "Panel główny", href: "/dashboard", icon: Home },
