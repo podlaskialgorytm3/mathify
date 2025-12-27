@@ -1,6 +1,21 @@
 const https = require("https");
+const fs = require("fs");
+const path = require("path");
 
-const apiKey = "AIzaSyCkB7K4ftwBdGMF0ca7c7dadrAkzRAmwFE";
+// Czytaj .env ręcznie
+const envPath = path.join(__dirname, ".env");
+const envContent = fs.readFileSync(envPath, "utf-8");
+const apiKey = envContent
+  .split("\n")
+  .find((line) => line.startsWith("GEMINI_API_KEY="))
+  ?.split("=")[1]
+  ?.trim()
+  ?.replace(/^["']|["']$/g, ""); // Usuń cudzysłowy
+
+if (!apiKey) {
+  console.error("ERROR: GEMINI_API_KEY not found in .env");
+  process.exit(1);
+}
 const url = `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`;
 
 https
