@@ -13,6 +13,7 @@ import {
   Bot,
   UserCircle,
   UserPlus,
+  Award,
 } from "lucide-react";
 
 export default async function DashboardLayout({
@@ -33,6 +34,7 @@ export default async function DashboardLayout({
       { name: "Panel główny", href: "/dashboard", icon: Home },
       { name: "Użytkownicy", href: "/dashboard/admin/users", icon: Users },
       { name: "Kursy", href: "/dashboard/admin/courses", icon: BookOpen },
+      { name: "Plany", href: "/dashboard/admin/plans", icon: Award },
       { name: "Ustawienia", href: "/dashboard/admin/settings", icon: Settings },
     ],
     TEACHER: [

@@ -33,10 +33,40 @@ export default async function DashboardPage() {
 }
 
 function AdminDashboard({ user }: any) {
+  return <AdminDashboardContent user={user} />;
+}
+
+async function AdminDashboardContent({ user }: any) {
+  // Fetch statistics
+  const [
+    totalUsers,
+    pendingUsers,
+    totalTeachers,
+    totalStudents,
+    totalCourses,
+    totalSubmissions,
+    pendingSubmissions,
+    totalPlans,
+  ] = await Promise.all([
+    prisma.user.count(),
+    prisma.user.count({ where: { status: "PENDING" } }),
+    prisma.user.count({ where: { role: "TEACHER" } }),
+    prisma.user.count({ where: { role: "STUDENT" } }),
+    prisma.course.count(),
+    prisma.submission.count(),
+    prisma.submission.count({
+      where: {
+        status: { in: ["PENDING", "AI_CHECKED", "TEACHER_REVIEWING"] },
+      },
+    }),
+    prisma.plan.count(),
+  ]);
+
   return (
     <div>
       <h1 className="text-3xl font-bold mb-8">Witaj, {user.name}!</h1>
 
+      {/* Main Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -46,8 +76,10 @@ function AdminDashboard({ user }: any) {
             <Users className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">---</div>
-            <p className="text-xs text-gray-500 mt-1">Załaduj statystyki</p>
+            <div className="text-2xl font-bold">{totalUsers}</div>
+            <p className="text-xs text-gray-500 mt-1">
+              {totalTeachers} nauczycieli, {totalStudents} uczniów
+            </p>
           </CardContent>
         </Card>
 
@@ -56,10 +88,12 @@ function AdminDashboard({ user }: any) {
             <CardTitle className="text-sm font-medium text-gray-600">
               Oczekujące konta
             </CardTitle>
-            <CheckCircle className="h-4 w-4 text-gray-600" />
+            <CheckCircle className="h-4 w-4 text-yellow-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">---</div>
+            <div className="text-2xl font-bold text-yellow-600">
+              {pendingUsers}
+            </div>
             <p className="text-xs text-gray-500 mt-1">Wymagają zatwierdzenia</p>
           </CardContent>
         </Card>
@@ -72,7 +106,7 @@ function AdminDashboard({ user }: any) {
             <BookOpen className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">---</div>
+            <div className="text-2xl font-bold">{totalCourses}</div>
             <p className="text-xs text-gray-500 mt-1">W systemie</p>
           </CardContent>
         </Card>
@@ -85,8 +119,105 @@ function AdminDashboard({ user }: any) {
             <FileText className="h-4 w-4 text-gray-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">---</div>
-            <p className="text-xs text-gray-500 mt-1">Przesłanych prac</p>
+            <div className="text-2xl font-bold">{totalSubmissions}</div>
+            <p className="text-xs text-gray-500 mt-1">
+              {pendingSubmissions} oczekujących
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Additional Statistics */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Szybki dostęp</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Link
+              href="/dashboard/admin/users"
+              className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Users className="h-5 w-5 text-blue-600" />
+                <div>
+                  <p className="font-medium">Zarządzaj użytkownikami</p>
+                  <p className="text-sm text-gray-500">
+                    {totalUsers} użytkowników
+                  </p>
+                </div>
+              </div>
+            </Link>
+
+            <Link
+              href="/dashboard/admin/courses"
+              className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <BookOpen className="h-5 w-5 text-green-600" />
+                <div>
+                  <p className="font-medium">Zarządzaj kursami</p>
+                  <p className="text-sm text-gray-500">{totalCourses} kursów</p>
+                </div>
+              </div>
+            </Link>
+
+            <Link
+              href="/dashboard/admin/plans"
+              className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              <div className="flex items-center gap-3">
+                <Award className="h-5 w-5 text-purple-600" />
+                <div>
+                  <p className="font-medium">Zarządzaj planami</p>
+                  <p className="text-sm text-gray-500">
+                    {totalPlans} planów subskrypcyjnych
+                  </p>
+                </div>
+              </div>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Status systemu</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Oczekujące konta</span>
+              <span
+                className={`font-semibold ${
+                  pendingUsers > 0 ? "text-yellow-600" : "text-green-600"
+                }`}
+              >
+                {pendingUsers > 0 ? `${pendingUsers} do sprawdzenia` : "Brak"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Oczekujące prace</span>
+              <span
+                className={`font-semibold ${
+                  pendingSubmissions > 0 ? "text-yellow-600" : "text-green-600"
+                }`}
+              >
+                {pendingSubmissions > 0
+                  ? `${pendingSubmissions} oczekujących`
+                  : "Brak"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Aktywni nauczyciele</span>
+              <span className="font-semibold text-blue-600">
+                {totalTeachers}
+              </span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-gray-600">Aktywni uczniowie</span>
+              <span className="font-semibold text-blue-600">
+                {totalStudents}
+              </span>
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -97,8 +228,8 @@ function AdminDashboard({ user }: any) {
         </CardHeader>
         <CardContent>
           <p className="text-gray-600">
-            Zarządzaj użytkownikami, kursami i systemem. Wybierz opcję z menu po
-            lewej stronie.
+            Zarządzaj użytkownikami, kursami, planami i systemem. Wybierz opcję
+            z menu po lewej stronie.
           </p>
         </CardContent>
       </Card>
