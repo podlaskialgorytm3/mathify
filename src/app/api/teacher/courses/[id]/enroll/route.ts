@@ -75,6 +75,35 @@ export async function POST(
       );
     }
 
+    // Check plan limits if teacher has a plan
+    const teacher = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: {
+        plan: true,
+        createdCourses: {
+          include: {
+            enrollments: true,
+          },
+        },
+      },
+    });
+
+    if (teacher?.plan) {
+      const totalStudents = teacher.createdCourses.reduce(
+        (sum, course) => sum + course.enrollments.length,
+        0
+      );
+
+      if (totalStudents + 1 > teacher.plan.maxStudents) {
+        return NextResponse.json(
+          {
+            error: `Przekroczono limit uczniów. Twój plan ${teacher.plan.name} pozwala na maksymalnie ${teacher.plan.maxStudents} uczniów. Aktualnie masz ${totalStudents} uczniów.`,
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     // Użyj transakcji do zapisania ucznia i utworzenia ustawień widoczności
     await prisma.$transaction(async (tx: any) => {
       // 1. Utwórz enrollment

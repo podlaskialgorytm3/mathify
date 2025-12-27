@@ -83,6 +83,44 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get teacher with plan
+    const teacher = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: {
+        plan: true,
+        createdCourses: {
+          include: {
+            enrollments: true,
+          },
+        },
+      },
+    });
+
+    if (!teacher) {
+      return NextResponse.json(
+        { error: "Nauczyciel nie znaleziony" },
+        { status: 404 }
+      );
+    }
+
+    // Check plan limits if teacher has a plan
+    if (teacher.plan) {
+      const totalStudents = teacher.createdCourses.reduce(
+        (sum, course) => sum + course.enrollments.length,
+        0
+      );
+
+      // Adding students to multiple courses counts as adding courseIds.length students
+      if (totalStudents + courseIds.length > teacher.plan.maxStudents) {
+        return NextResponse.json(
+          {
+            error: `Przekroczono limit uczniów. Twój plan pozwala na maksymalnie ${teacher.plan.maxStudents} uczniów. Aktualnie masz ${totalStudents} uczniów.`,
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     // Check if courses belong to the teacher
     const courses = await prisma.course.findMany({
       where: {

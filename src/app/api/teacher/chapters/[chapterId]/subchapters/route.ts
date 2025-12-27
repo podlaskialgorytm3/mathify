@@ -48,6 +48,44 @@ export async function POST(
       );
     }
 
+    // Check plan limits if teacher has a plan
+    const teacher = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: {
+        plan: true,
+        createdCourses: {
+          include: {
+            chapters: {
+              include: {
+                subchapters: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (teacher?.plan) {
+      const totalSubchapters = teacher.createdCourses.reduce(
+        (sum, course) =>
+          sum +
+          course.chapters.reduce(
+            (chapterSum, chapter) => chapterSum + chapter.subchapters.length,
+            0
+          ),
+        0
+      );
+
+      if (totalSubchapters + 1 > teacher.plan.maxSubchapters) {
+        return NextResponse.json(
+          {
+            error: `Przekroczono limit podrozdziałów. Twój plan ${teacher.plan.name} pozwala na maksymalnie ${teacher.plan.maxSubchapters} podrozdziałów. Aktualnie masz ${totalSubchapters} podrozdziałów.`,
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     // Get next order if not provided
     let subchapterOrder = order;
     if (!subchapterOrder) {
