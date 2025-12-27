@@ -973,7 +973,7 @@ export default function TeacherSubmissionsPage() {
                                       )}
                                     </div>
                                   ) : (
-                                    <input
+                                    <textarea
                                       value={
                                         task.teacherComment ||
                                         task.comment ||
