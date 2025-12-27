@@ -355,3 +355,10 @@ model Plan {
 
   @@index([isActive])
 }
+
+model SystemSettings {
+  id                        String   @id @default(cuid())
+  defaultHomeworkFileName   String   @default("Praca Domowa.pdf")
+  createdAt                 DateTime @default(now())
+  updatedAt                 DateTime @updatedAt
+}

@@ -37,11 +37,64 @@ export default function AIPromptsPage() {
   });
   const [showPreview, setShowPreview] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [defaultHomeworkFileName, setDefaultHomeworkFileName] =
+    useState("Praca Domowa.pdf");
+  const [savingSettings, setSavingSettings] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
     fetchTemplates();
+    fetchSettings();
   }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const response = await fetch("/api/teacher/ai-prompts/settings");
+      const data = await response.json();
+
+      if (response.ok) {
+        setDefaultHomeworkFileName(
+          data.defaultHomeworkFileName || "Praca Domowa.pdf"
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+    }
+  };
+
+  const saveSettings = async () => {
+    setSavingSettings(true);
+    try {
+      const response = await fetch("/api/teacher/ai-prompts/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ defaultHomeworkFileName }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Sukces",
+          description: "Ustawienia zostały zapisane",
+        });
+      } else {
+        toast({
+          title: "Błąd",
+          description: data.error || "Nie udało się zapisać ustawień",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Błąd",
+        description: "Wystąpił błąd podczas zapisywania ustawień",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingSettings(false);
+    }
+  };
 
   const fetchTemplates = async () => {
     try {
@@ -188,6 +241,40 @@ export default function AIPromptsPage() {
           Nowy szablon
         </Button>
       </div>
+
+      {/* Settings Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Ustawienia domyślne</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div>
+            <Label htmlFor="homework-filename">
+              Ustaw nazwę domyślnego pliku dla pracy domowej
+            </Label>
+            <p className="text-sm text-gray-500 mb-2">
+              Nazwa pliku PDF z pracą domową, który będzie łączony ze zdjęciami
+              przesłanymi przez ucznia
+            </p>
+            <div className="flex gap-2">
+              <Input
+                id="homework-filename"
+                value={defaultHomeworkFileName}
+                onChange={(e) => setDefaultHomeworkFileName(e.target.value)}
+                placeholder="Praca Domowa.pdf"
+                className="flex-1"
+              />
+              <Button onClick={saveSettings} disabled={savingSettings}>
+                {savingSettings ? "Zapisywanie..." : "Zapisz"}
+              </Button>
+            </div>
+            <p className="text-xs text-gray-400 mt-1">
+              Jeżeli pole jest puste, zostanie użyta domyślna nazwa: &quot;Praca
+              Domowa.pdf&quot;
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Templates List */}
       {templates.length === 0 ? (

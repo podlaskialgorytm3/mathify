@@ -160,24 +160,10 @@ export async function POST(request: NextRequest) {
       // Konwertuj zdjęcia do PDF
       const imagesPdf = await convertImagesToPDF(imageBuffers);
 
-      // Pobierz nazwę pliku pracy domowej z kursu
-      const subchapterWithCourse = await prisma.subchapter.findUnique({
-        where: { id: subchapterId },
-        include: {
-          chapter: {
-            include: {
-              course: {
-                select: {
-                  homeworkFileName: true,
-                },
-              },
-            },
-          },
-        },
-      });
-
+      // Pobierz globalną nazwę pliku pracy domowej z ustawień systemowych
+      const systemSettings = await prisma.systemSettings.findFirst();
       const homeworkFileName =
-        subchapterWithCourse?.chapter.course.homeworkFileName || "Praca Domowa";
+        systemSettings?.defaultHomeworkFileName || "Praca Domowa.pdf";
 
       // Sprawdź czy istnieje plik z pracą domową w materiałach podrozdziału
       const homeworkMaterial = await prisma.material.findFirst({
@@ -186,7 +172,7 @@ export async function POST(request: NextRequest) {
           type: "PDF",
           OR: [
             { title: { contains: homeworkFileName, mode: "insensitive" } },
-            { content: { contains: ".pdf", mode: "insensitive" } },
+            { content: { contains: homeworkFileName, mode: "insensitive" } },
           ],
         },
         orderBy: {
