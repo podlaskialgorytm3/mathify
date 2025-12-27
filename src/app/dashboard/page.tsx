@@ -391,7 +391,7 @@ async function TeacherDashboardContent({
             </div>
             <div className="mt-4">
               <Link
-                href="/dashboard/teacher/review"
+                href="/dashboard/teacher/submissions"
                 className="text-blue-600 hover:text-blue-800 text-sm font-medium"
               >
                 Zobacz wszystkie prace →
@@ -472,7 +472,7 @@ async function TeacherDashboardContent({
             </div>
             <div className="mt-4">
               <Link
-                href="/dashboard/teacher/review"
+                href="/dashboard/teacher/submissions"
                 className="text-blue-600 hover:text-blue-800 text-sm font-medium"
               >
                 Zobacz historię →
@@ -500,7 +500,7 @@ async function TeacherDashboardContent({
           </Card>
         </Link>
 
-        <Link href="/dashboard/teacher/review">
+        <Link href="/dashboard/teacher/submissions">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

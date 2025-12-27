@@ -101,6 +101,7 @@ export default function TeacherSubmissionsPage() {
   const [loading, setLoading] = useState(true);
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [selectedSubmission, setSelectedSubmission] =
     useState<Submission | null>(null);
   const [reviewComment, setReviewComment] = useState("");
@@ -504,7 +505,21 @@ export default function TeacherSubmissionsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label htmlFor="search">
+                <Search className="w-4 h-4 inline mr-2" />
+                Szukaj
+              </Label>
+              <Input
+                id="search"
+                type="text"
+                placeholder="Imię, nazwisko, kurs, podrozdział..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full"
+              />
+            </div>
             <div>
               <Label htmlFor="status-filter">
                 <Filter className="w-4 h-4 inline mr-2" />
@@ -548,12 +563,26 @@ export default function TeacherSubmissionsPage() {
       </Card>
 
       {/* Submissions List */}
-      {submissions.length === 0 ? (
+      {submissions.filter((submission) => {
+        if (!searchTerm) return true;
+        const search = searchTerm.toLowerCase();
+        return (
+          submission.student.firstName.toLowerCase().includes(search) ||
+          submission.student.lastName.toLowerCase().includes(search) ||
+          submission.subchapter.chapter.course.title
+            .toLowerCase()
+            .includes(search) ||
+          submission.subchapter.title.toLowerCase().includes(search) ||
+          submission.subchapter.chapter.title.toLowerCase().includes(search)
+        );
+      }).length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600">
-              {selectedStatus !== "all" || selectedCourse !== "all"
+              {selectedStatus !== "all" ||
+              selectedCourse !== "all" ||
+              searchTerm
                 ? "Nie znaleziono prac spełniających kryteria"
                 : "Brak prac do sprawdzenia"}
             </p>
@@ -561,78 +590,94 @@ export default function TeacherSubmissionsPage() {
         </Card>
       ) : (
         <div className="space-y-4">
-          {submissions.map((submission) => (
-            <Card key={submission.id} className="hover:shadow-md transition">
-              <CardContent className="pt-6">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm font-semibold text-blue-600">
-                          {submission.student.firstName[0]}
-                          {submission.student.lastName[0]}
-                        </span>
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-2">
-                          <h3 className="font-semibold text-lg">
-                            {submission.student.firstName}{" "}
-                            {submission.student.lastName}
-                          </h3>
-                          {getStatusBadge(submission.status)}
+          {submissions
+            .filter((submission) => {
+              if (!searchTerm) return true;
+              const search = searchTerm.toLowerCase();
+              return (
+                submission.student.firstName.toLowerCase().includes(search) ||
+                submission.student.lastName.toLowerCase().includes(search) ||
+                submission.subchapter.chapter.course.title
+                  .toLowerCase()
+                  .includes(search) ||
+                submission.subchapter.title.toLowerCase().includes(search) ||
+                submission.subchapter.chapter.title
+                  .toLowerCase()
+                  .includes(search)
+              );
+            })
+            .map((submission) => (
+              <Card key={submission.id} className="hover:shadow-md transition">
+                <CardContent className="pt-6">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                          <span className="text-sm font-semibold text-blue-600">
+                            {submission.student.firstName[0]}
+                            {submission.student.lastName[0]}
+                          </span>
                         </div>
-                        <div className="text-sm text-gray-600 space-y-1">
-                          <p>
-                            <strong>Kurs:</strong>{" "}
-                            {submission.subchapter.chapter.course.title}
-                          </p>
-                          <p>
-                            <strong>Rozdział:</strong>{" "}
-                            {submission.subchapter.chapter.order}.{" "}
-                            {submission.subchapter.chapter.title}
-                          </p>
-                          <p>
-                            <strong>Podrozdział:</strong>{" "}
-                            {submission.subchapter.chapter.order}.
-                            {submission.subchapter.order}{" "}
-                            {submission.subchapter.title}
-                          </p>
-                          <p>
-                            <strong>Przesłano:</strong>{" "}
-                            {new Date(submission.submittedAt).toLocaleString(
-                              "pl-PL"
-                            )}
-                          </p>
-                        </div>
-                        {submission.aiScore !== null && (
-                          <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
-                            <div className="flex items-center gap-2 mb-1">
-                              <Bot className="w-4 h-4 text-blue-600" />
-                              <span className="font-semibold text-blue-900">
-                                Ocena AI: {submission.aiScore}/100
-                              </span>
-                            </div>
-                            {submission.aiFeedback && (
-                              <p className="text-blue-800 text-xs">
-                                {submission.aiFeedback}
-                              </p>
-                            )}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <h3 className="font-semibold text-lg">
+                              {submission.student.firstName}{" "}
+                              {submission.student.lastName}
+                            </h3>
+                            {getStatusBadge(submission.status)}
                           </div>
-                        )}
+                          <div className="text-sm text-gray-600 space-y-1">
+                            <p>
+                              <strong>Kurs:</strong>{" "}
+                              {submission.subchapter.chapter.course.title}
+                            </p>
+                            <p>
+                              <strong>Rozdział:</strong>{" "}
+                              {submission.subchapter.chapter.order}.{" "}
+                              {submission.subchapter.chapter.title}
+                            </p>
+                            <p>
+                              <strong>Podrozdział:</strong>{" "}
+                              {submission.subchapter.chapter.order}.
+                              {submission.subchapter.order}{" "}
+                              {submission.subchapter.title}
+                            </p>
+                            <p>
+                              <strong>Przesłano:</strong>{" "}
+                              {new Date(submission.submittedAt).toLocaleString(
+                                "pl-PL"
+                              )}
+                            </p>
+                          </div>
+                          {submission.aiScore !== null && (
+                            <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Bot className="w-4 h-4 text-blue-600" />
+                                <span className="font-semibold text-blue-900">
+                                  Ocena AI: {submission.aiScore}/100
+                                </span>
+                              </div>
+                              {submission.aiFeedback && (
+                                <p className="text-blue-800 text-xs">
+                                  {submission.aiFeedback}
+                                </p>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => openSubmissionDetails(submission)}
+                    >
+                      <Eye className="w-4 h-4 mr-2" />
+                      Sprawdź
+                    </Button>
                   </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => openSubmissionDetails(submission)}
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    Sprawdź
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))}
         </div>
       )}
 
