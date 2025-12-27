@@ -16,6 +16,8 @@ import {
   LockOpen,
   Trash2,
   Download,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 interface Material {
@@ -78,6 +80,21 @@ export default function StudentCourseDetailsPage() {
   const [deletingSubmission, setDeletingSubmission] = useState<string | null>(
     null
   );
+  const [expandedChapters, setExpandedChapters] = useState<Set<string>>(
+    new Set()
+  );
+
+  const toggleChapter = (chapterId: string) => {
+    setExpandedChapters((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(chapterId)) {
+        newSet.delete(chapterId);
+      } else {
+        newSet.add(chapterId);
+      }
+      return newSet;
+    });
+  };
 
   useEffect(() => {
     fetchCourseDetails();
@@ -271,7 +288,8 @@ export default function StudentCourseDetailsPage() {
               <CardHeader
                 className={`${
                   chapter.isVisible ? "bg-blue-50" : "bg-gray-100"
-                }`}
+                } cursor-pointer`}
+                onClick={() => toggleChapter(chapter.id)}
               >
                 <div className="flex items-center justify-between">
                   <CardTitle className="flex items-center gap-2">
@@ -284,11 +302,18 @@ export default function StudentCourseDetailsPage() {
                       {chapter.order}. {chapter.title}
                     </span>
                   </CardTitle>
-                  {!chapter.isVisible && (
-                    <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
-                      Zablokowany
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {!chapter.isVisible && (
+                      <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                        Zablokowany
+                      </span>
+                    )}
+                    {expandedChapters.has(chapter.id) ? (
+                      <ChevronUp className="h-5 w-5 text-gray-600" />
+                    ) : (
+                      <ChevronDown className="h-5 w-5 text-gray-600" />
+                    )}
+                  </div>
                 </div>
                 {chapter.description && (
                   <p className="text-sm text-gray-600 mt-2">
@@ -297,7 +322,7 @@ export default function StudentCourseDetailsPage() {
                 )}
               </CardHeader>
 
-              {chapter.isVisible && (
+              {chapter.isVisible && expandedChapters.has(chapter.id) && (
                 <CardContent className="pt-4">
                   {chapter.subchapters.length === 0 ? (
                     <p className="text-sm text-gray-500 italic">
