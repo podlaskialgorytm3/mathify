@@ -3,8 +3,8 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
+  req: NextRequest,
+  context: { params: { id: string } }
 ) {
   try {
     const session = await auth();
@@ -13,7 +13,7 @@ export async function GET(
       return NextResponse.json({ error: "Brak uprawnień" }, { status: 403 });
     }
 
-    const { id } = params;
+    const { id } = context.params;
 
     const course = await prisma.course.findUnique({
       where: { id },
