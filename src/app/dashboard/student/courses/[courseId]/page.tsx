@@ -283,7 +283,7 @@ export default function StudentCourseDetailsPage() {
             </CardContent>
           </Card>
         ) : (
-          course.chapters.map((chapter) => (
+          (course.chapters || []).map((chapter) => (
             <Card key={chapter.id} className="overflow-hidden">
               <CardHeader
                 className={`${
@@ -324,13 +324,13 @@ export default function StudentCourseDetailsPage() {
 
               {chapter.isVisible && expandedChapters.has(chapter.id) && (
                 <CardContent className="pt-4">
-                  {chapter.subchapters.length === 0 ? (
+                  {(chapter.subchapters || []).length === 0 ? (
                     <p className="text-sm text-gray-500 italic">
                       Brak podrozdziałów
                     </p>
                   ) : (
                     <div className="space-y-2">
-                      {chapter.subchapters.map((subchapter) => (
+                      {(chapter.subchapters || []).map((subchapter) => (
                         <div
                           key={subchapter.id}
                           className={`p-4 rounded-lg border-2 ${
@@ -367,32 +367,34 @@ export default function StudentCourseDetailsPage() {
                           {subchapter.isVisible && (
                             <>
                               {/* Materials */}
-                              {subchapter.materials.length > 0 && (
+                              {(subchapter.materials || []).length > 0 && (
                                 <div className="mt-3 space-y-2">
                                   <h4 className="text-sm font-semibold text-gray-700">
                                     Materiały:
                                   </h4>
-                                  {subchapter.materials.map((material) => (
-                                    <button
-                                      key={material.id}
-                                      onClick={() => openMaterial(material)}
-                                      className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
-                                    >
-                                      <FileText className="h-4 w-4" />
-                                      {material.title}
-                                      {material.type === "PDF" && (
-                                        <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">
-                                          PDF
-                                        </span>
-                                      )}
-                                      {material.type === "LINK" && (
-                                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-                                          Link
-                                        </span>
-                                      )}
-                                      <ChevronRight className="h-3 w-3" />
-                                    </button>
-                                  ))}
+                                  {(subchapter.materials || []).map(
+                                    (material) => (
+                                      <button
+                                        key={material.id}
+                                        onClick={() => openMaterial(material)}
+                                        className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                                      >
+                                        <FileText className="h-4 w-4" />
+                                        {material.title}
+                                        {material.type === "PDF" && (
+                                          <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">
+                                            PDF
+                                          </span>
+                                        )}
+                                        {material.type === "LINK" && (
+                                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                                            Link
+                                          </span>
+                                        )}
+                                        <ChevronRight className="h-3 w-3" />
+                                      </button>
+                                    )
+                                  )}
                                 </div>
                               )}
 

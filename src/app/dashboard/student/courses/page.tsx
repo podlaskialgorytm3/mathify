@@ -116,7 +116,7 @@ export default function StudentCoursesPage() {
                 </p>
                 <p className="text-2xl font-bold text-gray-900 mt-1">
                   {courses.reduce(
-                    (sum, course) => sum + course._count.chapters,
+                    (sum, course) => sum + (course._count?.chapters || 0),
                     0
                   )}
                 </p>
@@ -139,8 +139,8 @@ export default function StudentCoursesPage() {
                   {courses.reduce(
                     (sum, course) =>
                       sum +
-                      course.chapters.reduce(
-                        (chSum, ch) => chSum + ch._count.subchapters,
+                      (course.chapters || []).reduce(
+                        (chSum, ch) => chSum + (ch._count?.subchapters || 0),
                         0
                       ),
                     0
