@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
-import { existsSync } from "fs";
 
 export async function POST(
   request: NextRequest,
@@ -40,66 +37,21 @@ export async function POST(
       );
     }
 
-    const formData = await request.formData();
-    const title = formData.get("title") as string;
-    const description = formData.get("description") as string;
-    const type = formData.get("type") as "PDF" | "LINK";
-    const file = formData.get("file") as File | null;
-    const link = formData.get("link") as string | null;
+    const body = await request.json();
+    const { title, description, type, content } = body;
 
-    if (!title || !type) {
+    if (!title || !type || !content) {
       return NextResponse.json(
-        { error: "Tytuł i typ są wymagane" },
+        { error: "Tytuł, typ i zawartość są wymagane" },
         { status: 400 }
       );
     }
 
-    let content = "";
-
-    if (type === "LINK") {
-      if (!link) {
-        return NextResponse.json(
-          { error: "Link jest wymagany dla typu LINK" },
-          { status: 400 }
-        );
-      }
-      content = link;
-    } else if (type === "PDF") {
-      if (!file) {
-        return NextResponse.json(
-          { error: "Plik jest wymagany dla typu PDF" },
-          { status: 400 }
-        );
-      }
-
-      // Validate file type
-      if (file.type !== "application/pdf") {
-        return NextResponse.json(
-          { error: "Tylko pliki PDF są dozwolone" },
-          { status: 400 }
-        );
-      }
-
-      // Create uploads directory if it doesn't exist
-      const uploadsDir = join(process.cwd(), "public", "uploads", "materials");
-      if (!existsSync(uploadsDir)) {
-        await mkdir(uploadsDir, { recursive: true });
-      }
-
-      // Generate unique filename
-      const timestamp = Date.now();
-      const filename = `${timestamp}-${file.name.replace(
-        /[^a-zA-Z0-9.-]/g,
-        "_"
-      )}`;
-      const filepath = join(uploadsDir, filename);
-
-      // Save file
-      const bytes = await file.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-      await writeFile(filepath, buffer);
-
-      content = `/uploads/materials/${filename}`;
+    if (!["PDF", "LINK"].includes(type)) {
+      return NextResponse.json(
+        { error: "Nieprawidłowy typ materiału" },
+        { status: 400 }
+      );
     }
 
     // Get next order
@@ -125,7 +77,7 @@ export async function POST(
       material,
     });
   } catch (error) {
-    console.error("Error uploading material:", error);
+    console.error("Error creating material:", error);
     return NextResponse.json(
       { error: "Błąd podczas dodawania materiału" },
       { status: 500 }

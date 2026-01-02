@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import FileUpload from "@/components/FileUpload";
 import {
   ArrowLeft,
   Plus,
@@ -499,15 +500,13 @@ export default function CourseDetailsPage({
     }
   };
 
-  const uploadMaterial = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const uploadMaterial = async (data: {
+    title: string;
+    description: string;
+    type: "PDF" | "LINK";
+    content: string;
+  }) => {
     if (!selectedSubchapterId) return;
-
-    const formData = new FormData(e.currentTarget);
-    const materialType = formData.get("type") as string;
-
-    // Dodaj typ do FormData
-    formData.set("type", materialType);
 
     try {
       setUploadingFile(true);
@@ -515,16 +514,17 @@ export default function CourseDetailsPage({
         `/api/teacher/subchapters/${selectedSubchapterId}/materials`,
         {
           method: "POST",
-          body: formData,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
         }
       );
 
-      const data = await response.json();
+      const responseData = await response.json();
 
       if (response.ok) {
         toast({
           title: "Sukces",
-          description: data.message,
+          description: responseData.message,
         });
         setShowMaterialModal(false);
         setSelectedSubchapterId(null);
@@ -532,7 +532,7 @@ export default function CourseDetailsPage({
       } else {
         toast({
           title: "Błąd",
-          description: data.error,
+          description: responseData.error,
           variant: "destructive",
         });
       }
@@ -1257,11 +1257,44 @@ function MaterialModal({
   uploading,
 }: {
   onClose: () => void;
-  onSubmit: (e: React.FormEvent<HTMLFormElement>) => void;
+  onSubmit: (data: {
+    title: string;
+    description: string;
+    type: "PDF" | "LINK";
+    content: string;
+  }) => void;
   title: string;
   uploading: boolean;
 }) {
   const [materialType, setMaterialType] = useState<"PDF" | "LINK">("PDF");
+  const [materialTitle, setMaterialTitle] = useState("");
+  const [materialDescription, setMaterialDescription] = useState("");
+  const [materialUrl, setMaterialUrl] = useState("");
+  const [uploadedFileUrl, setUploadedFileUrl] = useState("");
+
+  const handleSubmit = () => {
+    if (!materialTitle) {
+      alert("Tytuł jest wymagany");
+      return;
+    }
+
+    if (materialType === "PDF" && !uploadedFileUrl) {
+      alert("Proszę najpierw uploadować plik");
+      return;
+    }
+
+    if (materialType === "LINK" && !materialUrl) {
+      alert("URL jest wymagany");
+      return;
+    }
+
+    onSubmit({
+      title: materialTitle,
+      description: materialDescription,
+      type: materialType,
+      content: materialType === "PDF" ? uploadedFileUrl : materialUrl,
+    });
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -1280,12 +1313,13 @@ function MaterialModal({
           </div>
         </CardHeader>
         <CardContent>
-          <form onSubmit={onSubmit} className="space-y-4">
+          <div className="space-y-4">
             <div>
               <Label htmlFor="material-title">Tytuł materiału *</Label>
               <Input
                 id="material-title"
-                name="title"
+                value={materialTitle}
+                onChange={(e) => setMaterialTitle(e.target.value)}
                 placeholder="np. Teoria funkcji liniowych"
                 required
                 disabled={uploading}
@@ -1296,7 +1330,8 @@ function MaterialModal({
               <Label htmlFor="material-description">Opis</Label>
               <textarea
                 id="material-description"
-                name="description"
+                value={materialDescription}
+                onChange={(e) => setMaterialDescription(e.target.value)}
                 className="w-full p-2 border rounded-md min-h-[60px]"
                 placeholder="Krótki opis materiału..."
                 disabled={uploading}
@@ -1307,11 +1342,12 @@ function MaterialModal({
               <Label htmlFor="material-type">Typ materiału</Label>
               <select
                 id="material-type"
-                name="type"
                 value={materialType}
-                onChange={(e) =>
-                  setMaterialType(e.target.value as "PDF" | "LINK")
-                }
+                onChange={(e) => {
+                  setMaterialType(e.target.value as "PDF" | "LINK");
+                  setUploadedFileUrl("");
+                  setMaterialUrl("");
+                }}
                 className="w-full p-2 border rounded-md"
                 disabled={uploading}
               >
@@ -1322,26 +1358,31 @@ function MaterialModal({
 
             {materialType === "PDF" ? (
               <div>
-                <Label htmlFor="material-file">Wybierz plik PDF *</Label>
-                <Input
-                  id="material-file"
-                  name="file"
-                  type="file"
-                  accept=".pdf,application/pdf"
-                  required
-                  disabled={uploading}
+                <Label>Plik PDF *</Label>
+                <FileUpload
+                  onUploadComplete={(data) => {
+                    setUploadedFileUrl(data.url);
+                    if (!materialTitle) {
+                      setMaterialTitle(data.filename.replace(/\.[^/.]+$/, ""));
+                    }
+                  }}
+                  acceptedTypes={[".pdf"]}
+                  maxSize={100}
                 />
-                <p className="text-xs text-gray-500 mt-1">
-                  Maksymalny rozmiar: 10MB
-                </p>
+                {uploadedFileUrl && (
+                  <p className="text-sm text-green-600 mt-2">
+                    ✓ Plik został przesłany
+                  </p>
+                )}
               </div>
             ) : (
               <div>
                 <Label htmlFor="material-link">URL *</Label>
                 <Input
                   id="material-link"
-                  name="link"
                   type="url"
+                  value={materialUrl}
+                  onChange={(e) => setMaterialUrl(e.target.value)}
                   placeholder="https://example.com/material"
                   required
                   disabled={uploading}
@@ -1358,11 +1399,11 @@ function MaterialModal({
               >
                 Anuluj
               </Button>
-              <Button type="submit" disabled={uploading}>
-                {uploading ? "Przesyłanie..." : "Dodaj"}
+              <Button onClick={handleSubmit} disabled={uploading}>
+                {uploading ? "Dodawanie..." : "Dodaj"}
               </Button>
             </div>
-          </form>
+          </div>
         </CardContent>
       </Card>
     </div>

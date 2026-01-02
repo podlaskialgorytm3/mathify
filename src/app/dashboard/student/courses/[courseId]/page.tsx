@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
+import PDFViewer from "@/components/PDFViewer";
 import {
   ArrowLeft,
   BookOpen,
@@ -18,6 +19,7 @@ import {
   Download,
   ChevronDown,
   ChevronUp,
+  Eye,
 } from "lucide-react";
 
 interface Material {
@@ -83,6 +85,10 @@ export default function StudentCourseDetailsPage() {
   const [expandedChapters, setExpandedChapters] = useState<Set<string>>(
     new Set()
   );
+  const [viewingPDF, setViewingPDF] = useState<{
+    url: string;
+    title: string;
+  } | null>(null);
 
   const toggleChapter = (chapterId: string) => {
     setExpandedChapters((prev) => {
@@ -217,7 +223,7 @@ export default function StudentCourseDetailsPage() {
     if (material.type === "LINK") {
       window.open(material.content, "_blank");
     } else if (material.type === "PDF") {
-      window.open(material.content, "_blank");
+      setViewingPDF({ url: material.content, title: material.title });
     }
   };
 
@@ -377,21 +383,25 @@ export default function StudentCourseDetailsPage() {
                                       <button
                                         key={material.id}
                                         onClick={() => openMaterial(material)}
-                                        className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 hover:underline"
+                                        className="flex items-center gap-2 text-sm hover:bg-gray-50 p-2 rounded-lg transition-colors w-full"
                                       >
-                                        <FileText className="h-4 w-4" />
-                                        {material.title}
+                                        <FileText className="h-4 w-4 text-gray-500" />
+                                        <span className="flex-1 text-left">
+                                          {material.title}
+                                        </span>
                                         {material.type === "PDF" && (
-                                          <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">
-                                            PDF
-                                          </span>
+                                          <>
+                                            <span className="text-xs bg-red-100 text-red-800 px-2 py-0.5 rounded">
+                                              PDF
+                                            </span>
+                                            <Eye className="h-4 w-4 text-blue-600" />
+                                          </>
                                         )}
                                         {material.type === "LINK" && (
                                           <span className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
                                             Link
                                           </span>
                                         )}
-                                        <ChevronRight className="h-3 w-3" />
                                       </button>
                                     )
                                   )}
@@ -537,6 +547,15 @@ export default function StudentCourseDetailsPage() {
           ))
         )}
       </div>
+
+      {/* PDF Viewer Modal */}
+      {viewingPDF && (
+        <PDFViewer
+          url={viewingPDF.url}
+          title={viewingPDF.title}
+          onClose={() => setViewingPDF(null)}
+        />
+      )}
     </div>
   );
 }
