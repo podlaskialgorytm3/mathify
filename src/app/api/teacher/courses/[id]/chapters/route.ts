@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -13,7 +13,7 @@ export async function POST(
       return NextResponse.json({ error: "Brak uprawnień" }, { status: 403 });
     }
 
-    const { id: courseId } = params;
+    const { id: courseId } = await params;
     const body = await request.json();
     const {
       title,

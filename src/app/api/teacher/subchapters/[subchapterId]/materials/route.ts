@@ -7,7 +7,7 @@ import { existsSync } from "fs";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { subchapterId: string } }
+  { params }: { params: Promise<{ subchapterId: string }> }
 ) {
   try {
     const session = await auth();
@@ -16,7 +16,7 @@ export async function POST(
       return NextResponse.json({ error: "Brak uprawnień" }, { status: 403 });
     }
 
-    const { subchapterId } = params;
+    const { subchapterId } = await params;
 
     // Verify subchapter belongs to teacher's course
     const subchapter = await prisma.subchapter.findUnique({
@@ -135,7 +135,7 @@ export async function POST(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { subchapterId: string } }
+  { params }: { params: Promise<{ subchapterId: string }> }
 ) {
   try {
     const session = await auth();
@@ -144,7 +144,7 @@ export async function GET(
       return NextResponse.json({ error: "Brak uprawnień" }, { status: 403 });
     }
 
-    const { subchapterId } = params;
+    const { subchapterId } = await params;
 
     const materials = await prisma.material.findMany({
       where: { subchapterId },

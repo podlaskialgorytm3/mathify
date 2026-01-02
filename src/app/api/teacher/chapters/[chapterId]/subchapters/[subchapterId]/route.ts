@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { chapterId: string; subchapterId: string } }
+  { params }: { params: Promise<{ chapterId: string; subchapterId: string }> }
 ) {
   try {
     const session = await auth();
@@ -13,7 +13,7 @@ export async function PUT(
       return NextResponse.json({ error: "Brak uprawnień" }, { status: 403 });
     }
 
-    const { chapterId, subchapterId } = params;
+    const { chapterId, subchapterId } = await params;
     const body = await request.json();
 
     // Verify chapter belongs to teacher's course
@@ -96,7 +96,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { chapterId: string; subchapterId: string } }
+  { params }: { params: Promise<{ chapterId: string; subchapterId: string }> }
 ) {
   try {
     const session = await auth();
@@ -105,7 +105,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Brak uprawnień" }, { status: 403 });
     }
 
-    const { chapterId, subchapterId } = params;
+    const { chapterId, subchapterId } = await params;
 
     // Verify chapter belongs to teacher's course
     const chapter = await prisma.chapter.findUnique({

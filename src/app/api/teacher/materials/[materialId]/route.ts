@@ -7,7 +7,7 @@ import { existsSync } from "fs";
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { materialId: string } }
+  { params }: { params: Promise<{ materialId: string }> }
 ) {
   try {
     const session = await auth();
@@ -16,7 +16,7 @@ export async function DELETE(
       return NextResponse.json({ error: "Brak uprawnień" }, { status: 403 });
     }
 
-    const { materialId } = params;
+    const { materialId } = await params;
 
     // Get material with subchapter and course info
     const material = await prisma.material.findUnique({
@@ -76,7 +76,7 @@ export async function DELETE(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { materialId: string } }
+  { params }: { params: Promise<{ materialId: string }> }
 ) {
   try {
     const session = await auth();
@@ -85,7 +85,7 @@ export async function PUT(
       return NextResponse.json({ error: "Brak uprawnień" }, { status: 403 });
     }
 
-    const { materialId } = params;
+    const { materialId } = await params;
     const body = await request.json();
 
     // Get material with subchapter and course info
