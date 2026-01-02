@@ -89,7 +89,7 @@ export async function PUT(
 
     // Check if plan exists
     const existingPlan = await prisma.plan.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingPlan) {
@@ -114,7 +114,7 @@ export async function PUT(
     }
 
     const updatedPlan = await prisma.plan.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         name,
         maxSubchapters: parseInt(maxSubchapters),
