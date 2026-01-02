@@ -102,8 +102,9 @@ export default function AIPromptsPage() {
       const data = await response.json();
 
       if (response.ok) {
-        setTemplates(data.templates);
+        setTemplates(data.templates || []);
       } else {
+        setTemplates([]);
         toast({
           title: "Błąd",
           description: data.error || "Nie udało się pobrać szablonów",
@@ -111,6 +112,7 @@ export default function AIPromptsPage() {
         });
       }
     } catch (error) {
+      setTemplates([]);
       toast({
         title: "Błąd",
         description: "Wystąpił błąd podczas pobierania szablonów",
@@ -277,7 +279,7 @@ export default function AIPromptsPage() {
       </Card>
 
       {/* Templates List */}
-      {templates.length === 0 ? (
+      {(templates || []).length === 0 ? (
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-12">
@@ -292,7 +294,7 @@ export default function AIPromptsPage() {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {templates.map((template) => (
+          {(templates || []).map((template) => (
             <Card
               key={template.id}
               className="hover:shadow-lg transition-shadow"
@@ -335,8 +337,8 @@ export default function AIPromptsPage() {
                   </p>
                 </div>
                 <div className="mt-3 p-2 bg-gray-50 rounded text-xs font-mono max-h-20 overflow-hidden">
-                  {template.prompt.substring(0, 100)}
-                  {template.prompt.length > 100 && "..."}
+                  {(template.prompt || "").substring(0, 100)}
+                  {(template.prompt || "").length > 100 && "..."}
                 </div>
               </CardContent>
             </Card>

@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ prompts: templates });
+    return NextResponse.json({ templates });
   } catch (error) {
     console.error("Error fetching AI prompt templates:", error);
     return NextResponse.json(

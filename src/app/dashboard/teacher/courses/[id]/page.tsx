@@ -163,10 +163,13 @@ export default function CourseDetailsPage({
       const data = await response.json();
 
       if (response.ok) {
-        setAiTemplates(data.templates);
+        setAiTemplates(data.templates || []);
+      } else {
+        setAiTemplates([]);
       }
     } catch (error) {
       console.error("Error fetching AI templates:", error);
+      setAiTemplates([]);
     }
   };
 
@@ -770,7 +773,7 @@ export default function CourseDetailsPage({
                 className="w-full p-2 border rounded-md mt-1"
               >
                 <option value="">Brak szablonu</option>
-                {aiTemplates.map((template) => (
+                {(aiTemplates || []).map((template) => (
                   <option key={template.id} value={template.id}>
                     {template.name}
                     {template.description && ` - ${template.description}`}
@@ -788,10 +791,10 @@ export default function CourseDetailsPage({
       </Card>
 
       {/* Chapters List */}
-      {course.chapters.length === 0 ? (
+      {(course.chapters || []).length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+            <FileText className="w-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600 mb-4">Brak rozdziałów w tym kursie</p>
             <Button onClick={() => setShowChapterModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
@@ -801,7 +804,7 @@ export default function CourseDetailsPage({
         </Card>
       ) : (
         <div className="space-y-4">
-          {course.chapters.map((chapter) => (
+          {(course.chapters || []).map((chapter) => (
             <Card key={chapter.id} className="overflow-hidden">
               <div
                 className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
