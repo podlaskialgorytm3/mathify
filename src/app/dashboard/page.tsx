@@ -464,7 +464,7 @@ async function TeacherDashboardContent({
               {pendingSubmissions.map((submission) => {
                 let totalEarned = 0;
                 let totalMax = 0;
-                submission.tasks.forEach((task) => {
+                (submission.tasks || []).forEach((task) => {
                   totalEarned += task.pointsEarned;
                   totalMax += task.maxPoints;
                 });
@@ -546,7 +546,7 @@ async function TeacherDashboardContent({
               {recentApproved.map((submission) => {
                 let totalEarned = 0;
                 let totalMax = 0;
-                submission.tasks.forEach((task) => {
+                (submission.tasks || []).forEach((task) => {
                   totalEarned += task.pointsEarned;
                   totalMax += task.maxPoints;
                 });
@@ -759,7 +759,7 @@ async function StudentDashboardContent({
     let submissionPoints = 0;
     let submissionMax = 0;
 
-    submission.tasks.forEach((task) => {
+    (submission.tasks || []).forEach((task) => {
       totalPointsEarned += task.pointsEarned;
       totalPointsMax += task.maxPoints;
       submissionPoints += task.pointsEarned;
@@ -856,7 +856,7 @@ async function StudentDashboardContent({
               {submissions.map((submission) => {
                 let totalEarned = 0;
                 let totalMax = 0;
-                submission.tasks.forEach((task) => {
+                (submission.tasks || []).forEach((task) => {
                   totalEarned += task.pointsEarned;
                   totalMax += task.maxPoints;
                 });
@@ -888,7 +888,7 @@ async function StudentDashboardContent({
                       </p>
                     </div>
                     <div className="flex items-center gap-4">
-                      {submission.tasks.length > 0 && (
+                      {(submission.tasks || []).length > 0 && (
                         <div className="text-right">
                           <div className="text-2xl font-bold text-gray-900">
                             {percentage}%
@@ -909,13 +909,14 @@ async function StudentDashboardContent({
                             Odrzucone
                           </span>
                         )}
-                        {!submission.review && submission.tasks.length > 0 && (
-                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            Sprawdzone
-                          </span>
-                        )}
                         {!submission.review &&
-                          submission.tasks.length === 0 && (
+                          (submission.tasks || []).length > 0 && (
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                              Sprawdzone
+                            </span>
+                          )}
+                        {!submission.review &&
+                          (submission.tasks || []).length === 0 && (
                             <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
                               Oczekuje
                             </span>
