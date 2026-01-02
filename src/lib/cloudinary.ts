@@ -47,6 +47,26 @@ export async function uploadToCloudinary(
     resourceType = "image"; // PDFs are treated as images in Cloudinary
   }
 
+  return uploadBufferToCloudinary(buffer, file.name, file.type, folder);
+}
+
+// Upload buffer directly to Cloudinary (for generated PDFs, converted images, etc.)
+export async function uploadBufferToCloudinary(
+  buffer: Buffer,
+  fileName: string,
+  mimeType: string,
+  folder: string = "mathify"
+): Promise<{ url: string; publicId: string }> {
+  // Determine resource type based on MIME type
+  let resourceType: "image" | "video" | "raw" = "raw";
+  if (mimeType.startsWith("image/")) {
+    resourceType = "image";
+  } else if (mimeType.startsWith("video/")) {
+    resourceType = "video";
+  } else if (mimeType === "application/pdf") {
+    resourceType = "image"; // PDFs are treated as images in Cloudinary
+  }
+
   return new Promise((resolve, reject) => {
     cloudinary.uploader
       .upload_stream(
@@ -55,6 +75,7 @@ export async function uploadToCloudinary(
           resource_type: resourceType,
           access_mode: "public", // Make files publicly accessible
           type: "upload", // Explicit upload type for public access
+          public_id: fileName.replace(/\.[^/.]+$/, ""), // Remove extension for public_id
         },
         (error, result) => {
           if (error) reject(error);

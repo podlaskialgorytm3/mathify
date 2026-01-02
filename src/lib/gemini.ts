@@ -52,12 +52,31 @@ export async function checkSubmissionWithAI(
     console.log("Submission ID:", submissionId);
     console.log("Prompt template length:", promptTemplate.length);
 
-    // Przeczytaj PDF
-    const fullPath = path.join(process.cwd(), "public", filePath);
-    console.log("Full PDF path:", fullPath);
+    let dataBuffer: Buffer;
 
-    const dataBuffer = await fs.readFile(fullPath);
-    console.log("PDF buffer size:", dataBuffer.length);
+    // Sprawdź czy to URL z Cloudinary czy lokalna ścieżka
+    if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+      console.log("Downloading from Cloudinary URL:", filePath);
+
+      // Pobierz plik z URL-a
+      const response = await fetch(filePath);
+      if (!response.ok) {
+        throw new Error(
+          `Failed to download file from Cloudinary: ${response.statusText}`
+        );
+      }
+
+      const arrayBuffer = await response.arrayBuffer();
+      dataBuffer = Buffer.from(arrayBuffer);
+      console.log("Downloaded buffer size:", dataBuffer.length);
+    } else {
+      // Stara ścieżka lokalna - dla kompatybilności wstecznej
+      const fullPath = path.join(process.cwd(), "public", filePath);
+      console.log("Full PDF path:", fullPath);
+
+      dataBuffer = await fs.readFile(fullPath);
+      console.log("PDF buffer size:", dataBuffer.length);
+    }
 
     // Konwertuj PDF do base64 dla Gemini
     const base64Data = dataBuffer.toString("base64");

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { unlink } from "fs/promises";
-import path from "path";
+import { deleteFromCloudinary } from "@/lib/cloudinary";
 
 export async function GET(
   request: NextRequest,
@@ -93,12 +92,16 @@ export async function DELETE(
       );
     }
 
-    // Usuń plik z dysku
+    // Usuń plik z Cloudinary
     try {
-      const filePath = path.join(process.cwd(), "public", submission.filePath);
-      await unlink(filePath);
+      // Wyciągnij publicId z URL-a Cloudinary
+      const urlParts = submission.filePath.split("/");
+      const fileWithExt = urlParts[urlParts.length - 1];
+      const publicId = fileWithExt.replace(/\.[^/.]+$/, ""); // Usuń rozszerzenie
+
+      await deleteFromCloudinary(publicId);
     } catch (fileError) {
-      console.error("Error deleting file:", fileError);
+      console.error("Error deleting file from Cloudinary:", fileError);
       // Kontynuuj mimo błędu - plik może już nie istnieć
     }
 

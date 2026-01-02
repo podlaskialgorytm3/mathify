@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { writeFile, mkdir, unlink, readFile } from "fs/promises";
+import { readFile } from "fs/promises";
 import path from "path";
 import { checkSubmissionWithAI } from "@/lib/gemini";
 import { convertImagesToPDF, mergePDFs } from "@/lib/pdf-utils";
+import {
+  uploadBufferToCloudinary,
+  deleteFromCloudinary,
+} from "@/lib/cloudinary";
 
 export async function GET() {
   try {
@@ -175,35 +179,81 @@ export async function POST(request: NextRequest) {
       // Konwertuj zdjęcia do PDF
       const imagesPdf = await convertImagesToPDF(imageBuffers);
 
-      // Pobierz globalną nazwę pliku pracy domowej z ustawień systemowych
-      const systemSettings = await prisma.systemSettings.findFirst();
-      const homeworkFileName =
-        systemSettings?.defaultHomeworkFileName || "Praca Domowa.pdf";
+      console.log("=== HOMEWORK MERGE DEBUG ===");
+      console.log("Subchapter ID:", subchapterId);
 
-      // Sprawdź czy istnieje plik z pracą domową w materiałach podrozdziału
-      const homeworkMaterial = await prisma.material.findFirst({
+      // Pobierz wszystkie materiały PDF dla tego podrozdziału
+      const allPdfMaterials = await prisma.material.findMany({
         where: {
           subchapterId: subchapterId,
           type: "PDF",
-          OR: [
-            { title: { contains: homeworkFileName, mode: "insensitive" } },
-            { content: { contains: homeworkFileName, mode: "insensitive" } },
-          ],
         },
         orderBy: {
           order: "asc",
         },
       });
 
+      console.log("All PDF materials in subchapter:", allPdfMaterials.length);
+      allPdfMaterials.forEach((mat, idx) => {
+        console.log(`PDF ${idx + 1}:`, {
+          id: mat.id,
+          title: mat.title,
+          content: mat.content.substring(0, 100),
+        });
+      });
+
+      // Pobierz ustawienia systemowe
+      const systemSettings = await prisma.systemSettings.findFirst();
+      const homeworkFileName =
+        systemSettings?.defaultHomeworkFileName || "Praca Domowa.pdf";
+
+      console.log("Looking for homework with name:", homeworkFileName);
+
+      // Szukaj materiału który ma "praca domowa" w nazwie (elastyczne wyszukiwanie)
+      const homeworkMaterial = allPdfMaterials.find((mat) =>
+        mat.title.toLowerCase().includes("praca domowa")
+      );
+
+      console.log("Found homework material:", homeworkMaterial ? "YES" : "NO");
+      if (homeworkMaterial) {
+        console.log("Homework title:", homeworkMaterial.title);
+        console.log("Homework content URL:", homeworkMaterial.content);
+      }
+
       if (homeworkMaterial && homeworkMaterial.content) {
         // Odczytaj plik pracy domowej
         try {
-          const homeworkPdfPath = path.join(
-            process.cwd(),
-            "public",
-            homeworkMaterial.content
-          );
-          const homeworkPdfBuffer = await readFile(homeworkPdfPath);
+          let homeworkPdfBuffer: Buffer;
+
+          // Sprawdź czy to URL z Cloudinary czy lokalna ścieżka
+          if (
+            homeworkMaterial.content.startsWith("http://") ||
+            homeworkMaterial.content.startsWith("https://")
+          ) {
+            console.log(
+              "Downloading homework PDF from Cloudinary:",
+              homeworkMaterial.content
+            );
+
+            // Pobierz plik z URL-a
+            const response = await fetch(homeworkMaterial.content);
+            if (!response.ok) {
+              throw new Error(
+                `Failed to download homework PDF from Cloudinary: ${response.statusText}`
+              );
+            }
+
+            const arrayBuffer = await response.arrayBuffer();
+            homeworkPdfBuffer = Buffer.from(arrayBuffer);
+          } else {
+            // Stara ścieżka lokalna - dla kompatybilności wstecznej
+            const homeworkPdfPath = path.join(
+              process.cwd(),
+              "public",
+              homeworkMaterial.content
+            );
+            homeworkPdfBuffer = await readFile(homeworkPdfPath);
+          }
 
           // Połącz PDF ze zdjęć z pracą domową
           finalPdfBuffer = await mergePDFs(imagesPdf, homeworkPdfBuffer);
@@ -297,36 +347,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Zapisz plik
+    // Zapisz plik do Cloudinary
     // Utwórz unikalną nazwę pliku
     const timestamp = Date.now();
-    const fileExtension = ".pdf"; // Zawsze PDF
     const safeFileName = fileName
       .replace(/\.pdf$/i, "")
       .replace(/[^a-zA-Z0-9]/g, "_");
-    const uniqueFileName = `${timestamp}_${safeFileName}${fileExtension}`;
+    const uniqueFileName = `${timestamp}_${safeFileName}.pdf`;
 
-    // Ścieżka do zapisu
-    const uploadDir = path.join(
-      process.cwd(),
-      "public",
-      "uploads",
-      "submissions"
+    // Upload do Cloudinary
+    const cloudinaryResult = await uploadBufferToCloudinary(
+      finalPdfBuffer,
+      uniqueFileName,
+      "application/pdf",
+      "mathify/submissions"
     );
-    const filePath = path.join(uploadDir, uniqueFileName);
-
-    // Utwórz folder jeśli nie istnieje
-    await mkdir(uploadDir, { recursive: true });
-
-    // Zapisz plik
-    await writeFile(filePath, finalPdfBuffer);
 
     // Utwórz rekord w bazie danych
     const submission = await prisma.submission.create({
       data: {
         subchapterId: subchapterId,
         studentId: session.user.id,
-        filePath: `/uploads/submissions/${uniqueFileName}`,
+        filePath: cloudinaryResult.url,
         fileName: fileName,
         fileSize: finalPdfBuffer.length,
         status: "PENDING",
@@ -477,12 +519,16 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // Usuń plik z dysku
+    // Usuń plik z Cloudinary
     try {
-      const filePath = path.join(process.cwd(), "public", submission.filePath);
-      await unlink(filePath);
+      // Wyciągnij publicId z URL-a Cloudinary
+      const urlParts = submission.filePath.split("/");
+      const fileWithExt = urlParts[urlParts.length - 1];
+      const publicId = fileWithExt.replace(/\.[^/.]+$/, ""); // Usuń rozszerzenie
+
+      await deleteFromCloudinary(publicId);
     } catch (fileError) {
-      console.error("Error deleting file:", fileError);
+      console.error("Error deleting file from Cloudinary:", fileError);
       // Kontynuuj nawet jeśli plik nie istnieje
     }
 
