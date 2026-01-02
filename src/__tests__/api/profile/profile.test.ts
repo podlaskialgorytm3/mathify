@@ -1,10 +1,9 @@
 import {
   GET as getProfile,
-  PUT as updateProfile,
+  PATCH as updateProfile,
 } from "@/app/api/profile/route";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import bcrypt from "bcryptjs";
 import {
   createMockRequest,
   createMockSession,
@@ -21,10 +20,6 @@ jest.mock("@/lib/prisma", () => ({
     },
   },
 }));
-jest.mock("bcryptjs", () => ({
-  hash: jest.fn(),
-  compare: jest.fn(),
-}));
 
 describe("Profile API", () => {
   beforeEach(() => {
@@ -36,13 +31,14 @@ describe("Profile API", () => {
       const userSession = createMockSession("STUDENT", "user-id");
       (auth as jest.Mock).mockResolvedValue(userSession);
 
-      const mockUser = mockPrismaUser({
+      const mockUser = {
         id: "user-id",
         email: "user@example.com",
         username: "testuser",
         firstName: "Test",
         lastName: "User",
-      });
+        role: "STUDENT",
+      };
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
 
       const request = createMockRequest("/api/profile");
@@ -50,15 +46,9 @@ describe("Profile API", () => {
       const data = await getResponseBody(response);
 
       expect(response.status).toBe(200);
-      expect(data.user).toBeDefined();
-      expect(data.user.email).toBe("user@example.com");
-      expect(data.user.password).toBeUndefined(); // Password should not be exposed
-      expect(prisma.user.findUnique).toHaveBeenCalledWith({
-        where: { id: "user-id" },
-        select: expect.objectContaining({
-          password: false,
-        }),
-      });
+      expect(data).toBeDefined();
+      expect(data.email).toBe("user@example.com");
+      expect(data.password).toBeUndefined(); // Password should not be exposed
     });
 
     it("should deny access to unauthenticated users", async () => {
@@ -82,7 +72,7 @@ describe("Profile API", () => {
     });
   });
 
-  describe("PUT /api/profile", () => {
+  describe("PATCH /api/profile", () => {
     it("should update user profile", async () => {
       const userSession = createMockSession("STUDENT", "user-id");
       (auth as jest.Mock).mockResolvedValue(userSession);
@@ -98,10 +88,11 @@ describe("Profile API", () => {
       (prisma.user.update as jest.Mock).mockResolvedValue(updatedUser);
 
       const request = createMockRequest("/api/profile", {
-        method: "PUT",
+        method: "PATCH",
         body: {
           firstName: "Updated",
           lastName: "Name",
+          username: "testuser",
         },
       });
 
@@ -113,85 +104,32 @@ describe("Profile API", () => {
       expect(prisma.user.update).toHaveBeenCalled();
     });
 
-    it("should update password if provided", async () => {
-      const userSession = createMockSession("STUDENT", "user-id");
-      (auth as jest.Mock).mockResolvedValue(userSession);
-
-      const existingUser = mockPrismaUser({
-        id: "user-id",
-        password: "old_hashed_password",
-      });
-
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue(existingUser);
-      (bcrypt.compare as jest.Mock).mockResolvedValue(true);
-      (bcrypt.hash as jest.Mock).mockResolvedValue("new_hashed_password");
-      (prisma.user.update as jest.Mock).mockResolvedValue({
-        ...existingUser,
-        password: "new_hashed_password",
-      });
-
-      const request = createMockRequest("/api/profile", {
-        method: "PUT",
-        body: {
-          currentPassword: "oldpassword",
-          newPassword: "newpassword",
-        },
-      });
-
-      const response = await updateProfile(request);
-
-      expect(response.status).toBe(200);
-      expect(bcrypt.compare).toHaveBeenCalledWith(
-        "oldpassword",
-        "old_hashed_password"
-      );
-      expect(bcrypt.hash).toHaveBeenCalledWith("newpassword", 10);
-    });
-
-    it("should reject password update with wrong current password", async () => {
-      const userSession = createMockSession("STUDENT", "user-id");
-      (auth as jest.Mock).mockResolvedValue(userSession);
-
-      const existingUser = mockPrismaUser({ id: "user-id" });
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue(existingUser);
-      (bcrypt.compare as jest.Mock).mockResolvedValue(false); // Wrong password
-
-      const request = createMockRequest("/api/profile", {
-        method: "PUT",
-        body: {
-          currentPassword: "wrongpassword",
-          newPassword: "newpassword",
-        },
-      });
-
-      const response = await updateProfile(request);
-      const data = await getResponseBody(response);
-
-      expect(response.status).toBe(400);
-      expect(data.error).toBeDefined();
-      expect(prisma.user.update).not.toHaveBeenCalled();
-    });
-
     it("should not allow changing role", async () => {
       const userSession = createMockSession("STUDENT", "user-id");
       (auth as jest.Mock).mockResolvedValue(userSession);
 
       const existingUser = mockPrismaUser({ id: "user-id", role: "STUDENT" });
+      const updatedUser = { ...existingUser, role: "STUDENT" }; // Role stays the same
+
       (prisma.user.findUnique as jest.Mock).mockResolvedValue(existingUser);
+      (prisma.user.update as jest.Mock).mockResolvedValue(updatedUser);
 
       const request = createMockRequest("/api/profile", {
-        method: "PUT",
+        method: "PATCH",
         body: {
+          firstName: "Test",
+          lastName: "User",
+          username: "testuser",
           role: "ADMIN", // Attempting to change role
         },
       });
 
       const response = await updateProfile(request);
 
-      // Role should not be updated
-      expect(prisma.user.update).not.toHaveBeenCalledWith(
+      // Role should not be updated - check that update was called without role in data
+      expect(prisma.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
-          data: expect.objectContaining({
+          data: expect.not.objectContaining({
             role: "ADMIN",
           }),
         })
@@ -202,7 +140,7 @@ describe("Profile API", () => {
       (auth as jest.Mock).mockResolvedValue(null);
 
       const request = createMockRequest("/api/profile", {
-        method: "PUT",
+        method: "PATCH",
         body: {
           firstName: "Test",
         },

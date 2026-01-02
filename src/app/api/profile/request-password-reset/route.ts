@@ -6,16 +6,18 @@ import crypto from "crypto";
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
+    const body = await request.json();
+    const { email } = body;
 
-    if (!session) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (!email) {
+      return NextResponse.json({ error: "Email is required" }, { status: 400 });
     }
 
     // Pobierz dane użytkownika
     const user = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { email },
       select: {
+        id: true,
         email: true,
         firstName: true,
         lastName: true,
@@ -23,17 +25,24 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+      // Don't reveal that user doesn't exist - return success anyway
+      return NextResponse.json({
+        message: "If the email exists, a password reset link has been sent.",
+      });
     }
 
-    // Usuń poprzednie nieużyte tokeny resetowania hasła
-    await prisma.verificationToken.deleteMany({
-      where: {
-        userId: session.user.id,
-        type: "PASSWORD_RESET",
-        used: false,
-      },
-    });
+    // Usuń poprzednie nieużyte tokeny resetowania hasła (optional cleanup)
+    try {
+      await prisma.verificationToken.deleteMany({
+        where: {
+          userId: user.id,
+          type: "PASSWORD_RESET",
+          used: false,
+        },
+      });
+    } catch (error) {
+      // Ignore errors during cleanup
+    }
 
     // Wygeneruj token
     const token = crypto.randomBytes(32).toString("hex");
@@ -43,7 +52,7 @@ export async function POST(request: NextRequest) {
     // Zapisz token w bazie
     await prisma.verificationToken.create({
       data: {
-        userId: session.user.id,
+        userId: user.id,
         token,
         type: "PASSWORD_RESET",
         expiresAt,
@@ -58,7 +67,7 @@ export async function POST(request: NextRequest) {
     );
 
     return NextResponse.json({
-      message: "Password reset email sent. Please check your inbox.",
+      message: "If the email exists, a password reset link has been sent.",
     });
   } catch (error) {
     console.error("Error requesting password reset:", error);

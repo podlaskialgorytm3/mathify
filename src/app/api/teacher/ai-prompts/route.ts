@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ templates });
+    return NextResponse.json({ prompts: templates });
   } catch (error) {
     console.error("Error fetching AI prompt templates:", error);
     return NextResponse.json(
@@ -58,10 +58,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({
-      message: "Szablon został utworzony",
-      template,
-    });
+    return NextResponse.json(
+      {
+        message: "Szablon został utworzony",
+        prompt: template,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Error creating AI prompt template:", error);
     return NextResponse.json(

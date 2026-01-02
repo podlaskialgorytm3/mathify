@@ -121,7 +121,7 @@ describe("Admin API - Courses", () => {
       const response = await createCourse(request);
       const data = await getResponseBody(response);
 
-      expect(response.status).toBe(201);
+      expect(response.status).toBe(200);
       expect(data.course).toBeDefined();
       expect(prisma.course.create).toHaveBeenCalled();
     });

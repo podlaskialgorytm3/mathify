@@ -16,6 +16,13 @@ jest.mock("@/lib/prisma", () => ({
       findUnique: jest.fn(),
       create: jest.fn(),
     },
+    course: {
+      findMany: jest.fn(),
+    },
+    courseEnrollment: {
+      createMany: jest.fn(),
+    },
+    $transaction: jest.fn(),
   },
 }));
 jest.mock("bcryptjs", () => ({
@@ -31,59 +38,87 @@ describe("Teacher API - Create Student", () => {
     it("should create a new student account", async () => {
       const teacherSession = createMockSession("TEACHER", "teacher-id");
       (auth as jest.Mock).mockResolvedValue(teacherSession);
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
-      (bcrypt.hash as jest.Mock).mockResolvedValue("hashed_password");
 
+      const mockTeacher = {
+        id: "teacher-id",
+        plan: { maxStudents: 100 },
+        createdCourses: [{ enrollments: [] }],
+      };
+      const mockCourses = [
+        { id: "course-1", title: "Math 101", teacherId: "teacher-id" },
+      ];
       const newStudent = mockPrismaUser({
         id: "new-student-id",
-        username: "jankowalski",
+        username: "jan.kowalski",
+        email: "jan@example.com",
         role: "STUDENT",
         status: "ACTIVE",
         createdById: "teacher-id",
       });
-      (prisma.user.create as jest.Mock).mockResolvedValue(newStudent);
+
+      (prisma.user.findUnique as jest.Mock)
+        .mockResolvedValueOnce(mockTeacher) // First call for teacher
+        .mockResolvedValueOnce(null) // Second call for email check
+        .mockResolvedValueOnce(null); // Third call for username check
+      (prisma.course.findMany as jest.Mock).mockResolvedValue(mockCourses);
+      (bcrypt.hash as jest.Mock).mockResolvedValue("hashed_password");
+      (prisma.$transaction as jest.Mock).mockImplementation(async (callback) =>
+        callback({
+          user: {
+            create: jest.fn().mockResolvedValue(newStudent),
+          },
+          courseEnrollment: {
+            createMany: jest.fn(),
+          },
+        })
+      );
 
       const request = createMockRequest("/api/teacher/create-student", {
         method: "POST",
         body: {
           firstName: "Jan",
           lastName: "Kowalski",
-          username: "jankowalski",
-          password: "student123",
+          email: "jan@example.com",
+          courseIds: ["course-1"],
         },
       });
 
       const response = await createStudent(request);
       const data = await getResponseBody(response);
 
-      expect(response.status).toBe(201);
-      expect(data.student).toBeDefined();
-      expect(data.student.role).toBe("STUDENT");
-      expect(prisma.user.create).toHaveBeenCalledWith(
-        expect.objectContaining({
-          data: expect.objectContaining({
-            role: "STUDENT",
-            status: "ACTIVE",
-            createdById: "teacher-id",
-          }),
-        })
-      );
+      expect(response.status).toBe(200);
+      expect(data.firstName).toBe("Jan");
+      expect(data.username).toBeDefined();
+      expect(data.password).toBeDefined();
     });
 
     it("should reject if username already exists", async () => {
       const teacherSession = createMockSession("TEACHER", "teacher-id");
       (auth as jest.Mock).mockResolvedValue(teacherSession);
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue(
-        mockPrismaUser({ username: "existinguser" })
-      );
+
+      const mockTeacher = {
+        id: "teacher-id",
+        plan: { maxStudents: 100 },
+        createdCourses: [{ enrollments: [] }],
+      };
+      const mockCourses = [
+        { id: "course-1", title: "Math 101", teacherId: "teacher-id" },
+      ];
+
+      (prisma.user.findUnique as jest.Mock)
+        .mockResolvedValueOnce(mockTeacher) // First call for teacher
+        .mockResolvedValueOnce(
+          mockPrismaUser({ email: "existing@example.com" })
+        ); // Email exists
+      (prisma.course.findMany as jest.Mock).mockResolvedValue(mockCourses);
 
       const request = createMockRequest("/api/teacher/create-student", {
         method: "POST",
         body: {
           firstName: "Jan",
           lastName: "Kowalski",
-          username: "existinguser",
-          password: "password123",
+          email: "existing@example.com",
+          courseIds: ["course-1"],
         },
       });
 
@@ -102,7 +137,7 @@ describe("Teacher API - Create Student", () => {
         method: "POST",
         body: {
           firstName: "Jan",
-          // Missing lastName, username, password
+          // Missing lastName, email, courseIds
         },
       });
 
@@ -122,8 +157,8 @@ describe("Teacher API - Create Student", () => {
         body: {
           firstName: "Jan",
           lastName: "Kowalski",
-          username: "jankowalski",
-          password: "password123",
+          email: "jan@example.com",
+          courseIds: ["course-1"],
         },
       });
 

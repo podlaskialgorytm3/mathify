@@ -68,26 +68,41 @@ export async function GET() {
       },
     });
 
-    // Pobierz unikalne kursy
-    const courseIds = [
-      ...new Set(submissions.map((s) => s.subchapter.chapter.course.id)),
-    ];
-
-    const courses = await prisma.course.findMany({
-      where: {
-        id: {
-          in: courseIds,
-        },
-      },
-      select: {
-        id: true,
-        title: true,
-      },
+    // Wyciągnij unikalne kursy z pobranych submissions
+    const coursesMap = new Map();
+    submissions.forEach((s) => {
+      const course = s.subchapter.chapter.course;
+      if (!coursesMap.has(course.id)) {
+        coursesMap.set(course.id, course);
+      }
     });
+    const courses = Array.from(coursesMap.values());
+
+    // Oblicz statystyki
+    const stats = {
+      totalSubmissions: submissions.length,
+      totalPoints: submissions.reduce(
+        (sum, s) =>
+          sum +
+          s.tasks.reduce((taskSum, t) => taskSum + (t.pointsEarned || 0), 0),
+        0
+      ),
+      maxPossiblePoints: submissions.reduce(
+        (sum, s) =>
+          sum + s.tasks.reduce((taskSum, t) => taskSum + (t.maxPoints || 0), 0),
+        0
+      ),
+      averageScore: 0,
+    };
+
+    if (stats.maxPossiblePoints > 0) {
+      stats.averageScore = (stats.totalPoints / stats.maxPossiblePoints) * 100;
+    }
 
     return NextResponse.json({
       submissions,
       courses,
+      stats,
     });
   } catch (error) {
     console.error("Error fetching student submissions:", error);
@@ -451,6 +466,14 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         { error: "You can only delete your own submissions" },
         { status: 403 }
+      );
+    }
+
+    // Sprawdź czy submission nie zostało już zrecenzowane
+    if (submission.status !== "PENDING") {
+      return NextResponse.json(
+        { error: "Cannot delete reviewed submissions" },
+        { status: 400 }
       );
     }
 

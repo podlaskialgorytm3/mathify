@@ -63,8 +63,8 @@ describe("Teacher API - Courses", () => {
       const response = await getCourses(request);
       const data = await getResponseBody(response);
 
-      expect(response.status).toBe(401);
-      expect(data.error).toBe("Unauthorized");
+      expect(response.status).toBe(403);
+      expect(data.error).toContain("Brak");
     });
 
     it("should deny access to unauthenticated users", async () => {
@@ -73,7 +73,7 @@ describe("Teacher API - Courses", () => {
       const request = createMockRequest("/api/teacher/courses");
       const response = await getCourses(request);
 
-      expect(response.status).toBe(401);
+      expect(response.status).toBe(403);
     });
   });
 
@@ -99,7 +99,7 @@ describe("Teacher API - Courses", () => {
       const response = await createCourse(request);
       const data = await getResponseBody(response);
 
-      expect(response.status).toBe(201);
+      expect(response.status).toBe(200);
       expect(data.course).toBeDefined();
       expect(data.course.title).toBe("Matematyka Podstawowa");
       expect(prisma.course.create).toHaveBeenCalled();

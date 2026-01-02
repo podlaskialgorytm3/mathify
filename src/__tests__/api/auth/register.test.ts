@@ -37,6 +37,7 @@ describe("Auth API - Register", () => {
         firstName: "New",
         lastName: "User",
         role: "STUDENT",
+        status: "PENDING",
       });
 
       const request = createMockRequest("/api/auth/register", {
@@ -47,6 +48,7 @@ describe("Auth API - Register", () => {
           password: "password123",
           firstName: "New",
           lastName: "User",
+          role: "STUDENT",
         },
       });
 
@@ -54,16 +56,19 @@ describe("Auth API - Register", () => {
       const data = await getResponseBody(response);
 
       expect(response.status).toBe(201);
-      expect(data.message).toContain("zarejestrowany");
+      expect(data.message).toContain("Rejestracja");
       expect(bcrypt.hash).toHaveBeenCalledWith("password123", 10);
       expect(prisma.user.create).toHaveBeenCalled();
     });
 
     it("should return error if email already exists", async () => {
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue({
-        id: "existing-id",
-        email: "existing@example.com",
-      });
+      (prisma.user.findUnique as jest.Mock)
+        .mockResolvedValueOnce(null) // username check
+        .mockResolvedValueOnce({
+          // email check
+          id: "existing-id",
+          email: "existing@example.com",
+        });
 
       const request = createMockRequest("/api/auth/register", {
         method: "POST",
@@ -73,6 +78,7 @@ describe("Auth API - Register", () => {
           password: "password123",
           firstName: "New",
           lastName: "User",
+          role: "STUDENT",
         },
       });
 
@@ -84,9 +90,10 @@ describe("Auth API - Register", () => {
     });
 
     it("should return error if username already exists", async () => {
-      (prisma.user.findUnique as jest.Mock)
-        .mockResolvedValueOnce(null) // email check
-        .mockResolvedValueOnce({ id: "existing-id", username: "existinguser" }); // username check
+      (prisma.user.findUnique as jest.Mock).mockResolvedValueOnce({
+        id: "existing-id",
+        username: "existinguser",
+      }); // username check
 
       const request = createMockRequest("/api/auth/register", {
         method: "POST",
@@ -96,6 +103,7 @@ describe("Auth API - Register", () => {
           password: "password123",
           firstName: "New",
           lastName: "User",
+          role: "STUDENT",
         },
       });
 
@@ -103,7 +111,7 @@ describe("Auth API - Register", () => {
       const data = await getResponseBody(response);
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain("Username");
+      expect(data.error).toContain("Login");
     });
 
     it("should return error for missing required fields", async () => {
@@ -111,7 +119,7 @@ describe("Auth API - Register", () => {
         method: "POST",
         body: {
           email: "test@example.com",
-          // Missing username, password, firstName, lastName
+          // Missing username, password, firstName, lastName, role
         },
       });
 
@@ -119,18 +127,21 @@ describe("Auth API - Register", () => {
       const data = await getResponseBody(response);
 
       expect(response.status).toBe(400);
-      expect(data.error).toBeDefined();
+      expect(data.error).toBe("Wszystkie pola są wymagane");
     });
 
-    it("should validate email format", async () => {
+    it("should require valid role", async () => {
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
+
       const request = createMockRequest("/api/auth/register", {
         method: "POST",
         body: {
-          email: "invalid-email",
+          email: "test@example.com",
           username: "testuser",
           password: "password123",
           firstName: "Test",
           lastName: "User",
+          role: "ADMIN", // Invalid role for registration
         },
       });
 
@@ -138,6 +149,7 @@ describe("Auth API - Register", () => {
       const data = await getResponseBody(response);
 
       expect(response.status).toBe(400);
+      expect(data.error).toContain("rola");
     });
 
     it("should handle database errors gracefully", async () => {
@@ -155,6 +167,7 @@ describe("Auth API - Register", () => {
           password: "password123",
           firstName: "Test",
           lastName: "User",
+          role: "STUDENT",
         },
       });
 
@@ -162,7 +175,7 @@ describe("Auth API - Register", () => {
       const data = await getResponseBody(response);
 
       expect(response.status).toBe(500);
-      expect(data.error).toBeDefined();
+      expect(data.error).toContain("błąd");
     });
   });
 });

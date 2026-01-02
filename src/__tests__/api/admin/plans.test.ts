@@ -15,6 +15,7 @@ jest.mock("@/lib/prisma", () => ({
   prisma: {
     plan: {
       findMany: jest.fn(),
+      findUnique: jest.fn(),
       create: jest.fn(),
     },
   },
@@ -72,7 +73,7 @@ describe("Admin API - Plans", () => {
       const request = createMockRequest("/api/admin/plans");
       const response = await getPlans(request);
 
-      expect(response.status).toBe(403);
+      expect(response.status).toBe(401);
     });
   });
 
@@ -80,6 +81,9 @@ describe("Admin API - Plans", () => {
     it("should create a new plan", async () => {
       const adminSession = createMockSession("ADMIN", "admin-id");
       (auth as jest.Mock).mockResolvedValue(adminSession);
+
+      // Mock findUnique to return null (plan doesn't exist yet)
+      (prisma.plan.findUnique as jest.Mock).mockResolvedValue(null);
 
       const newPlan = {
         id: "new-plan-id",

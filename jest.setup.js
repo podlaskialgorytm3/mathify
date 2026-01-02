@@ -29,3 +29,50 @@ jest.mock("next/navigation", () => ({
     return "";
   },
 }));
+// Mock next-auth
+jest.mock("next-auth", () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    handlers: { GET: jest.fn(), POST: jest.fn() },
+    auth: jest.fn(),
+    signIn: jest.fn(),
+    signOut: jest.fn(),
+  })),
+}));
+
+// Mock next-auth providers
+jest.mock("next-auth/providers/credentials", () => ({
+  __esModule: true,
+  default: jest.fn(() => ({
+    id: "credentials",
+    name: "Credentials",
+    type: "credentials",
+    credentials: {},
+    authorize: jest.fn(),
+  })),
+}));
+
+// Mock @/lib/email
+jest.mock("@/lib/email", () => ({
+  sendWelcomeEmail: jest.fn().mockResolvedValue(true),
+  sendPasswordResetEmail: jest.fn().mockResolvedValue(true),
+  sendEmailChangeConfirmation: jest.fn().mockResolvedValue(true),
+}));
+
+// Mock fs module
+jest.mock("fs", () => ({
+  ...jest.requireActual("fs"),
+  existsSync: jest.fn(() => true),
+  mkdirSync: jest.fn(),
+  writeFileSync: jest.fn(),
+  readFileSync: jest.fn(() => Buffer.from("test")),
+  unlinkSync: jest.fn(),
+}));
+
+// Mock Prisma Client
+jest.mock("@prisma/client", () => ({
+  PrismaClient: jest.fn(() => ({
+    $connect: jest.fn(),
+    $disconnect: jest.fn(),
+  })),
+}));

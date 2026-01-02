@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Znajdź token
-    const verificationToken = await prisma.verificationToken.findUnique({
+    const verificationToken = await prisma.verificationToken.findFirst({
       where: { token },
       include: {
         user: {

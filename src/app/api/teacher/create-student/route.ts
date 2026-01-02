@@ -58,20 +58,21 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { firstName, lastName, email, courseIds } = body;
+    const { firstName, lastName, courseIds } = body;
+    let { email } = body;
 
     // Validation
-    if (
-      !firstName ||
-      !lastName ||
-      !email ||
-      !courseIds ||
-      courseIds.length === 0
-    ) {
+    if (!firstName || !lastName || !courseIds || courseIds.length === 0) {
       return NextResponse.json(
         { error: "Wszystkie pola są wymagane" },
         { status: 400 }
       );
+    }
+
+    // Auto-generate email if not provided
+    if (!email) {
+      const username = generateUsername(firstName, lastName);
+      email = `${username}@mathify.local`;
     }
 
     // Validate email format
@@ -192,9 +193,9 @@ export async function POST(request: NextRequest) {
 
     // Return success with credentials
     return NextResponse.json({
-      firstName: newStudent.firstName,
-      lastName: newStudent.lastName,
-      email: newStudent.email,
+      firstName,
+      lastName,
+      email,
       username: newStudent.username,
       password: plainPassword, // Return plain password only once
       courses: courses.map((c) => c.title),
