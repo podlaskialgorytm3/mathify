@@ -6,16 +6,16 @@ import crypto from "crypto";
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { email } = body;
+    // Sprawdź czy użytkownik jest zalogowany
+    const session = await auth();
 
-    if (!email) {
-      return NextResponse.json({ error: "Email is required" }, { status: 400 });
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Pobierz dane użytkownika
+    // Pobierz dane zalogowanego użytkownika
     const user = await prisma.user.findUnique({
-      where: { email },
+      where: { email: session.user.email },
       select: {
         id: true,
         email: true,
@@ -25,10 +25,7 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user) {
-      // Don't reveal that user doesn't exist - return success anyway
-      return NextResponse.json({
-        message: "If the email exists, a password reset link has been sent.",
-      });
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Usuń poprzednie nieużyte tokeny resetowania hasła (optional cleanup)
@@ -67,7 +64,7 @@ export async function POST(request: NextRequest) {
     );
 
     return NextResponse.json({
-      message: "If the email exists, a password reset link has been sent.",
+      message: "Password reset link has been sent to your email.",
     });
   } catch (error) {
     console.error("Error requesting password reset:", error);
