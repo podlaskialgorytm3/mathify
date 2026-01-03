@@ -1,5 +1,7 @@
 // Suppress deprecation warnings from third-party libraries
 // This must run BEFORE any other code
+
+// Method 1: Override process.emitWarning
 const originalEmitWarning = process.emitWarning;
 
 process.emitWarning = function (warning, ...args) {
@@ -18,4 +20,8 @@ process.emitWarning = function (warning, ...args) {
 
   // Call original for all other warnings
   return originalEmitWarning.apply(process, [warning, ...args]);
+};
+
+// Method 2: Disable all deprecation warnings (nuclear option)
+process.noDeprecation = true;
 };
