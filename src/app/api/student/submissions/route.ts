@@ -396,9 +396,14 @@ export async function POST(request: NextRequest) {
 
     // Jeśli istnieje szablon AI, uruchom automatyczne sprawdzanie w tle (asynchronicznie)
     if (aiPromptTemplate?.prompt) {
+      console.log("=== Starting AI check in background ===");
+      console.log("Submission ID:", submission.id);
+      console.log("File URL:", cloudinaryResult.url);
+      console.log("Prompt template:", aiPromptTemplate.name);
+
       // Nie czekamy na zakończenie - AI działa w tle
       checkSubmissionWithAI(
-        submission.filePath,
+        cloudinaryResult.url, // Używamy URL z Cloudinary
         submission.id,
         aiPromptTemplate.prompt
       )
@@ -445,9 +450,20 @@ export async function POST(request: NextRequest) {
           }
         })
         .catch((aiError) => {
+          console.error("=== AI checking failed ===");
+          console.error(`Submission ID: ${submission.id}`);
+          console.error(`File URL: ${cloudinaryResult.url}`);
           console.error(
-            `AI checking failed for submission ${submission.id}:`,
-            aiError
+            `Error type:`,
+            aiError instanceof Error ? aiError.constructor.name : typeof aiError
+          );
+          console.error(
+            `Error message:`,
+            aiError instanceof Error ? aiError.message : String(aiError)
+          );
+          console.error(
+            `Error stack:`,
+            aiError instanceof Error ? aiError.stack : "No stack"
           );
         });
     }

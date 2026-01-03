@@ -8,6 +8,17 @@ import path from "path";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
+// Sprawdź czy API key jest ustawiony
+if (!process.env.GEMINI_API_KEY) {
+  console.warn("⚠️ GEMINI_API_KEY is not set! AI features will not work.");
+} else {
+  console.log(
+    "✓ GEMINI_API_KEY is configured (length:",
+    process.env.GEMINI_API_KEY.length,
+    ")"
+  );
+}
+
 export interface TaskResult {
   id: string;
   submissionId: string;
@@ -56,32 +67,83 @@ export async function checkSubmissionWithAI(
 
     // Sprawdź czy to URL z Cloudinary czy lokalna ścieżka
     if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
-      console.log("Downloading from Cloudinary URL:", filePath);
+      console.log("Downloading from URL:", filePath);
 
-      // Pobierz plik z URL-a
-      const response = await fetch(filePath);
-      if (!response.ok) {
-        throw new Error(
-          `Failed to download file from Cloudinary: ${response.statusText}`
-        );
+      try {
+        // Użyj node-fetch z timeout dla lepszej niezawodności
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+        const response = await fetch(filePath, {
+          signal: controller.signal,
+          headers: {
+            "User-Agent": "Mathify-AI-Checker/1.0",
+          },
+        });
+
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+          console.error(
+            `HTTP Error: ${response.status} ${response.statusText}`
+          );
+          console.error(`URL: ${filePath}`);
+          throw new Error(
+            `Failed to download file: HTTP ${response.status} ${response.statusText}`
+          );
+        }
+
+        // Sprawdź Content-Type
+        const contentType = response.headers.get("content-type");
+        console.log("Content-Type:", contentType);
+
+        if (
+          contentType &&
+          !contentType.includes("pdf") &&
+          !contentType.includes("octet-stream")
+        ) {
+          console.warn("Warning: Unexpected content type:", contentType);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        dataBuffer = Buffer.from(arrayBuffer);
+        console.log("Downloaded buffer size:", dataBuffer.length, "bytes");
+
+        // Sprawdź czy to rzeczywiście PDF (zaczyna się od %PDF)
+        const pdfHeader = dataBuffer.slice(0, 4).toString();
+        if (!pdfHeader.startsWith("%PDF")) {
+          console.error("Downloaded file is not a valid PDF!");
+          console.error(
+            "First 100 bytes:",
+            dataBuffer.slice(0, 100).toString()
+          );
+          throw new Error("Downloaded file is not a valid PDF document");
+        }
+
+        console.log("✓ Valid PDF downloaded successfully");
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") {
+          throw new Error("File download timeout (30s exceeded)");
+        }
+        throw error;
       }
-
-      const arrayBuffer = await response.arrayBuffer();
-      dataBuffer = Buffer.from(arrayBuffer);
-      console.log("Downloaded buffer size:", dataBuffer.length);
     } else {
       // Stara ścieżka lokalna - dla kompatybilności wstecznej
       const fullPath = path.join(process.cwd(), "public", filePath);
       console.log("Full PDF path:", fullPath);
 
       dataBuffer = await fs.readFile(fullPath);
-      console.log("PDF buffer size:", dataBuffer.length);
+      console.log("PDF buffer size:", dataBuffer.length, "bytes");
     }
 
     // Konwertuj PDF do base64 dla Gemini
     const base64Data = dataBuffer.toString("base64");
+    console.log("Base64 data length:", base64Data.length, "characters");
+    console.log("Estimated size:", Math.round(base64Data.length / 1024), "KB");
 
     console.log("Attempting to call Gemini API...");
+    console.log("API Key present:", !!process.env.GEMINI_API_KEY);
+    console.log("API Key length:", process.env.GEMINI_API_KEY?.length || 0);
 
     try {
       // Używamy aliasu gemini-flash-latest, który powinien wskazywać na najbardziej aktualny
@@ -120,15 +182,38 @@ export async function checkSubmissionWithAI(
 
 WAŻNE: Odpowiedź MUSI być w formacie JSON, bez markdown formatowania. Zwróć tylko czysty JSON array. Jeśli nie możesz odczytać pliku lub nie ma w nim zadań, zwróć pustą tablicę [].`;
 
-      const result = await model.generateContent([
-        {
-          inlineData: {
-            mimeType: "application/pdf",
-            data: base64Data,
-          },
-        },
-        fullPrompt,
-      ]);
+      console.log("Calling Gemini API with timeout...");
+
+      // Dodaj timeout dla wywołania API (60s dla Vercel)
+      const apiCallWithTimeout = async () => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+          controller.abort();
+          console.error("⚠️ Gemini API call timeout (60s)");
+        }, 60000);
+
+        try {
+          const result = await model.generateContent([
+            {
+              inlineData: {
+                mimeType: "application/pdf",
+                data: base64Data,
+              },
+            },
+            fullPrompt,
+          ]);
+
+          clearTimeout(timeoutId);
+          return result;
+        } catch (error) {
+          clearTimeout(timeoutId);
+          throw error;
+        }
+      };
+
+      const result = await apiCallWithTimeout();
+
+      console.log("✓ Gemini API call completed");
 
       const response = await result.response;
 
@@ -140,6 +225,17 @@ WAŻNE: Odpowiedź MUSI być w formacie JSON, bez markdown formatowania. Zwróć
           "Safety Ratings:",
           JSON.stringify(response.candidates[0].safetyRatings)
         );
+
+        // Sprawdź czy odpowiedź została zablokowana
+        if (response.candidates[0].finishReason === "SAFETY") {
+          throw new Error("Response blocked by Gemini safety filters");
+        }
+        if (response.candidates[0].finishReason === "RECITATION") {
+          throw new Error("Response blocked due to recitation");
+        }
+      } else {
+        console.error("No candidates in response!");
+        throw new Error("Gemini returned no candidates in response");
       }
 
       const text = response.text();
@@ -225,8 +321,36 @@ WAŻNE: Odpowiedź MUSI być w formacie JSON, bez markdown formatowania. Zwróć
     } catch (apiError) {
       const errorMsg =
         apiError instanceof Error ? apiError.message : String(apiError);
-      console.warn("=== Gemini API Failed, using enhanced mock ===");
-      console.warn("API Error:", errorMsg);
+      console.error("=== Gemini API Error ===");
+      console.error(
+        "Error type:",
+        apiError instanceof Error ? apiError.constructor.name : typeof apiError
+      );
+      console.error("Error message:", errorMsg);
+      console.error(
+        "Error stack:",
+        apiError instanceof Error ? apiError.stack : "No stack"
+      );
+
+      // Sprawdź czy to błąd limitu
+      if (
+        errorMsg.includes("429") ||
+        errorMsg.includes("quota") ||
+        errorMsg.includes("RESOURCE_EXHAUSTED")
+      ) {
+        console.error("⚠️ Gemini API quota exceeded!");
+      }
+
+      // Sprawdź czy to błąd sieci
+      if (
+        errorMsg.includes("fetch") ||
+        errorMsg.includes("network") ||
+        errorMsg.includes("ECONNREFUSED")
+      ) {
+        console.error("⚠️ Network error connecting to Gemini API");
+      }
+
+      console.warn("=== Using fallback mock response ===");
 
       // Fallback - generuj losowe odpowiedzi dla różnorodności
       const taskCount = Math.floor(Math.random() * 3) + 2; // 2-4 zadania
