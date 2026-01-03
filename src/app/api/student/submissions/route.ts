@@ -396,76 +396,68 @@ export async function POST(request: NextRequest) {
 
     // Jeśli istnieje szablon AI, uruchom automatyczne sprawdzanie w tle (asynchronicznie)
     if (aiPromptTemplate?.prompt) {
-      console.log("=== Starting AI check in background ===");
+      console.log("=== Starting AI check (awaiting completion) ===");
       console.log("Submission ID:", submission.id);
       console.log("File URL:", cloudinaryResult.url);
       console.log("Prompt template:", aiPromptTemplate.name);
 
-      // Nie czekamy na zakończenie - AI działa w tle
-      checkSubmissionWithAI(
-        cloudinaryResult.url, // Używamy URL z Cloudinary
-        submission.id,
-        aiPromptTemplate.prompt
-      )
-        .then(async (aiResult) => {
-          try {
-            // Utwórz zadania na podstawie odpowiedzi AI
-            const tasksData = aiResult.tasks.map((task) => ({
+      // Czekamy na zakończenie, aby upewnić się, że proces nie zostanie zabity przez Vercel
+      // (Serverless Functions są zamrażane natychmiast po wysłaniu odpowiedzi)
+      try {
+        const aiResult = await checkSubmissionWithAI(
+          cloudinaryResult.url,
+          submission.id,
+          aiPromptTemplate.prompt
+        );
+
+        // Utwórz zadania na podstawie odpowiedzi AI
+        const tasksData = aiResult.tasks.map((task) => ({
+          submissionId: submission.id,
+          taskNumber: task.taskNumber,
+          pointsEarned: task.pointsEarned,
+          maxPoints: task.maxPoints,
+          comment: task.comment,
+          teacherEdited: false,
+        }));
+
+        // Zapisz wszystko w transakcji
+        await prisma.$transaction([
+          // Utwórz zadania
+          prisma.task.createMany({
+            data: tasksData,
+          }),
+          // Zapisz surową odpowiedź AI
+          prisma.aIResult.create({
+            data: {
               submissionId: submission.id,
-              taskNumber: task.taskNumber,
-              pointsEarned: task.pointsEarned,
-              maxPoints: task.maxPoints,
-              comment: task.comment,
-              teacherEdited: false,
-            }));
+              rawResponse: aiResult.rawResponse,
+            },
+          }),
+          // Zaktualizuj status na AI_CHECKED
+          prisma.submission.update({
+            where: { id: submission.id },
+            data: { status: "AI_CHECKED" },
+          }),
+        ]);
 
-            // Zapisz wszystko w transakcji
-            await prisma.$transaction([
-              // Utwórz zadania
-              prisma.task.createMany({
-                data: tasksData,
-              }),
-              // Zapisz surową odpowiedź AI
-              prisma.aIResult.create({
-                data: {
-                  submissionId: submission.id,
-                  rawResponse: aiResult.rawResponse,
-                },
-              }),
-              // Zaktualizuj status na AI_CHECKED
-              prisma.submission.update({
-                where: { id: submission.id },
-                data: { status: "AI_CHECKED" },
-              }),
-            ]);
-
-            console.log(
-              `AI checking completed successfully for submission ${submission.id}`
-            );
-          } catch (saveError) {
-            console.error(
-              `Failed to save AI results for submission ${submission.id}:`,
-              saveError
-            );
-          }
-        })
-        .catch((aiError) => {
-          console.error("=== AI checking failed ===");
-          console.error(`Submission ID: ${submission.id}`);
-          console.error(`File URL: ${cloudinaryResult.url}`);
-          console.error(
-            `Error type:`,
-            aiError instanceof Error ? aiError.constructor.name : typeof aiError
-          );
-          console.error(
-            `Error message:`,
-            aiError instanceof Error ? aiError.message : String(aiError)
-          );
-          console.error(
-            `Error stack:`,
-            aiError instanceof Error ? aiError.stack : "No stack"
-          );
-        });
+        console.log(
+          `AI checking completed successfully for submission ${submission.id}`
+        );
+      } catch (aiError) {
+        console.error("=== AI checking failed ===");
+        console.error(`Submission ID: ${submission.id}`);
+        console.error(`File URL: ${cloudinaryResult.url}`);
+        console.error(
+          `Error type:`,
+          aiError instanceof Error ? aiError.constructor.name : typeof aiError
+        );
+        console.error(
+          `Error message:`,
+          aiError instanceof Error ? aiError.message : String(aiError)
+        );
+        // Nie rzucamy błędu dalej, aby nie zablokować odpowiedzi dla studenta
+        // Submission zostanie utworzone, ale bez wyników AI (status pozostanie PENDING)
+      }
     }
 
     // Zwróć odpowiedź natychmiast (nie czekamy na AI)
