@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import cloudinary from "@/lib/cloudinary";
 import { unlink } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
@@ -49,8 +50,33 @@ export async function DELETE(
       );
     }
 
-    // Delete file if it's a PDF
-    if (material.type === "PDF" && material.content.startsWith("/uploads/")) {
+    // Delete file from Cloudinary if it's a PDF hosted there
+    if (
+      material.type === "PDF" &&
+      material.content.includes("cloudinary.com")
+    ) {
+      try {
+        // Extract public_id from Cloudinary URL
+        const urlParts = material.content.split("/");
+        const uploadIndex = urlParts.indexOf("upload");
+        if (uploadIndex !== -1 && uploadIndex < urlParts.length - 1) {
+          const pathAfterUpload = urlParts.slice(uploadIndex + 1).join("/");
+          const publicId = pathAfterUpload.replace(/\.[^/.]+$/, "");
+
+          await cloudinary.uploader.destroy(publicId, {
+            resource_type: "image", // PDFs are stored as images in Cloudinary
+          });
+        }
+      } catch (error) {
+        console.error("Error deleting file from Cloudinary:", error);
+        // Continue with deletion even if Cloudinary cleanup fails
+      }
+    }
+    // Delete file if it's a local PDF
+    else if (
+      material.type === "PDF" &&
+      material.content.startsWith("/uploads/")
+    ) {
       const filepath = join(process.cwd(), "public", material.content);
       if (existsSync(filepath)) {
         await unlink(filepath);

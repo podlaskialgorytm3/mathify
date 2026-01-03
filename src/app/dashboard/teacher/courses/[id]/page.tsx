@@ -26,6 +26,8 @@ import {
   X,
   UserPlus,
   Search,
+  CheckSquare,
+  Square,
 } from "lucide-react";
 
 interface Material {
@@ -127,6 +129,10 @@ export default function CourseDetailsPage({
   const [aiTemplates, setAiTemplates] = useState<AIPromptTemplate[]>([]);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
   const [updatingTemplate, setUpdatingTemplate] = useState(false);
+  const [selectedMaterials, setSelectedMaterials] = useState<Set<string>>(
+    new Set()
+  );
+  const [selectionMode, setSelectionMode] = useState(false);
   const { toast } = useToast();
 
   const fetchCourse = async () => {
@@ -625,6 +631,88 @@ export default function CourseDetailsPage({
     }
   };
 
+  const bulkDeleteMaterials = async () => {
+    if (selectedMaterials.size === 0) {
+      toast({
+        title: "Błąd",
+        description: "Nie wybrano żadnych materiałów",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (
+      !confirm(
+        `Czy na pewno chcesz usunąć ${selectedMaterials.size} materiałów?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/teacher/materials/bulk-delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ materialIds: Array.from(selectedMaterials) }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({
+          title: "Sukces",
+          description: data.message,
+        });
+        setSelectedMaterials(new Set());
+        setSelectionMode(false);
+        fetchCourse();
+      } else {
+        toast({
+          title: "Błąd",
+          description: data.error,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Błąd",
+        description: "Wystąpił błąd podczas usuwania materiałów",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const toggleMaterialSelection = (materialId: string) => {
+    setSelectedMaterials((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(materialId)) {
+        newSet.delete(materialId);
+      } else {
+        newSet.add(materialId);
+      }
+      return newSet;
+    });
+  };
+
+  const toggleSelectAllMaterials = (materials: Material[]) => {
+    const materialIds = materials.map((m) => m.id);
+    const allSelected = materialIds.every((id) => selectedMaterials.has(id));
+
+    if (allSelected) {
+      setSelectedMaterials((prev) => {
+        const newSet = new Set(prev);
+        materialIds.forEach((id) => newSet.delete(id));
+        return newSet;
+      });
+    } else {
+      setSelectedMaterials((prev) => {
+        const newSet = new Set(prev);
+        materialIds.forEach((id) => newSet.add(id));
+        return newSet;
+      });
+    }
+  };
+
   const searchStudents = async (query: string) => {
     if (!query || query.length < 2) {
       setSearchResults([]);
@@ -794,7 +882,7 @@ export default function CourseDetailsPage({
       {(course.chapters || []).length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
-            <FileText className="w-12 w-12 text-gray-400 mx-auto mb-4" />
+            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600 mb-4">Brak rozdziałów w tym kursie</p>
             <Button onClick={() => setShowChapterModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
@@ -963,9 +1051,65 @@ export default function CourseDetailsPage({
                           {subchapter.materials &&
                             subchapter.materials.length > 0 && (
                               <div className="border-t px-3 py-2 bg-gray-50">
-                                <p className="text-xs font-semibold text-gray-600 mb-2">
-                                  Materiały:
-                                </p>
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-xs font-semibold text-gray-600">
+                                    Materiały:
+                                  </p>
+                                  <div className="flex items-center gap-2">
+                                    {!selectionMode ? (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => setSelectionMode(true)}
+                                        className="text-xs h-7"
+                                      >
+                                        <CheckSquare className="w-3 h-3 mr-1" />
+                                        Zaznacz
+                                      </Button>
+                                    ) : (
+                                      <>
+                                        <Button
+                                          size="sm"
+                                          variant="outline"
+                                          onClick={() =>
+                                            toggleSelectAllMaterials(
+                                              subchapter.materials
+                                            )
+                                          }
+                                          className="text-xs h-7"
+                                        >
+                                          {subchapter.materials.every((m) =>
+                                            selectedMaterials.has(m.id)
+                                          )
+                                            ? "Odznacz wszystkie"
+                                            : "Zaznacz wszystkie"}
+                                        </Button>
+                                        {selectedMaterials.size > 0 && (
+                                          <Button
+                                            size="sm"
+                                            variant="destructive"
+                                            onClick={bulkDeleteMaterials}
+                                            className="text-xs h-7"
+                                          >
+                                            <Trash2 className="w-3 h-3 mr-1" />
+                                            Usuń ({selectedMaterials.size})
+                                          </Button>
+                                        )}
+                                        <Button
+                                          size="sm"
+                                          variant="ghost"
+                                          onClick={() => {
+                                            setSelectionMode(false);
+                                            setSelectedMaterials(new Set());
+                                          }}
+                                          className="text-xs h-7"
+                                        >
+                                          <X className="w-3 h-3" />
+                                        </Button>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
                                 <div className="space-y-1">
                                   {subchapter.materials.map((material) => (
                                     <div
@@ -973,6 +1117,24 @@ export default function CourseDetailsPage({
                                       className="flex items-center justify-between p-2 bg-white rounded border text-sm"
                                     >
                                       <div className="flex items-center gap-2 flex-1 min-w-0">
+                                        {selectionMode && (
+                                          <button
+                                            onClick={() =>
+                                              toggleMaterialSelection(
+                                                material.id
+                                              )
+                                            }
+                                            className="flex-shrink-0"
+                                          >
+                                            {selectedMaterials.has(
+                                              material.id
+                                            ) ? (
+                                              <CheckSquare className="w-4 h-4 text-blue-500" />
+                                            ) : (
+                                              <Square className="w-4 h-4 text-gray-400" />
+                                            )}
+                                          </button>
+                                        )}
                                         {material.type === "PDF" ? (
                                           <FileText className="w-4 h-4 text-red-500 flex-shrink-0" />
                                         ) : (
@@ -989,56 +1151,58 @@ export default function CourseDetailsPage({
                                           )}
                                         </div>
                                       </div>
-                                      <div className="flex items-center gap-1 ml-2">
-                                        {material.type === "PDF" ? (
+                                      {!selectionMode && (
+                                        <div className="flex items-center gap-1 ml-2">
+                                          {material.type === "PDF" ? (
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() =>
+                                                window.open(
+                                                  material.content,
+                                                  "_blank"
+                                                )
+                                              }
+                                            >
+                                              <Download className="w-3 h-3" />
+                                            </Button>
+                                          ) : (
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() =>
+                                                window.open(
+                                                  material.content,
+                                                  "_blank"
+                                                )
+                                              }
+                                            >
+                                              <LinkIcon className="w-3 h-3" />
+                                            </Button>
+                                          )}
                                           <Button
                                             size="sm"
                                             variant="ghost"
                                             onClick={() =>
-                                              window.open(
-                                                material.content,
-                                                "_blank"
-                                              )
+                                              setEditingMaterial({
+                                                subchapterId: subchapter.id,
+                                                material,
+                                              })
                                             }
                                           >
-                                            <Download className="w-3 h-3" />
+                                            <Pencil className="w-3 h-3" />
                                           </Button>
-                                        ) : (
                                           <Button
                                             size="sm"
                                             variant="ghost"
                                             onClick={() =>
-                                              window.open(
-                                                material.content,
-                                                "_blank"
-                                              )
+                                              deleteMaterial(material.id)
                                             }
                                           >
-                                            <LinkIcon className="w-3 h-3" />
+                                            <Trash2 className="w-3 h-3 text-red-500" />
                                           </Button>
-                                        )}
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() =>
-                                            setEditingMaterial({
-                                              subchapterId: subchapter.id,
-                                              material,
-                                            })
-                                          }
-                                        >
-                                          <Pencil className="w-3 h-3" />
-                                        </Button>
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() =>
-                                            deleteMaterial(material.id)
-                                          }
-                                        >
-                                          <Trash2 className="w-3 h-3 text-red-500" />
-                                        </Button>
-                                      </div>
+                                        </div>
+                                      )}
                                     </div>
                                   ))}
                                 </div>
