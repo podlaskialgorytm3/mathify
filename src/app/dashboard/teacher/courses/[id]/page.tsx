@@ -1430,13 +1430,101 @@ function MaterialModal({
   title: string;
   uploading: boolean;
 }) {
+  const [uploadMode, setUploadMode] = useState<"quick" | "normal">("quick");
   const [materialType, setMaterialType] = useState<"PDF" | "LINK">("PDF");
   const [materialTitle, setMaterialTitle] = useState("");
   const [materialDescription, setMaterialDescription] = useState("");
   const [materialUrl, setMaterialUrl] = useState("");
   const [uploadedFileUrl, setUploadedFileUrl] = useState("");
+  const [quickFiles, setQuickFiles] = useState<
+    Array<{ file: File; url: string; uploading: boolean }>
+  >([]);
 
-  const handleSubmit = () => {
+  const handleQuickFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const files = Array.from(event.target.files || []);
+
+    if (files.length === 0) return;
+
+    // Limit to 4 files
+    const filesToUpload = files.slice(0, 4);
+
+    if (files.length > 4) {
+      alert("Możesz dodać maksymalnie 4 pliki naraz");
+    }
+
+    // Validate PDF files
+    const invalidFiles = filesToUpload.filter(
+      (file) => !file.name.toLowerCase().endsWith(".pdf")
+    );
+
+    if (invalidFiles.length > 0) {
+      alert("Wszystkie pliki muszą być w formacie PDF");
+      return;
+    }
+
+    // Add files to state
+    const newFiles = filesToUpload.map((file) => ({
+      file,
+      url: "",
+      uploading: true,
+    }));
+
+    setQuickFiles((prev) => [...prev, ...newFiles]);
+
+    // Upload each file
+    for (let i = 0; i < filesToUpload.length; i++) {
+      const file = filesToUpload[i];
+      const formData = new FormData();
+      formData.append("file", file);
+
+      try {
+        const response = await fetch("/api/upload", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          setQuickFiles((prev) =>
+            prev.map((f, idx) =>
+              f.file === file ? { ...f, url: data.url, uploading: false } : f
+            )
+          );
+        } else {
+          alert(`Błąd uploadu pliku ${file.name}: ${data.error}`);
+          setQuickFiles((prev) => prev.filter((f) => f.file !== file));
+        }
+      } catch (error) {
+        alert(`Błąd uploadu pliku ${file.name}`);
+        setQuickFiles((prev) => prev.filter((f) => f.file !== file));
+      }
+    }
+  };
+
+  const handleQuickSubmit = async () => {
+    const readyFiles = quickFiles.filter((f) => !f.uploading && f.url);
+
+    if (readyFiles.length === 0) {
+      alert("Brak plików do dodania");
+      return;
+    }
+
+    // Submit each file as a separate material
+    for (const fileData of readyFiles) {
+      const fileName = fileData.file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+      await onSubmit({
+        title: fileName,
+        description: "",
+        type: "PDF",
+        content: fileData.url,
+      });
+    }
+  };
+
+  const handleNormalSubmit = () => {
     if (!materialTitle) {
       alert("Tytuł jest wymagany");
       return;
@@ -1460,9 +1548,13 @@ function MaterialModal({
     });
   };
 
+  const removeQuickFile = (fileToRemove: File) => {
+    setQuickFiles((prev) => prev.filter((f) => f.file !== fileToRemove));
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-lg">
+      <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>{title}</CardTitle>
@@ -1477,97 +1569,202 @@ function MaterialModal({
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="material-title">Tytuł materiału *</Label>
-              <Input
-                id="material-title"
-                value={materialTitle}
-                onChange={(e) => setMaterialTitle(e.target.value)}
-                placeholder="np. Teoria funkcji liniowych"
-                required
-                disabled={uploading}
-              />
-            </div>
+          {/* Mode Selection */}
+          <div className="mb-4 flex gap-2">
+            <Button
+              type="button"
+              variant={uploadMode === "quick" ? "default" : "outline"}
+              onClick={() => setUploadMode("quick")}
+              className="flex-1"
+              disabled={uploading}
+            >
+              Dodawanie szybkie
+            </Button>
+            <Button
+              type="button"
+              variant={uploadMode === "normal" ? "default" : "outline"}
+              onClick={() => setUploadMode("normal")}
+              className="flex-1"
+              disabled={uploading}
+            >
+              Dodawanie normalne
+            </Button>
+          </div>
 
-            <div>
-              <Label htmlFor="material-description">Opis</Label>
-              <textarea
-                id="material-description"
-                value={materialDescription}
-                onChange={(e) => setMaterialDescription(e.target.value)}
-                className="w-full p-2 border rounded-md min-h-[60px]"
-                placeholder="Krótki opis materiału..."
-                disabled={uploading}
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="material-type">Typ materiału</Label>
-              <select
-                id="material-type"
-                value={materialType}
-                onChange={(e) => {
-                  setMaterialType(e.target.value as "PDF" | "LINK");
-                  setUploadedFileUrl("");
-                  setMaterialUrl("");
-                }}
-                className="w-full p-2 border rounded-md"
-                disabled={uploading}
-              >
-                <option value="PDF">Plik PDF</option>
-                <option value="LINK">Link</option>
-              </select>
-            </div>
-
-            {materialType === "PDF" ? (
-              <div>
-                <Label>Plik PDF *</Label>
-                <FileUpload
-                  onUploadComplete={(data) => {
-                    setUploadedFileUrl(data.url);
-                    if (!materialTitle) {
-                      setMaterialTitle(data.filename.replace(/\.[^/.]+$/, ""));
-                    }
-                  }}
-                  acceptedTypes={[".pdf"]}
-                  maxSize={100}
-                />
-                {uploadedFileUrl && (
-                  <p className="text-sm text-green-600 mt-2">
-                    ✓ Plik został przesłany
-                  </p>
-                )}
+          {uploadMode === "quick" ? (
+            /* Quick Upload Mode */
+            <div className="space-y-4">
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-md">
+                <p className="text-sm text-blue-800">
+                  <strong>Szybkie dodawanie:</strong> Wybierz do 4 plików PDF.
+                  Tytuły będą automatycznie pobrane z nazw plików.
+                </p>
               </div>
-            ) : (
+
               <div>
-                <Label htmlFor="material-link">URL *</Label>
+                <Label>Wybierz pliki PDF (maks. 4)</Label>
+                <input
+                  type="file"
+                  accept=".pdf"
+                  multiple
+                  onChange={handleQuickFileSelect}
+                  className="w-full p-2 border rounded-md"
+                  disabled={uploading || quickFiles.some((f) => f.uploading)}
+                />
+              </div>
+
+              {quickFiles.length > 0 && (
+                <div className="space-y-2">
+                  <Label>Pliki do dodania ({quickFiles.length}/4):</Label>
+                  {quickFiles.map((fileData, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between p-2 bg-gray-50 rounded border"
+                    >
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <FileText className="w-4 h-4 text-red-500 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium truncate">
+                            {fileData.file.name.replace(/\.[^/.]+$/, "")}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {fileData.uploading
+                              ? "Uploadowanie..."
+                              : "✓ Gotowy"}
+                          </p>
+                        </div>
+                      </div>
+                      {!fileData.uploading && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => removeQuickFile(fileData.file)}
+                        >
+                          <X className="w-3 h-3" />
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-2 justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={uploading || quickFiles.some((f) => f.uploading)}
+                >
+                  Anuluj
+                </Button>
+                <Button
+                  onClick={handleQuickSubmit}
+                  disabled={
+                    uploading ||
+                    quickFiles.length === 0 ||
+                    quickFiles.some((f) => f.uploading)
+                  }
+                >
+                  {uploading ? "Dodawanie..." : `Dodaj (${quickFiles.length})`}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            /* Normal Upload Mode */
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="material-title">Tytuł materiału *</Label>
                 <Input
-                  id="material-link"
-                  type="url"
-                  value={materialUrl}
-                  onChange={(e) => setMaterialUrl(e.target.value)}
-                  placeholder="https://example.com/material"
+                  id="material-title"
+                  value={materialTitle}
+                  onChange={(e) => setMaterialTitle(e.target.value)}
+                  placeholder="np. Teoria funkcji liniowych"
                   required
                   disabled={uploading}
                 />
               </div>
-            )}
 
-            <div className="flex gap-2 justify-end">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={onClose}
-                disabled={uploading}
-              >
-                Anuluj
-              </Button>
-              <Button onClick={handleSubmit} disabled={uploading}>
-                {uploading ? "Dodawanie..." : "Dodaj"}
-              </Button>
+              <div>
+                <Label htmlFor="material-description">Opis</Label>
+                <textarea
+                  id="material-description"
+                  value={materialDescription}
+                  onChange={(e) => setMaterialDescription(e.target.value)}
+                  className="w-full p-2 border rounded-md min-h-[60px]"
+                  placeholder="Krótki opis materiału..."
+                  disabled={uploading}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="material-type">Typ materiału</Label>
+                <select
+                  id="material-type"
+                  value={materialType}
+                  onChange={(e) => {
+                    setMaterialType(e.target.value as "PDF" | "LINK");
+                    setUploadedFileUrl("");
+                    setMaterialUrl("");
+                  }}
+                  className="w-full p-2 border rounded-md"
+                  disabled={uploading}
+                >
+                  <option value="PDF">Plik PDF</option>
+                  <option value="LINK">Link</option>
+                </select>
+              </div>
+
+              {materialType === "PDF" ? (
+                <div>
+                  <Label>Plik PDF *</Label>
+                  <FileUpload
+                    onUploadComplete={(data) => {
+                      setUploadedFileUrl(data.url);
+                      if (!materialTitle) {
+                        setMaterialTitle(
+                          data.filename.replace(/\.[^/.]+$/, "")
+                        );
+                      }
+                    }}
+                    acceptedTypes={[".pdf"]}
+                    maxSize={100}
+                  />
+                  {uploadedFileUrl && (
+                    <p className="text-sm text-green-600 mt-2">
+                      ✓ Plik został przesłany
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <Label htmlFor="material-link">URL *</Label>
+                  <Input
+                    id="material-link"
+                    type="url"
+                    value={materialUrl}
+                    onChange={(e) => setMaterialUrl(e.target.value)}
+                    placeholder="https://example.com/material"
+                    required
+                    disabled={uploading}
+                  />
+                </div>
+              )}
+
+              <div className="flex gap-2 justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={uploading}
+                >
+                  Anuluj
+                </Button>
+                <Button onClick={handleNormalSubmit} disabled={uploading}>
+                  {uploading ? "Dodawanie..." : "Dodaj"}
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>
