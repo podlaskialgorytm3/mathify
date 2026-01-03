@@ -14,6 +14,7 @@ import {
   Save,
   ChevronRight,
   Upload,
+  CheckSquare,
 } from "lucide-react";
 
 interface Subchapter {
@@ -148,6 +149,29 @@ export default function StudentCourseVisibilityPage() {
           canSubmit: !currentEffectiveValue,
         },
       };
+    });
+  };
+
+  const toggleAllSubchaptersVisibility = (
+    chapter: Chapter,
+    newValue: boolean
+  ) => {
+    setChanges((prev) => {
+      const newChanges = { ...prev };
+
+      // Update all subchapters in the chapter
+      chapter.subchapters.forEach((subchapter) => {
+        const existingChange = newChanges[subchapter.id] || {
+          type: "subchapter" as const,
+        };
+        newChanges[subchapter.id] = {
+          ...existingChange,
+          type: "subchapter",
+          isVisible: newValue,
+        };
+      });
+
+      return newChanges;
     });
   };
 
@@ -314,7 +338,37 @@ export default function StudentCourseVisibilityPage() {
                         {chapter.order}. {chapter.title}
                       </span>
                     </CardTitle>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
+                      {/* Bulk actions for subchapters */}
+                      {chapter.subchapters.length > 0 && (
+                        <div className="flex items-center gap-2 mr-2 pr-3 border-r">
+                          <span className="text-xs text-gray-500">
+                            Wszystkie podrozdziały:
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              toggleAllSubchaptersVisibility(chapter, true)
+                            }
+                            className="h-7 text-xs"
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            Pokaż
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() =>
+                              toggleAllSubchaptersVisibility(chapter, false)
+                            }
+                            className="h-7 text-xs"
+                          >
+                            <EyeOff className="h-3 w-3 mr-1" />
+                            Ukryj
+                          </Button>
+                        </div>
+                      )}
                       {chapterVisible ? (
                         <Eye className="h-4 w-4 text-green-600" />
                       ) : (
