@@ -67,6 +67,12 @@ export async function uploadBufferToCloudinary(
     resourceType = "image"; // PDFs are treated as images in Cloudinary
   }
 
+  // Create unique public_id by adding timestamp to avoid collisions
+  // This ensures files with the same name uploaded to different subchapters don't overwrite each other
+  const fileNameWithoutExt = fileName.replace(/\.[^/.]+$/, "");
+  const timestamp = Date.now();
+  const uniquePublicId = `${fileNameWithoutExt}_${timestamp}`;
+
   return new Promise((resolve, reject) => {
     cloudinary.uploader
       .upload_stream(
@@ -75,7 +81,7 @@ export async function uploadBufferToCloudinary(
           resource_type: resourceType,
           access_mode: "public", // Make files publicly accessible
           type: "upload", // Explicit upload type for public access
-          public_id: fileName.replace(/\.[^/.]+$/, ""), // Remove extension for public_id
+          public_id: uniquePublicId, // Use unique public_id with timestamp
         },
         (error, result) => {
           if (error) reject(error);
