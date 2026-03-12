@@ -24,4 +24,3 @@ process.emitWarning = function (warning, ...args) {
 
 // Method 2: Disable all deprecation warnings (nuclear option)
 process.noDeprecation = true;
-};

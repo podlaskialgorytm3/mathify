@@ -7,6 +7,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { Switch } from "@/components/ui/switch";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
   ArrowLeft,
   BookOpen,
   Eye,
@@ -15,6 +22,10 @@ import {
   ChevronRight,
   Upload,
   CheckSquare,
+  FileText,
+  Image,
+  Trash2,
+  AlertCircle,
 } from "lucide-react";
 
 interface Subchapter {
@@ -72,6 +83,19 @@ export default function StudentCourseVisibilityPage() {
     >
   >({});
 
+  // Stan dialogu wstawiania pracy domowej
+  const [homeworkDialogOpen, setHomeworkDialogOpen] = useState(false);
+  const [homeworkSubchapter, setHomeworkSubchapter] = useState<{
+    id: string;
+    title: string;
+    chapterOrder: number;
+    subchapterOrder: number;
+  } | null>(null);
+  const [uploadMode, setUploadMode] = useState<"pdf" | "images">("pdf");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
+
   useEffect(() => {
     fetchVisibilityData();
   }, [params.studentId, params.courseId]);
@@ -79,7 +103,7 @@ export default function StudentCourseVisibilityPage() {
   const fetchVisibilityData = async () => {
     try {
       const response = await fetch(
-        `/api/teacher/students/${params.studentId}/courses/${params.courseId}/visibility`
+        `/api/teacher/students/${params.studentId}/courses/${params.courseId}/visibility`,
       );
       const result = await response.json();
 
@@ -103,7 +127,7 @@ export default function StudentCourseVisibilityPage() {
 
   const toggleChapterVisibility = (
     chapterId: string,
-    currentEffectiveValue: boolean
+    currentEffectiveValue: boolean,
   ) => {
     setChanges((prev) => ({
       ...prev,
@@ -116,7 +140,7 @@ export default function StudentCourseVisibilityPage() {
 
   const toggleSubchapterVisibility = (
     subchapterId: string,
-    currentEffectiveValue: boolean
+    currentEffectiveValue: boolean,
   ) => {
     setChanges((prev) => {
       const existingChange = prev[subchapterId] || {
@@ -135,7 +159,7 @@ export default function StudentCourseVisibilityPage() {
 
   const toggleSubchapterSubmission = (
     subchapterId: string,
-    currentEffectiveValue: boolean
+    currentEffectiveValue: boolean,
   ) => {
     setChanges((prev) => {
       const existingChange = prev[subchapterId] || {
@@ -154,7 +178,7 @@ export default function StudentCourseVisibilityPage() {
 
   const toggleAllSubchaptersVisibility = (
     chapter: Chapter,
-    newValue: boolean
+    newValue: boolean,
   ) => {
     setChanges((prev) => {
       const newChanges = { ...prev };
@@ -177,7 +201,7 @@ export default function StudentCourseVisibilityPage() {
 
   const getEffectiveVisibility = (
     id: string,
-    originalValue: boolean
+    originalValue: boolean,
   ): boolean => {
     if (changes[id] && changes[id].isVisible !== undefined) {
       return changes[id].isVisible!;
@@ -187,12 +211,158 @@ export default function StudentCourseVisibilityPage() {
 
   const getEffectiveCanSubmit = (
     id: string,
-    originalValue: boolean
+    originalValue: boolean,
   ): boolean => {
     if (changes[id] && changes[id].canSubmit !== undefined) {
       return changes[id].canSubmit!;
     }
     return originalValue;
+  };
+
+  const openHomeworkDialog = (
+    subchapterId: string,
+    title: string,
+    chapterOrder: number,
+    subchapterOrder: number,
+  ) => {
+    setHomeworkSubchapter({
+      id: subchapterId,
+      title,
+      chapterOrder,
+      subchapterOrder,
+    });
+    setUploadMode("pdf");
+    setSelectedFile(null);
+    setSelectedImages([]);
+    setHomeworkDialogOpen(true);
+  };
+
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "Błąd",
+          description: "Plik jest za duży. Maksymalny rozmiar to 10MB.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setSelectedFile(file);
+    }
+  };
+
+  const handleImagesSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || []);
+
+    if (files.length > 10) {
+      toast({
+        title: "Błąd",
+        description: "Możesz przesłać maksymalnie 10 zdjęć.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const invalidFiles = files.filter(
+      (file) => !file.type.startsWith("image/"),
+    );
+    if (invalidFiles.length > 0) {
+      toast({
+        title: "Błąd",
+        description: "Wszystkie pliki muszą być zdjęciami (JPG, PNG).",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const oversizedFiles = files.filter((file) => file.size > 1 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      toast({
+        title: "Błąd",
+        description: "Każde zdjęcie może mieć maksymalnie 1MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setSelectedImages(files);
+  };
+
+  const removeImage = (index: number) => {
+    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleHomeworkSubmit = async () => {
+    if (!homeworkSubchapter) return;
+
+    if (uploadMode === "pdf" && !selectedFile) {
+      toast({
+        title: "Błąd",
+        description: "Wybierz plik PDF do przesłania",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (uploadMode === "images" && selectedImages.length === 0) {
+      toast({
+        title: "Błąd",
+        description: "Wybierz przynajmniej jedno zdjęcie",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const formData = new FormData();
+
+      if (uploadMode === "pdf") {
+        formData.append("file", selectedFile!);
+      } else {
+        selectedImages.forEach((image) => {
+          formData.append("images", image);
+        });
+      }
+
+      formData.append("subchapterId", homeworkSubchapter.id);
+      formData.append("uploadMode", uploadMode);
+
+      const response = await fetch(
+        `/api/teacher/students/${params.studentId}/submissions`,
+        {
+          method: "POST",
+          body: formData,
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to upload file");
+      }
+
+      toast({
+        title: "Sukces",
+        description: "Praca domowa została przesłana za ucznia",
+      });
+
+      setHomeworkDialogOpen(false);
+      setHomeworkSubchapter(null);
+      setSelectedFile(null);
+      setSelectedImages([]);
+    } catch (error) {
+      console.error("Error uploading homework:", error);
+      toast({
+        title: "Błąd",
+        description: "Nie udało się przesłać pracy domowej",
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
   };
 
   const saveChanges = async () => {
@@ -214,7 +384,7 @@ export default function StudentCourseVisibilityPage() {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({ changes }),
-        }
+        },
       );
 
       const result = await response.json();
@@ -325,7 +495,7 @@ export default function StudentCourseVisibilityPage() {
           data.chapters.map((chapter) => {
             const chapterVisible = getEffectiveVisibility(
               chapter.id,
-              chapter.visibility?.isVisible || false
+              chapter.visibility?.isVisible || false,
             );
 
             return (
@@ -396,11 +566,11 @@ export default function StudentCourseVisibilityPage() {
                       {chapter.subchapters.map((subchapter) => {
                         const subchapterVisible = getEffectiveVisibility(
                           subchapter.id,
-                          subchapter.visibility?.isVisible || false
+                          subchapter.visibility?.isVisible || false,
                         );
                         const canSubmit = getEffectiveCanSubmit(
                           subchapter.id,
-                          subchapter.visibility?.canSubmit || false
+                          subchapter.visibility?.canSubmit || false,
                         );
 
                         return (
@@ -433,7 +603,7 @@ export default function StudentCourseVisibilityPage() {
                                   onCheckedChange={() =>
                                     toggleSubchapterVisibility(
                                       subchapter.id,
-                                      subchapterVisible
+                                      subchapterVisible,
                                     )
                                   }
                                 />
@@ -455,7 +625,7 @@ export default function StudentCourseVisibilityPage() {
                                     onCheckedChange={() =>
                                       toggleSubchapterSubmission(
                                         subchapter.id,
-                                        canSubmit
+                                        canSubmit,
                                       )
                                     }
                                     disabled={!subchapterVisible}
@@ -465,6 +635,22 @@ export default function StudentCourseVisibilityPage() {
                                       ? "Wysyłanie włączone"
                                       : "Wysyłanie wyłączone"}
                                   </span>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="ml-2 gap-1 text-xs"
+                                    onClick={() =>
+                                      openHomeworkDialog(
+                                        subchapter.id,
+                                        subchapter.title,
+                                        chapter.order,
+                                        subchapter.order,
+                                      )
+                                    }
+                                  >
+                                    <Upload className="h-3 w-3" />
+                                    Wstaw pracę domową
+                                  </Button>
                                 </div>
                               )}
                             </div>
@@ -479,6 +665,214 @@ export default function StudentCourseVisibilityPage() {
           })
         )}
       </div>
+
+      {/* Dialog wstawiania pracy domowej */}
+      <Dialog open={homeworkDialogOpen} onOpenChange={setHomeworkDialogOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Wstaw pracę domową za ucznia</DialogTitle>
+            <DialogDescription>
+              {homeworkSubchapter && (
+                <>
+                  {data?.student.firstName} {data?.student.lastName} &mdash;{" "}
+                  {homeworkSubchapter.chapterOrder}.
+                  {homeworkSubchapter.subchapterOrder}{" "}
+                  {homeworkSubchapter.title}
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6">
+            {/* Toggle PDF / Zdjęcia */}
+            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+              <div className="flex items-center gap-3">
+                <FileText
+                  className={`h-5 w-5 ${
+                    uploadMode === "pdf" ? "text-blue-600" : "text-gray-400"
+                  }`}
+                />
+                <span
+                  className={`font-medium ${
+                    uploadMode === "pdf" ? "text-gray-900" : "text-gray-500"
+                  }`}
+                >
+                  Plik PDF
+                </span>
+              </div>
+              <Switch
+                checked={uploadMode === "images"}
+                onCheckedChange={(checked) => {
+                  setUploadMode(checked ? "images" : "pdf");
+                  setSelectedFile(null);
+                  setSelectedImages([]);
+                }}
+              />
+              <div className="flex items-center gap-3">
+                <span
+                  className={`font-medium ${
+                    uploadMode === "images" ? "text-gray-900" : "text-gray-500"
+                  }`}
+                >
+                  Zdjęcia
+                </span>
+                <Image
+                  className={`h-5 w-5 ${
+                    uploadMode === "images" ? "text-blue-600" : "text-gray-400"
+                  }`}
+                />
+              </div>
+            </div>
+
+            {/* Upload PDF */}
+            {uploadMode === "pdf" && (
+              <>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                  <input
+                    type="file"
+                    id="teacher-file-upload"
+                    className="hidden"
+                    onChange={handleFileSelect}
+                    accept=".pdf"
+                  />
+                  <label
+                    htmlFor="teacher-file-upload"
+                    className="cursor-pointer"
+                  >
+                    <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-lg font-semibold text-gray-700">
+                      Kliknij, aby wybrać plik PDF
+                    </p>
+                    <p className="text-sm text-gray-500 mt-2">
+                      Maksymalny rozmiar: 10MB
+                    </p>
+                  </label>
+                </div>
+
+                {selectedFile && (
+                  <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <FileText className="h-5 w-5 text-blue-600" />
+                    <div className="flex-1">
+                      <p className="font-semibold text-gray-900">
+                        {selectedFile.name}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                      </p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setSelectedFile(null)}
+                    >
+                      Usuń
+                    </Button>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Upload zdjęć */}
+            {uploadMode === "images" && (
+              <>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                  <input
+                    type="file"
+                    id="teacher-images-upload"
+                    className="hidden"
+                    onChange={handleImagesSelect}
+                    accept="image/*"
+                    multiple
+                  />
+                  <label
+                    htmlFor="teacher-images-upload"
+                    className="cursor-pointer"
+                  >
+                    <Image className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <p className="text-lg font-semibold text-gray-700">
+                      Kliknij, aby wybrać zdjęcia
+                    </p>
+                    <p className="text-sm text-gray-500 mt-2">
+                      Maksymalnie 10 zdjęć, każde do 1MB
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Obsługiwane formaty: JPG, PNG
+                    </p>
+                  </label>
+                </div>
+
+                {selectedImages.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-gray-700">
+                      Wybrane zdjęcia ({selectedImages.length}/10):
+                    </p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {selectedImages.map((image, index) => (
+                        <div
+                          key={index}
+                          className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg"
+                        >
+                          <Image className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {image.name}
+                            </p>
+                            <p className="text-xs text-gray-600">
+                              {(image.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeImage(index)}
+                            className="flex-shrink-0"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Info */}
+            <div className="flex gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <AlertCircle className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div className="text-sm text-blue-900">
+                <p className="font-semibold mb-1">Uwaga:</p>
+                <p>
+                  Wstawiasz pracę domową w imieniu ucznia. Praca zostanie
+                  przypisana do tego ucznia.
+                </p>
+              </div>
+            </div>
+
+            {/* Przyciski */}
+            <div className="flex gap-3">
+              <Button
+                onClick={handleHomeworkSubmit}
+                disabled={
+                  (uploadMode === "pdf" && !selectedFile) ||
+                  (uploadMode === "images" && selectedImages.length === 0) ||
+                  uploading
+                }
+                className="flex-1"
+              >
+                {uploading ? "Przesyłanie..." : "Prześlij pracę"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => setHomeworkDialogOpen(false)}
+                disabled={uploading}
+              >
+                Anuluj
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
