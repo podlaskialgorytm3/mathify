@@ -18,6 +18,8 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { LogIn } from "lucide-react";
 
+import { checkUserStatus } from "./actions";
+
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -32,6 +34,19 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      // Sprawdź status konta przed logowaniem, żeby zapobiec maskowaniu błędów przez NextAuth
+      const userCheck = await checkUserStatus(formData.username);
+      
+      if (userCheck.status === "PENDING" || userCheck.status === "INACTIVE") {
+        toast({
+          className: "bg-yellow-100 border-yellow-400 text-yellow-900",
+          title: "Informacja o koncie",
+          description: "Konto jeszcze nie zaakceptowane",
+        });
+        setLoading(false);
+        return;
+      }
+
       const result = await signIn("credentials", {
         username: formData.username,
         password: formData.password,
@@ -43,9 +58,10 @@ export default function LoginPage() {
           variant: "destructive",
           title: "Błąd logowania",
           description:
+            result.error === "AccountNotActive" ||
             result.error ===
-            "Account is not active. Please wait for admin approval."
-              ? "Konto nie jest aktywne. Poczekaj na zatwierdzenie przez administratora."
+              "Account is not active. Please wait for admin approval."
+              ? "Konto jeszcze nie zaakceptowane"
               : "Nieprawidłowy login lub hasło.",
         });
       } else {

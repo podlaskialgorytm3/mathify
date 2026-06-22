@@ -36,9 +36,7 @@ export const authConfig: NextAuthConfig = {
 
         // Check if user is active
         if (user.status !== UserStatus.ACTIVE) {
-          throw new Error(
-            "Account is not active. Please wait for admin approval."
-          );
+          throw new Error("Account is not active.");
         }
 
         return {
