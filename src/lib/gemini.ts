@@ -15,7 +15,7 @@ if (!process.env.GEMINI_API_KEY) {
   console.log(
     "✓ GEMINI_API_KEY is configured (length:",
     process.env.GEMINI_API_KEY.length,
-    ")"
+    ")",
   );
 }
 
@@ -47,7 +47,7 @@ function safeJsonParse(rawString: string) {
   // Naprawia znaki ucieczki, które nie są standardowe dla JSON (jak LaTeX)
   const fixedString = rawString.replace(
     /\\(?![bfnrtv"\\/]|u[0-9a-fA-F]{4})/g,
-    "\\\\"
+    "\\\\",
   );
   return JSON.parse(fixedString);
 }
@@ -55,7 +55,7 @@ function safeJsonParse(rawString: string) {
 export async function checkSubmissionWithAI(
   filePath: string,
   submissionId: string,
-  promptTemplate: string
+  promptTemplate: string,
 ): Promise<AICheckResult> {
   try {
     console.log("=== Starting AI Check ===");
@@ -85,11 +85,11 @@ export async function checkSubmissionWithAI(
 
         if (!response.ok) {
           console.error(
-            `HTTP Error: ${response.status} ${response.statusText}`
+            `HTTP Error: ${response.status} ${response.statusText}`,
           );
           console.error(`URL: ${filePath}`);
           throw new Error(
-            `Failed to download file: HTTP ${response.status} ${response.statusText}`
+            `Failed to download file: HTTP ${response.status} ${response.statusText}`,
           );
         }
 
@@ -115,7 +115,7 @@ export async function checkSubmissionWithAI(
           console.error("Downloaded file is not a valid PDF!");
           console.error(
             "First 100 bytes:",
-            dataBuffer.slice(0, 100).toString()
+            dataBuffer.slice(0, 100).toString(),
           );
           throw new Error("Downloaded file is not a valid PDF document");
         }
@@ -223,7 +223,7 @@ WAŻNE: Odpowiedź MUSI być w formacie JSON, bez markdown formatowania. Zwróć
         console.log("Finish Reason:", response.candidates[0].finishReason);
         console.log(
           "Safety Ratings:",
-          JSON.stringify(response.candidates[0].safetyRatings)
+          JSON.stringify(response.candidates[0].safetyRatings),
         );
 
         // Sprawdź czy odpowiedź została zablokowana
@@ -277,7 +277,7 @@ WAŻNE: Odpowiedź MUSI być w formacie JSON, bez markdown formatowania. Zwróć
         // Zapisz surową odpowiedź do rawResponse, żeby nauczyciel mógł ręcznie dokończyć
         console.error(
           "JSON parsing failed:",
-          parseError instanceof Error ? parseError.message : String(parseError)
+          parseError instanceof Error ? parseError.message : String(parseError),
         );
         console.log("Returning raw (incomplete) response for manual editing");
         return {
@@ -324,12 +324,12 @@ WAŻNE: Odpowiedź MUSI być w formacie JSON, bez markdown formatowania. Zwróć
       console.error("=== Gemini API Error ===");
       console.error(
         "Error type:",
-        apiError instanceof Error ? apiError.constructor.name : typeof apiError
+        apiError instanceof Error ? apiError.constructor.name : typeof apiError,
       );
       console.error("Error message:", errorMsg);
       console.error(
         "Error stack:",
-        apiError instanceof Error ? apiError.stack : "No stack"
+        apiError instanceof Error ? apiError.stack : "No stack",
       );
 
       // Sprawdź czy to błąd limitu
@@ -441,15 +441,15 @@ WAŻNE: Odpowiedź MUSI być w formacie JSON, bez markdown formatowania. Zwróć
     console.error("=== ERROR in checkSubmissionWithAI ===");
     console.error(
       "Error type:",
-      error instanceof Error ? error.constructor.name : typeof error
+      error instanceof Error ? error.constructor.name : typeof error,
     );
     console.error(
       "Error message:",
-      error instanceof Error ? error.message : String(error)
+      error instanceof Error ? error.message : String(error),
     );
     console.error(
       "Error stack:",
-      error instanceof Error ? error.stack : "No stack trace"
+      error instanceof Error ? error.stack : "No stack trace",
     );
 
     // Return error response
