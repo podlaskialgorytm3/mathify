@@ -115,6 +115,12 @@ export default async function DashboardLayout({
                     : "Uczeń"}
                 </p>
               </div>
+              <Link href="/">
+                <Button variant="outline" size="sm" type="button">
+                  <Home className="w-4 h-4 mr-2" />
+                  Strona główna
+                </Button>
+              </Link>
               <Link href="/dashboard/profile">
                 <Button variant="outline" size="sm" type="button">
                   <UserCircle className="w-4 h-4 mr-2" />
