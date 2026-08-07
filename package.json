@@ -4,7 +4,7 @@
   "description": "Aplikacja do śledzenia rozwoju matematycznego uczniów",
   "private": true,
   "scripts": {
-    "dev": "cross-env NODE_OPTIONS=\"--require ./suppress-warnings.js\" next dev",
+    "dev": "cross-env NODE_OPTIONS=\"--require ./scripts/suppress-warnings.js\" next dev",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",

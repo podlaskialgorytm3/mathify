@@ -22,20 +22,20 @@ function parseCloudinaryUrl(urlString: string) {
 
 const cloudinaryUrl = process.env.CLOUDINARY_URL;
 if (!cloudinaryUrl) {
-  throw new Error("CLOUDINARY_URL is not defined in environment variables");
+  console.warn("CLOUDINARY_URL is not defined in environment variables. Uploads will fail at runtime if this is not set.");
+} else {
+  const config = parseCloudinaryUrl(cloudinaryUrl);
+
+  // Configure cloudinary directly with config object to avoid internal url.parse()
+  cloudinary.config({
+    cloud_name: config.cloud_name,
+    api_key: config.api_key,
+    api_secret: config.api_secret,
+    secure: true,
+    // Disable url parsing warnings
+    url_analytics: false,
+  });
 }
-
-const config = parseCloudinaryUrl(cloudinaryUrl);
-
-// Configure cloudinary directly with config object to avoid internal url.parse()
-cloudinary.config({
-  cloud_name: config.cloud_name,
-  api_key: config.api_key,
-  api_secret: config.api_secret,
-  secure: true,
-  // Disable url parsing warnings
-  url_analytics: false,
-});
 
 export default cloudinary;
 

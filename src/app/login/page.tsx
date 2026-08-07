@@ -39,7 +39,6 @@ export default function LoginPage() {
       
       if (userCheck.status === "PENDING" || userCheck.status === "INACTIVE") {
         toast({
-          className: "bg-yellow-100 border-yellow-400 text-yellow-900",
           title: "Informacja o koncie",
           description: "Konto jeszcze nie zaakceptowane",
         });
