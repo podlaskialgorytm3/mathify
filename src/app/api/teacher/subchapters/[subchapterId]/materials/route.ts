@@ -38,7 +38,7 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { title, description, type, content } = body;
+    const { title, description, type, content, source } = body;
 
     if (!title || !type || !content) {
       return NextResponse.json(
@@ -54,22 +54,38 @@ export async function POST(
       );
     }
 
-    // Get next order
-    const lastMaterial = await prisma.material.findFirst({
+    const materialSource =
+      source === "HOMEWORK" ? "HOMEWORK" : "COURSE";
+
+    // Get next order for this subchapter
+    const lastEntry = await prisma.materialSubchapter.findFirst({
       where: { subchapterId },
       orderBy: { order: "desc" },
     });
-    const order = lastMaterial ? lastMaterial.order + 1 : 1;
+    const order = lastEntry ? lastEntry.order + 1 : 1;
 
-    const material = await prisma.material.create({
-      data: {
-        title,
-        description: description || null,
-        type,
-        content,
-        order,
-        subchapterId,
-      },
+    // Create Material + MaterialSubchapter in a transaction
+    const material = await prisma.$transaction(async (tx) => {
+      const newMaterial = await tx.material.create({
+        data: {
+          title,
+          description: description || null,
+          type,
+          content,
+          source: materialSource,
+          ownerId: session.user.id,
+        },
+      });
+
+      await tx.materialSubchapter.create({
+        data: {
+          materialId: newMaterial.id,
+          subchapterId,
+          order,
+        },
+      });
+
+      return newMaterial;
     });
 
     return NextResponse.json({
@@ -98,10 +114,19 @@ export async function GET(
 
     const { subchapterId } = await params;
 
-    const materials = await prisma.material.findMany({
+    const entries = await prisma.materialSubchapter.findMany({
       where: { subchapterId },
       orderBy: { order: "asc" },
+      include: {
+        material: true,
+      },
     });
+
+    const materials = entries.map((e) => ({
+      ...e.material,
+      order: e.order,
+      addedAt: e.addedAt,
+    }));
 
     return NextResponse.json({ materials });
   } catch (error) {

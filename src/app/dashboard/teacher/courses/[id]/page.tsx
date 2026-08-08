@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import FileUpload from "@/components/FileUpload";
+import { CopySubchapterDialog } from "@/components/course-management/copy-subchapter-dialog";
+import { CopyMaterialDialog } from "@/components/course-management/copy-material-dialog";
 import {
   ArrowLeft,
   Plus,
@@ -28,6 +30,8 @@ import {
   Search,
   CheckSquare,
   Square,
+  Copy,
+  HardDrive,
 } from "lucide-react";
 
 interface Material {
@@ -36,7 +40,14 @@ interface Material {
   description: string | null;
   type: "PDF" | "LINK";
   content: string;
+  source?: "COURSE" | "HOMEWORK";
+}
+
+interface MaterialSubchapterEntry {
+  id: string;
+  materialId: string;
   order: number;
+  material: Material;
 }
 
 interface Subchapter {
@@ -49,9 +60,9 @@ interface Subchapter {
   visibleUntilDate: Date | null;
   requiresPrevious: boolean;
   allowSubmissions: boolean;
-  materials: Material[];
+  materialSubchapters: MaterialSubchapterEntry[];
   _count: {
-    materials: number;
+    materialSubchapters: number;
     submissions: number;
   };
 }
@@ -133,6 +144,9 @@ export default function CourseDetailsPage({
     new Set()
   );
   const [selectionMode, setSelectionMode] = useState(false);
+  const [showCopySubchapterDialog, setShowCopySubchapterDialog] = useState(false);
+  const [showCopyMaterialDialog, setShowCopyMaterialDialog] = useState(false);
+  const [copyTargetSubchapterId, setCopyTargetSubchapterId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchCourse = async () => {
@@ -1010,7 +1024,7 @@ export default function CourseDetailsPage({
                                 </p>
                               )}
                               <p className="text-xs text-gray-500 mt-1">
-                                {subchapter._count.materials} materiałów •{" "}
+                                {subchapter._count.materialSubchapters} materiałów •{" "}
                                 {subchapter._count.submissions} rozwiązań
                               </p>
                             </div>
@@ -1025,6 +1039,30 @@ export default function CourseDetailsPage({
                               >
                                 <Plus className="w-4 h-4 mr-1" />
                                 Materiał
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                title="Dodaj istniejący materiał z Dysku"
+                                onClick={() => {
+                                  setCopyTargetSubchapterId(subchapter.id);
+                                  setShowCopyMaterialDialog(true);
+                                }}
+                              >
+                                <HardDrive className="w-4 h-4 mr-1" />
+                                Z Dysku
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                title="Skopiuj materiały z innego podrozdziału"
+                                onClick={() => {
+                                  setCopyTargetSubchapterId(subchapter.id);
+                                  setShowCopySubchapterDialog(true);
+                                }}
+                              >
+                                <Copy className="w-4 h-4 mr-1" />
+                                Kopiuj
                               </Button>
                               <Button
                                 size="sm"
@@ -1048,8 +1086,8 @@ export default function CourseDetailsPage({
                           </div>
 
                           {/* Materials List */}
-                          {subchapter.materials &&
-                            subchapter.materials.length > 0 && (
+                          {subchapter.materialSubchapters &&
+                            subchapter.materialSubchapters.length > 0 && (
                               <div className="border-t px-3 py-2 bg-gray-50">
                                 <div className="flex items-center justify-between mb-2">
                                   <p className="text-xs font-semibold text-gray-600">
@@ -1073,13 +1111,13 @@ export default function CourseDetailsPage({
                                           variant="outline"
                                           onClick={() =>
                                             toggleSelectAllMaterials(
-                                              subchapter.materials
+                                              subchapter.materialSubchapters.map(ms => ms.material)
                                             )
                                           }
                                           className="text-xs h-7"
                                         >
-                                          {subchapter.materials.every((m) =>
-                                            selectedMaterials.has(m.id)
+                                          {subchapter.materialSubchapters.every((ms) =>
+                                            selectedMaterials.has(ms.material.id)
                                           )
                                             ? "Odznacz wszystkie"
                                             : "Zaznacz wszystkie"}
@@ -1111,7 +1149,7 @@ export default function CourseDetailsPage({
                                   </div>
                                 </div>
                                 <div className="space-y-1">
-                                  {subchapter.materials.map((material) => (
+                                  {subchapter.materialSubchapters.map(({ material }) => (
                                     <div
                                       key={material.id}
                                       className="flex items-center justify-between p-2 bg-white rounded border text-sm"
@@ -1297,6 +1335,30 @@ export default function CourseDetailsPage({
           enrolling={enrolling}
           onSearch={searchStudents}
           onEnroll={enrollStudent}
+        />
+      )}
+
+      {/* Copy Subchapter Dialog */}
+      {showCopySubchapterDialog && copyTargetSubchapterId && (
+        <CopySubchapterDialog
+          targetSubchapterId={copyTargetSubchapterId}
+          onClose={() => {
+            setShowCopySubchapterDialog(false);
+            setCopyTargetSubchapterId(null);
+            fetchCourse();
+          }}
+        />
+      )}
+
+      {/* Copy Material from Disk Dialog */}
+      {showCopyMaterialDialog && copyTargetSubchapterId && (
+        <CopyMaterialDialog
+          targetSubchapterId={copyTargetSubchapterId}
+          onClose={() => {
+            setShowCopyMaterialDialog(false);
+            setCopyTargetSubchapterId(null);
+            fetchCourse();
+          }}
         />
       )}
     </div>

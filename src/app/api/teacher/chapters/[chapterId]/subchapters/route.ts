@@ -111,7 +111,7 @@ export async function POST(
       include: {
         _count: {
           select: {
-            materials: true,
+            materialSubchapters: true,
             submissions: true,
           },
         },

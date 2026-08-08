@@ -21,30 +21,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get all materials with their course info
+    // Get all materials - verify ownership via ownerId
     const materials = await prisma.material.findMany({
       where: {
-        id: {
-          in: materialIds,
-        },
-      },
-      include: {
-        subchapter: {
-          include: {
-            chapter: {
-              include: {
-                course: true,
-              },
-            },
-          },
-        },
+        id: { in: materialIds },
       },
     });
 
-    // Verify all materials belong to teacher's courses
+    // Verify all materials belong to teacher
     const unauthorizedMaterial = materials.find(
-      (material) =>
-        material.subchapter.chapter.course.teacherId !== session.user.id
+      (material) => material.ownerId !== session.user.id
     );
 
     if (unauthorizedMaterial) {

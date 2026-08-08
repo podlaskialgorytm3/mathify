@@ -4,7 +4,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { HydrationFix } from "@/components/HydrationFix";
 
-const inter = Inter({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], preload: false, display: "swap" });
 
 export const metadata: Metadata = {
   title: "Mathify - Aplikacja do śledzenia rozwoju matematycznego",

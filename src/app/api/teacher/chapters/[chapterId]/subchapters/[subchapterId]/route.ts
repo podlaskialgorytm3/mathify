@@ -74,7 +74,7 @@ export async function PUT(
       include: {
         _count: {
           select: {
-            materials: true,
+            materialSubchapters: true,
             submissions: true,
           },
         },

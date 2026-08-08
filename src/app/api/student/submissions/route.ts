@@ -183,15 +183,15 @@ export async function POST(request: NextRequest) {
       console.log("Subchapter ID:", subchapterId);
 
       // Pobierz wszystkie materiały PDF dla tego podrozdziału
-      const allPdfMaterials = await prisma.material.findMany({
+      const pdfEntries = await prisma.materialSubchapter.findMany({
         where: {
           subchapterId: subchapterId,
-          type: "PDF",
+          material: { type: "PDF" },
         },
-        orderBy: {
-          order: "asc",
-        },
+        orderBy: { order: "asc" },
+        include: { material: true },
       });
+      const allPdfMaterials = pdfEntries.map((e) => e.material);
 
       console.log("All PDF materials in subchapter:", allPdfMaterials.length);
       allPdfMaterials.forEach((mat, idx) => {

@@ -22,11 +22,12 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=postgresql://mathify:mathify_password@postgres:5432/mathify?schema=public
       - NEXTAUTH_URL=http://localhost:3000
       - AUTH_TRUST_HOST=true
-      - NEXTAUTH_SECRET=your-super-secret-key-change-this-in-production
     depends_on:
       - postgres
     volumes:

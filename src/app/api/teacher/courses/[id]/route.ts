@@ -32,14 +32,17 @@ export async function GET(
           include: {
             subchapters: {
               include: {
-                materials: {
+                materialSubchapters: {
+                  include: {
+                    material: true,
+                  },
                   orderBy: {
                     order: "asc",
                   },
                 },
                 _count: {
                   select: {
-                    materials: true,
+                    materialSubchapters: true,
                     submissions: true,
                   },
                 },
