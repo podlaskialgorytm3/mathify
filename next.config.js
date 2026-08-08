@@ -6,7 +6,6 @@ const nextConfig = {
     serverActions: {
       bodySizeLimit: "10mb",
     },
-    instrumentationHook: true, // Enable instrumentation to suppress deprecation warnings
   },
   images: {
     remotePatterns: [
