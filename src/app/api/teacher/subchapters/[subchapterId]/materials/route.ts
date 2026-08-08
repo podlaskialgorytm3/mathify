@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { verifyCourseEditAccess } from "@/lib/course-access";
 
 export async function POST(
   request: NextRequest,
@@ -15,7 +16,7 @@ export async function POST(
 
     const { subchapterId } = await params;
 
-    // Verify subchapter belongs to teacher's course
+    // Verify subchapter exists and teacher has edit access
     const subchapter = await prisma.subchapter.findUnique({
       where: { id: subchapterId },
       include: {
@@ -27,13 +28,18 @@ export async function POST(
       },
     });
 
-    if (
-      !subchapter ||
-      subchapter.chapter.course.teacherId !== session.user.id
-    ) {
+    if (!subchapter) {
       return NextResponse.json(
-        { error: "Podrozdział nie istnieje lub nie masz do niego dostępu" },
+        { error: "Podrozdział nie istnieje" },
         { status: 404 }
+      );
+    }
+
+    const hasAccess = await verifyCourseEditAccess(subchapter.chapter.courseId, session.user.id);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Brak uprawnień do edycji tego kursu" },
+        { status: 403 }
       );
     }
 
@@ -73,7 +79,7 @@ export async function POST(
           type,
           content,
           source: materialSource,
-          ownerId: session.user.id,
+          ownerId: subchapter.chapter.course.teacherId, // Assign owner to course's original teacher
         },
       });
 

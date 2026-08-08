@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Wygenerowane Konta - Mathify",
+  title: "Utworzone Konta - Mathify",
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

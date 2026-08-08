@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Prompty AI - Mathify",
+  title: "Szablony AI - Mathify",
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

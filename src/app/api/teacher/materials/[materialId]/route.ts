@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import cloudinary from "@/lib/cloudinary";
+import { verifyCourseEditAccess } from "@/lib/course-access";
 
 export async function DELETE(
   request: NextRequest,
@@ -18,6 +19,15 @@ export async function DELETE(
 
     const material = await prisma.material.findUnique({
       where: { id: materialId },
+      include: {
+        materialSubchapters: {
+          include: {
+            subchapter: {
+              include: { chapter: true }
+            }
+          }
+        }
+      }
     });
 
     if (!material) {
@@ -27,8 +37,19 @@ export async function DELETE(
       );
     }
 
-    // Verify teacher owns the material
-    if (material.ownerId !== session.user.id) {
+    // Verify teacher owns the material or has edit access to a course containing it
+    let hasAccess = material.ownerId === session.user.id;
+    
+    if (!hasAccess) {
+      for (const ms of material.materialSubchapters) {
+        if (await verifyCourseEditAccess(ms.subchapter.chapter.courseId, session.user.id)) {
+          hasAccess = true;
+          break;
+        }
+      }
+    }
+
+    if (!hasAccess) {
       return NextResponse.json(
         { error: "Nie masz uprawnień do usunięcia tego materiału" },
         { status: 403 }
@@ -89,6 +110,15 @@ export async function PUT(
 
     const material = await prisma.material.findUnique({
       where: { id: materialId },
+      include: {
+        materialSubchapters: {
+          include: {
+            subchapter: {
+              include: { chapter: true }
+            }
+          }
+        }
+      }
     });
 
     if (!material) {
@@ -98,8 +128,19 @@ export async function PUT(
       );
     }
 
-    // Verify teacher owns the material
-    if (material.ownerId !== session.user.id) {
+    // Verify teacher owns the material or has edit access to a course containing it
+    let hasAccess = material.ownerId === session.user.id;
+    
+    if (!hasAccess) {
+      for (const ms of material.materialSubchapters) {
+        if (await verifyCourseEditAccess(ms.subchapter.chapter.courseId, session.user.id)) {
+          hasAccess = true;
+          break;
+        }
+      }
+    }
+
+    if (!hasAccess) {
       return NextResponse.json(
         { error: "Nie masz uprawnień do edycji tego materiału" },
         { status: 403 }

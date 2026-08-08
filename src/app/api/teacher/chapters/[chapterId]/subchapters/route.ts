@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { verifyCourseEditAccess } from "@/lib/course-access";
 
 export async function POST(
   request: NextRequest,
@@ -26,7 +27,7 @@ export async function POST(
       allowSubmissions,
     } = body;
 
-    // Verify chapter belongs to teacher's course
+    // Verify chapter exists and teacher has edit access to its course
     const chapter = await prisma.chapter.findUnique({
       where: { id: chapterId },
       include: {
@@ -34,10 +35,18 @@ export async function POST(
       },
     });
 
-    if (!chapter || chapter.course.teacherId !== session.user.id) {
+    if (!chapter) {
       return NextResponse.json(
-        { error: "Rozdział nie istnieje lub nie masz do niego dostępu" },
+        { error: "Rozdział nie istnieje" },
         { status: 404 }
+      );
+    }
+
+    const hasAccess = await verifyCourseEditAccess(chapter.courseId, session.user.id);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Brak uprawnień do edycji tego kursu" },
+        { status: 403 }
       );
     }
 
@@ -48,9 +57,9 @@ export async function POST(
       );
     }
 
-    // Check plan limits if teacher has a plan
+    // Check plan limits of the course owner
     const teacher = await prisma.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: chapter.course.teacherId },
       include: {
         plan: true,
         createdCourses: {

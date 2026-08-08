@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { verifyCourseEditAccess } from "@/lib/course-access";
 
 export async function GET(
   request: NextRequest,
@@ -130,18 +131,25 @@ export async function PUT(
     const body = await request.json();
     const { title, description, aiPromptTemplateId, visibility, publicAccessType, sharedWithUsers } = body;
 
-    // Check if course belongs to teacher
+    // Check if course exists and teacher has edit access
     const existingCourse = await prisma.course.findUnique({
       where: {
         id,
-        teacherId: session.user.id,
       },
     });
 
     if (!existingCourse) {
       return NextResponse.json(
-        { error: "Kurs nie istnieje lub nie masz do niego dostępu" },
+        { error: "Kurs nie istnieje" },
         { status: 404 }
+      );
+    }
+
+    const hasAccess = await verifyCourseEditAccess(id, session.user.id);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Brak uprawnień do edycji tego kursu" },
+        { status: 403 }
       );
     }
 

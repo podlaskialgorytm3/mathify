@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Profil Ucznia - Mathify",
+  title: "Profil ucznia - Mathify",
 };
 
 export default function Layout({ children }: { children: React.ReactNode }) {

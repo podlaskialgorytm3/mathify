@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { verifyCourseEditAccess } from "@/lib/course-access";
 
 export async function PUT(
   request: NextRequest,
@@ -16,18 +17,25 @@ export async function PUT(
     const { id: courseId, chapterId } = await params;
     const body = await request.json();
 
-    // Verify course belongs to teacher
+    // Verify course exists
     const course = await prisma.course.findUnique({
       where: {
         id: courseId,
-        teacherId: session.user.id,
       },
     });
 
     if (!course) {
       return NextResponse.json(
-        { error: "Kurs nie istnieje lub nie masz do niego dostępu" },
+        { error: "Kurs nie istnieje" },
         { status: 404 }
+      );
+    }
+
+    const hasAccess = await verifyCourseEditAccess(courseId, session.user.id);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Brak uprawnień do edycji tego kursu" },
+        { status: 403 }
       );
     }
 
@@ -104,18 +112,25 @@ export async function DELETE(
 
     const { id: courseId, chapterId } = await params;
 
-    // Verify course belongs to teacher
+    // Verify course exists
     const course = await prisma.course.findUnique({
       where: {
         id: courseId,
-        teacherId: session.user.id,
       },
     });
 
     if (!course) {
       return NextResponse.json(
-        { error: "Kurs nie istnieje lub nie masz do niego dostępu" },
+        { error: "Kurs nie istnieje" },
         { status: 404 }
+      );
+    }
+
+    const hasAccess = await verifyCourseEditAccess(courseId, session.user.id);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Brak uprawnień do edycji tego kursu" },
+        { status: 403 }
       );
     }
 

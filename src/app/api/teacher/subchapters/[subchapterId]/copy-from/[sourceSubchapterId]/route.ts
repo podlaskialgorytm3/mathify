@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { verifyCourseEditAccess } from "@/lib/course-access";
 
 // POST /api/teacher/subchapters/[subchapterId]/copy-from/[sourceSubchapterId]
 // Skopiowanie (przez referencje) wszystkich materiałów ze źródłowego podrozdziału
@@ -31,20 +32,28 @@ export async function POST(
       );
     }
 
-    // Verify target subchapter belongs to teacher
+    // Verify target subchapter exists and teacher has edit access
     const targetSub = await prisma.subchapter.findUnique({
       where: { id: subchapterId },
       include: { chapter: { include: { course: true } } },
     });
 
-    if (!targetSub || targetSub.chapter.course.teacherId !== session.user.id) {
+    if (!targetSub) {
       return NextResponse.json(
-        { error: "Docelowy podrozdział nie istnieje lub nie masz do niego dostępu" },
+        { error: "Docelowy podrozdział nie istnieje" },
         { status: 404 }
       );
     }
 
-    // Verify source subchapter belongs to teacher
+    const hasTargetAccess = await verifyCourseEditAccess(targetSub.chapter.courseId, session.user.id);
+    if (!hasTargetAccess) {
+      return NextResponse.json(
+        { error: "Brak uprawnień do edycji docelowego kursu" },
+        { status: 403 }
+      );
+    }
+
+    // Verify source subchapter exists and teacher has edit access (they can copy if they have read/edit access, but let's stick to verifyCourseEditAccess for now or just allow it if they are allowed to see it. Actually OPEN_SOURCE means they can edit it anyway, so verifyCourseEditAccess is correct)
     const sourceSub = await prisma.subchapter.findUnique({
       where: { id: sourceSubchapterId },
       include: {
@@ -56,10 +65,18 @@ export async function POST(
       },
     });
 
-    if (!sourceSub || sourceSub.chapter.course.teacherId !== session.user.id) {
+    if (!sourceSub) {
       return NextResponse.json(
-        { error: "Źródłowy podrozdział nie istnieje lub nie masz do niego dostępu" },
+        { error: "Źródłowy podrozdział nie istnieje" },
         { status: 404 }
+      );
+    }
+
+    const hasSourceAccess = await verifyCourseEditAccess(sourceSub.chapter.courseId, session.user.id);
+    if (!hasSourceAccess) {
+      return NextResponse.json(
+        { error: "Brak uprawnień do źródłowego kursu" },
+        { status: 403 }
       );
     }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import cloudinary from "@/lib/cloudinary";
+import { verifyCourseEditAccess } from "@/lib/course-access";
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,23 +22,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get all materials - verify ownership via ownerId
+    // Get all materials - verify ownership via ownerId or edit access to a linked course
     const materials = await prisma.material.findMany({
       where: {
         id: { in: materialIds },
       },
+      include: {
+        materialSubchapters: {
+          include: {
+            subchapter: {
+              include: { chapter: true }
+            }
+          }
+        }
+      }
     });
 
-    // Verify all materials belong to teacher
-    const unauthorizedMaterial = materials.find(
-      (material) => material.ownerId !== session.user.id
-    );
+    // Verify all materials
+    for (const material of materials) {
+      let hasAccess = material.ownerId === session.user.id;
+      if (!hasAccess) {
+        for (const ms of material.materialSubchapters) {
+          if (await verifyCourseEditAccess(ms.subchapter.chapter.courseId, session.user.id)) {
+            hasAccess = true;
+            break;
+          }
+        }
+      }
 
-    if (unauthorizedMaterial) {
-      return NextResponse.json(
-        { error: "Nie masz uprawnień do usunięcia niektórych materiałów" },
-        { status: 403 }
-      );
+      if (!hasAccess) {
+        return NextResponse.json(
+          { error: "Nie masz uprawnień do usunięcia niektórych materiałów" },
+          { status: 403 }
+        );
+      }
     }
 
     // Delete files from Cloudinary for PDFs

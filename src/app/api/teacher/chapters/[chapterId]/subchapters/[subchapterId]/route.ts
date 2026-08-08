@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { verifyCourseEditAccess } from "@/lib/course-access";
 
 export async function PUT(
   request: NextRequest,
@@ -16,7 +17,7 @@ export async function PUT(
     const { chapterId, subchapterId } = await params;
     const body = await request.json();
 
-    // Verify chapter belongs to teacher's course
+    // Verify chapter exists and teacher has edit access to its course
     const chapter = await prisma.chapter.findUnique({
       where: { id: chapterId },
       include: {
@@ -24,10 +25,18 @@ export async function PUT(
       },
     });
 
-    if (!chapter || chapter.course.teacherId !== session.user.id) {
+    if (!chapter) {
       return NextResponse.json(
-        { error: "Rozdział nie istnieje lub nie masz do niego dostępu" },
+        { error: "Rozdział nie istnieje" },
         { status: 404 }
+      );
+    }
+
+    const hasAccess = await verifyCourseEditAccess(chapter.courseId, session.user.id);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Brak uprawnień do edycji tego kursu" },
+        { status: 403 }
       );
     }
 
@@ -107,7 +116,7 @@ export async function DELETE(
 
     const { chapterId, subchapterId } = await params;
 
-    // Verify chapter belongs to teacher's course
+    // Verify chapter exists and teacher has edit access to its course
     const chapter = await prisma.chapter.findUnique({
       where: { id: chapterId },
       include: {
@@ -115,10 +124,18 @@ export async function DELETE(
       },
     });
 
-    if (!chapter || chapter.course.teacherId !== session.user.id) {
+    if (!chapter) {
       return NextResponse.json(
-        { error: "Rozdział nie istnieje lub nie masz do niego dostępu" },
+        { error: "Rozdział nie istnieje" },
         { status: 404 }
+      );
+    }
+
+    const hasAccess = await verifyCourseEditAccess(chapter.courseId, session.user.id);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Brak uprawnień do edycji tego kursu" },
+        { status: 403 }
       );
     }
 

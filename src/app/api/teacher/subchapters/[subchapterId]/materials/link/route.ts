@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { verifyCourseEditAccess } from "@/lib/course-access";
 
 const schema = z.object({
   materialId: z.string().cuid(),
@@ -33,16 +34,24 @@ export async function POST(
 
     const { materialId } = parsed.data;
 
-    // Verify target subchapter belongs to teacher's course
+    // Verify target subchapter exists and teacher has edit access
     const subchapter = await prisma.subchapter.findUnique({
       where: { id: subchapterId },
       include: { chapter: { include: { course: true } } },
     });
 
-    if (!subchapter || subchapter.chapter.course.teacherId !== session.user.id) {
+    if (!subchapter) {
       return NextResponse.json(
-        { error: "Podrozdział nie istnieje lub nie masz do niego dostępu" },
+        { error: "Podrozdział nie istnieje" },
         { status: 404 }
+      );
+    }
+
+    const hasAccess = await verifyCourseEditAccess(subchapter.chapter.courseId, session.user.id);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Brak uprawnień do edycji tego kursu" },
+        { status: 403 }
       );
     }
 
@@ -58,7 +67,30 @@ export async function POST(
       );
     }
 
-    if (material.ownerId !== session.user.id) {
+    // Verify teacher owns the material or has edit access via another linked course
+    let hasMaterialAccess = material.ownerId === session.user.id;
+    if (!hasMaterialAccess) {
+      const materialWithSubchapters = await prisma.material.findUnique({
+        where: { id: materialId },
+        include: {
+          materialSubchapters: {
+            include: {
+              subchapter: { include: { chapter: true } }
+            }
+          }
+        }
+      });
+      if (materialWithSubchapters) {
+        for (const ms of materialWithSubchapters.materialSubchapters) {
+          if (await verifyCourseEditAccess(ms.subchapter.chapter.courseId, session.user.id)) {
+            hasMaterialAccess = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (!hasMaterialAccess) {
       return NextResponse.json(
         { error: "Możesz linkować tylko własne materiały" },
         { status: 403 }
