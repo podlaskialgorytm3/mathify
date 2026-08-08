@@ -23,8 +23,10 @@ interface Course {
   title: string;
   description: string | null;
   visibility: string;
+  publicAccessType?: string;
+  computedAccessType?: string;
   isSharedCopy: boolean;
-  sharedWith: { id: string }[];
+  teacherAccesses?: { teacher: { id: string }, accessType: string }[];
   createdAt: string;
   updatedAt: string;
   _count: {
@@ -46,6 +48,9 @@ interface SharedCourse {
   title: string;
   description: string | null;
   visibility: string;
+  publicAccessType?: string;
+  computedAccessType?: string;
+  addedToAccount?: boolean;
   teacher: { firstName: string; lastName: string };
   _count: { chapters: number };
 }
@@ -71,7 +76,8 @@ export default function TeacherCoursesPage() {
   
   // Form states
   const [visibility, setVisibility] = useState<string>("PROTECTED");
-  const [selectedColleagues, setSelectedColleagues] = useState<string[]>([]);
+  const [publicAccessType, setPublicAccessType] = useState<string>("READ_ONLY");
+  const [selectedColleagues, setSelectedColleagues] = useState<{ id: string, accessType: string }[]>([]);
   
   const { toast } = useToast();
 
@@ -127,6 +133,7 @@ export default function TeacherCoursesPage() {
           title: formData.get("title"),
           description: formData.get("description"),
           visibility,
+          publicAccessType,
           sharedWithUsers: visibility === "PROTECTED" ? selectedColleagues : [],
         }),
       });
@@ -170,6 +177,7 @@ export default function TeacherCoursesPage() {
           title: formData.get("title"),
           description: formData.get("description"),
           visibility,
+          publicAccessType,
           sharedWithUsers: visibility === "PROTECTED" ? selectedColleagues : [],
         }),
       });
@@ -217,6 +225,27 @@ export default function TeacherCoursesPage() {
       }
     } catch (error) {
       toast({ title: "Błąd", description: "Błąd klonowania kursu", variant: "destructive" });
+    }
+  };
+
+  const linkSharedCourse = async (courseId: string) => {
+    try {
+      const response = await fetch("/api/teacher/courses/link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({ title: "Sukces", description: data.message });
+        setShowCreateModal(false);
+        fetchCourses();
+      } else {
+        toast({ title: "Błąd", description: data.error, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Błąd", description: "Błąd podczas przypisywania kursu", variant: "destructive" });
     }
   };
 
@@ -421,7 +450,8 @@ export default function TeacherCoursesPage() {
                     onClick={() => {
                       setEditingCourse(course);
                       setVisibility(course.visibility || "PRIVATE");
-                      setSelectedColleagues(course.sharedWith?.map(u => u.id) || []);
+                      setPublicAccessType(course.publicAccessType || "READ_ONLY");
+                      setSelectedColleagues(course.teacherAccesses?.map(a => ({ id: a.teacher.id, accessType: a.accessType })) || []);
                     }}
                   >
                     <Pencil className="w-4 h-4 mr-1" />
@@ -511,23 +541,60 @@ export default function TeacherCoursesPage() {
                       <option value="PUBLIC">Publiczny (wszyscy nauczyciele)</option>
                     </select>
 
+                    {visibility === "PUBLIC" && (
+                      <div className="bg-gray-50 p-3 rounded-md mb-4">
+                        <Label className="mb-2 block">Uprawnienia dla innych:</Label>
+                        <select
+                          value={publicAccessType}
+                          onChange={(e) => setPublicAccessType(e.target.value)}
+                          className="w-full p-2 border rounded-md"
+                        >
+                          <option value="READ_ONLY">Tylko do odczytu</option>
+                          <option value="COPY_ONLY">Edycja swojej kopii</option>
+                          <option value="OPEN_SOURCE">Open Source</option>
+                        </select>
+                      </div>
+                    )}
+
                     {visibility === "PROTECTED" && (
                       <div className="bg-gray-50 p-3 rounded-md mb-4">
                         <Label className="mb-2 block">Udostępnij nauczycielom:</Label>
                         <div className="max-h-40 overflow-y-auto space-y-2 border bg-white p-2 rounded">
-                          {colleagues.map((col) => (
-                            <label key={col.id} className="flex items-center space-x-2">
-                              <input 
-                                type="checkbox"
-                                checked={selectedColleagues.includes(col.id)}
-                                onChange={(e) => {
-                                  if (e.target.checked) setSelectedColleagues([...selectedColleagues, col.id]);
-                                  else setSelectedColleagues(selectedColleagues.filter(id => id !== col.id));
-                                }}
-                              />
-                              <span>{col.firstName} {col.lastName} <span className="text-gray-400 text-xs">({col.email})</span></span>
-                            </label>
-                          ))}
+                          {colleagues.map((col) => {
+                            const isSelected = selectedColleagues.some(sc => sc.id === col.id);
+                            const access = selectedColleagues.find(sc => sc.id === col.id)?.accessType || "READ_ONLY";
+                            
+                            return (
+                              <div key={col.id} className="flex items-center justify-between border-b pb-2 last:border-b-0 last:pb-0">
+                                <label className="flex items-center space-x-2 flex-1">
+                                  <input 
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={(e) => {
+                                      if (e.target.checked) setSelectedColleagues([...selectedColleagues, { id: col.id, accessType: "READ_ONLY" }]);
+                                      else setSelectedColleagues(selectedColleagues.filter(sc => sc.id !== col.id));
+                                    }}
+                                  />
+                                  <span>{col.firstName} {col.lastName} <span className="text-gray-400 text-xs">({col.email})</span></span>
+                                </label>
+                                {isSelected && (
+                                  <select 
+                                    className="text-xs p-1 border rounded"
+                                    value={access}
+                                    onChange={(e) => {
+                                      setSelectedColleagues(selectedColleagues.map(sc => 
+                                        sc.id === col.id ? { ...sc, accessType: e.target.value } : sc
+                                      ));
+                                    }}
+                                  >
+                                    <option value="READ_ONLY">Odczyt</option>
+                                    <option value="COPY_ONLY">Kopia</option>
+                                    <option value="OPEN_SOURCE">Open Source</option>
+                                  </select>
+                                )}
+                              </div>
+                            );
+                          })}
                           {colleagues.length === 0 && <p className="text-xs text-gray-500">Brak innych nauczycieli w systemie.</p>}
                         </div>
                       </div>
@@ -559,11 +626,25 @@ export default function TeacherCoursesPage() {
                             <p className="text-sm text-gray-600 mb-4 line-clamp-2">{sc.description || "Brak opisu"}</p>
                             <div className="flex justify-between items-center text-xs text-gray-500 mb-4">
                               <span>Rozdziałów: {sc._count.chapters}</span>
-                              <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded">{sc.visibility === "PUBLIC" ? "Publiczny" : "Udostępniony dla Ciebie"}</span>
+                              <div className="flex flex-col gap-1 items-end">
+                                <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded">{sc.visibility === "PUBLIC" ? "Publiczny" : "Udostępniony"}</span>
+                                <span className="bg-purple-50 text-purple-700 px-2 py-1 rounded">
+                                  {sc.computedAccessType === 'COPY_ONLY' ? "Można sklonować" : (sc.computedAccessType === 'OPEN_SOURCE' ? "Open Source" : "Tylko do odczytu")}
+                                </span>
+                              </div>
                             </div>
-                            <Button className="w-full text-xs" onClick={() => cloneSharedCourse(sc.id)}>
-                              Dodaj do swojego konta
-                            </Button>
+                            {sc.addedToAccount ? (
+                              <Button className="w-full text-xs bg-gray-100 text-gray-700 hover:bg-gray-200" disabled>
+                                Dodano do konta
+                              </Button>
+                            ) : (
+                              <Button 
+                                className="w-full text-xs" 
+                                onClick={() => sc.computedAccessType === "COPY_ONLY" ? cloneSharedCourse(sc.id) : linkSharedCourse(sc.id)}
+                              >
+                                {sc.computedAccessType === "COPY_ONLY" ? "Sklonuj do swojego konta" : "Przypnij do swojego konta"}
+                              </Button>
+                            )}
                           </CardContent>
                         </Card>
                       ))}
@@ -617,23 +698,60 @@ export default function TeacherCoursesPage() {
                       <option value="PUBLIC">Publiczny (wszyscy nauczyciele)</option>
                     </select>
 
+                    {visibility === "PUBLIC" && (
+                      <div className="bg-gray-50 p-3 rounded-md mb-4">
+                        <Label className="mb-2 block">Uprawnienia dla innych:</Label>
+                        <select
+                          value={publicAccessType}
+                          onChange={(e) => setPublicAccessType(e.target.value)}
+                          className="w-full p-2 border rounded-md"
+                        >
+                          <option value="READ_ONLY">Tylko do odczytu</option>
+                          <option value="COPY_ONLY">Edycja swojej kopii</option>
+                          <option value="OPEN_SOURCE">Open Source</option>
+                        </select>
+                      </div>
+                    )}
+
                     {visibility === "PROTECTED" && (
                       <div className="bg-gray-50 p-3 rounded-md mb-4">
                         <Label className="mb-2 block">Udostępnij nauczycielom:</Label>
                         <div className="max-h-40 overflow-y-auto space-y-2 border bg-white p-2 rounded">
-                          {colleagues.map((col) => (
-                            <label key={col.id} className="flex items-center space-x-2">
-                              <input 
-                                type="checkbox"
-                                checked={selectedColleagues.includes(col.id)}
-                                onChange={(e) => {
-                                  if (e.target.checked) setSelectedColleagues([...selectedColleagues, col.id]);
-                                  else setSelectedColleagues(selectedColleagues.filter(id => id !== col.id));
-                                }}
-                              />
-                              <span>{col.firstName} {col.lastName} <span className="text-gray-400 text-xs">({col.email})</span></span>
-                            </label>
-                          ))}
+                          {colleagues.map((col) => {
+                            const isSelected = selectedColleagues.some(sc => sc.id === col.id);
+                            const access = selectedColleagues.find(sc => sc.id === col.id)?.accessType || "READ_ONLY";
+                            
+                            return (
+                              <div key={col.id} className="flex items-center justify-between border-b pb-2 last:border-b-0 last:pb-0">
+                                <label className="flex items-center space-x-2 flex-1">
+                                  <input 
+                                    type="checkbox"
+                                    checked={isSelected}
+                                    onChange={(e) => {
+                                      if (e.target.checked) setSelectedColleagues([...selectedColleagues, { id: col.id, accessType: "READ_ONLY" }]);
+                                      else setSelectedColleagues(selectedColleagues.filter(sc => sc.id !== col.id));
+                                    }}
+                                  />
+                                  <span>{col.firstName} {col.lastName} <span className="text-gray-400 text-xs">({col.email})</span></span>
+                                </label>
+                                {isSelected && (
+                                  <select 
+                                    className="text-xs p-1 border rounded"
+                                    value={access}
+                                    onChange={(e) => {
+                                      setSelectedColleagues(selectedColleagues.map(sc => 
+                                        sc.id === col.id ? { ...sc, accessType: e.target.value } : sc
+                                      ));
+                                    }}
+                                  >
+                                    <option value="READ_ONLY">Odczyt</option>
+                                    <option value="COPY_ONLY">Kopia</option>
+                                    <option value="OPEN_SOURCE">Open Source</option>
+                                  </select>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}

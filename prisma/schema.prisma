@@ -47,6 +47,12 @@ enum CourseVisibility {
   PROTECTED
 }
 
+enum CourseAccessType {
+  READ_ONLY
+  COPY_ONLY
+  OPEN_SOURCE
+}
+
 enum Currency {
   PLN
   USD
@@ -76,7 +82,7 @@ model User {
   // Relations
   plan                Plan?            @relation(fields: [planId], references: [id], onDelete: SetNull)
   createdCourses      Course[]         @relation("TeacherCourses")
-  accessibleCourses   Course[]         @relation("CourseSharedWith")
+  courseAccesses      CourseTeacherAccess[]
   enrolledCourses     CourseEnrollment[]
   submissions         Submission[]
   notifications       Notification[]
@@ -115,12 +121,29 @@ model Course {
   
   // Visibility & Sharing
   visibility         CourseVisibility    @default(PROTECTED)
+  publicAccessType   CourseAccessType?
   isSharedCopy       Boolean             @default(false)
   originalCourseId   String?
-  sharedWith         User[]              @relation("CourseSharedWith")
+  teacherAccesses    CourseTeacherAccess[]
 
   @@index([teacherId])
   @@index([aiPromptTemplateId])
+}
+
+model CourseTeacherAccess {
+  id               String           @id @default(cuid())
+  courseId         String
+  teacherId        String
+  accessType       CourseAccessType
+  addedToAccount   Boolean          @default(false)
+
+  // Relations
+  course           Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher          User             @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, teacherId])
+  @@index([courseId])
+  @@index([teacherId])
 }
 
 model CourseEnrollment {

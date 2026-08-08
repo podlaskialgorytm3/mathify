@@ -12,11 +12,20 @@ export async function GET(request: NextRequest) {
 
     const courses = await prisma.course.findMany({
       where: {
-        teacherId: session.user.id,
+        OR: [
+          { teacherId: session.user.id },
+          {
+            teacherAccesses: {
+              some: { teacherId: session.user.id, addedToAccount: true },
+            },
+          },
+        ],
       },
       include: {
-        sharedWith: {
-          select: { id: true, firstName: true, lastName: true },
+        teacherAccesses: {
+          include: {
+            teacher: { select: { id: true, firstName: true, lastName: true } },
+          },
         },
         _count: {
           select: {
@@ -42,18 +51,36 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    const mappedCourses = courses.map((course) => {
+      let computedAccessType = "OWNER";
+      if (course.teacherId !== session.user.id) {
+        const access = course.teacherAccesses.find(
+          (a) => a.teacherId === session.user.id
+        );
+        if (access) {
+          computedAccessType = access.accessType;
+        } else if (course.visibility === "PUBLIC") {
+          computedAccessType = course.publicAccessType || "READ_ONLY";
+        }
+      }
+      return { ...course, computedAccessType };
+    });
+
     const sharedCourses = await prisma.course.findMany({
       where: {
         teacherId: { not: session.user.id },
         isSharedCopy: false,
         OR: [
           { visibility: "PUBLIC" },
-          { sharedWith: { some: { id: session.user.id } } },
+          { teacherAccesses: { some: { teacherId: session.user.id } } },
         ],
       },
       include: {
         teacher: {
           select: { firstName: true, lastName: true },
+        },
+        teacherAccesses: {
+          where: { teacherId: session.user.id },
         },
         _count: {
           select: { chapters: true },
@@ -64,7 +91,23 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ courses, sharedCourses });
+    const mappedSharedCourses = sharedCourses.map((course) => {
+      let computedAccessType = course.publicAccessType || "READ_ONLY";
+      const myAccess = course.teacherAccesses[0];
+      if (myAccess) {
+        computedAccessType = myAccess.accessType;
+      }
+      return {
+        ...course,
+        computedAccessType,
+        addedToAccount: myAccess?.addedToAccount || false,
+      };
+    });
+
+    return NextResponse.json({
+      courses: mappedCourses,
+      sharedCourses: mappedSharedCourses,
+    });
   } catch (error) {
     console.error("Error fetching teacher courses:", error);
     return NextResponse.json(
@@ -83,7 +126,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, visibility, sharedWithUsers } = body;
+    const { title, description, visibility, publicAccessType, sharedWithUsers } =
+      body;
 
     if (!title) {
       return NextResponse.json(
@@ -97,19 +141,30 @@ export async function POST(request: NextRequest) {
       description: description || null,
       teacherId: session.user.id,
       visibility: visibility || "PROTECTED",
+      publicAccessType: visibility === "PUBLIC" ? publicAccessType : null,
     };
 
-    if (visibility === "PROTECTED" && sharedWithUsers && sharedWithUsers.length > 0) {
-      courseData.sharedWith = {
-        connect: sharedWithUsers.map((id: string) => ({ id })),
+    if (
+      visibility === "PROTECTED" &&
+      sharedWithUsers &&
+      sharedWithUsers.length > 0
+    ) {
+      courseData.teacherAccesses = {
+        create: sharedWithUsers.map((user: any) => ({
+          teacherId: user.id,
+          accessType: user.accessType,
+          addedToAccount: false,
+        })),
       };
     }
 
     const course = await prisma.course.create({
       data: courseData,
       include: {
-        sharedWith: {
-          select: { id: true, firstName: true, lastName: true },
+        teacherAccesses: {
+          include: {
+            teacher: { select: { id: true, firstName: true, lastName: true } },
+          },
         },
         _count: {
           select: {

@@ -15,12 +15,17 @@ export async function GET(
 
     const { id } = await params;
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.course.findFirst({
       where: {
         id,
-        teacherId: session.user.id, // Only teacher's own courses
+        OR: [
+          { teacherId: session.user.id },
+          { visibility: "PUBLIC" },
+          { teacherAccesses: { some: { teacherId: session.user.id } } },
+        ],
       },
       include: {
+        teacherAccesses: true,
         aiPromptTemplate: {
           select: {
             id: true,
@@ -88,7 +93,19 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ course });
+    let computedAccessType = "OWNER";
+    if (course.teacherId !== session.user.id) {
+      const access = course.teacherAccesses.find(
+        (a) => a.teacherId === session.user.id
+      );
+      if (access) {
+        computedAccessType = access.accessType;
+      } else if (course.visibility === "PUBLIC") {
+        computedAccessType = course.publicAccessType || "READ_ONLY";
+      }
+    }
+
+    return NextResponse.json({ course: { ...course, computedAccessType } });
   } catch (error) {
     console.error("Error fetching course:", error);
     return NextResponse.json(
@@ -111,7 +128,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { title, description, aiPromptTemplateId, visibility, sharedWithUsers } = body;
+    const { title, description, aiPromptTemplateId, visibility, publicAccessType, sharedWithUsers } = body;
 
     // Check if course belongs to teacher
     const existingCourse = await prisma.course.findUnique({
@@ -152,14 +169,25 @@ export async function PUT(
       updateData.aiPromptTemplateId = aiPromptTemplateId || null;
     }
     if (visibility) updateData.visibility = visibility;
+    if (visibility === "PUBLIC" && publicAccessType) {
+      updateData.publicAccessType = publicAccessType;
+    }
 
     if (visibility === "PROTECTED" && sharedWithUsers) {
-      updateData.sharedWith = {
-        set: sharedWithUsers.map((id: string) => ({ id })), // This will replace existing relations
+      const newIds = sharedWithUsers.map((u: any) => u.id);
+      updateData.teacherAccesses = {
+        deleteMany: {
+          teacherId: { notIn: newIds },
+        },
+        upsert: sharedWithUsers.map((u: any) => ({
+          where: { courseId_teacherId: { courseId: id, teacherId: u.id } },
+          create: { teacherId: u.id, accessType: u.accessType, addedToAccount: false },
+          update: { accessType: u.accessType },
+        })),
       };
     } else if (visibility && visibility !== "PROTECTED") {
-      updateData.sharedWith = {
-        set: [], // Clear relations if changed to something else
+      updateData.teacherAccesses = {
+        deleteMany: {}, // Clear relations if changed to something else
       };
     }
 
@@ -167,8 +195,8 @@ export async function PUT(
       where: { id },
       data: updateData,
       include: {
-        sharedWith: {
-          select: { id: true, firstName: true, lastName: true },
+        teacherAccesses: {
+          include: { teacher: { select: { id: true, firstName: true, lastName: true } } },
         },
         aiPromptTemplate: {
           select: {

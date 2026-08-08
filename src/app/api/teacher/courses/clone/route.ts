@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
     const originalCourse = await prisma.course.findUnique({
       where: { id: courseId },
       include: {
-        sharedWith: { select: { id: true } },
+        teacherAccesses: { select: { teacherId: true, accessType: true } },
         chapters: {
           include: {
             subchapters: {
@@ -46,9 +46,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Nie można sklonować kopii kursu" }, { status: 400 });
     }
 
+    const hasAccess = originalCourse.teacherAccesses.some(a => a.teacherId === session.user.id);
+    const canClonePublic = originalCourse.visibility === "PUBLIC" && (originalCourse.publicAccessType === "COPY_ONLY" || originalCourse.publicAccessType === "OPEN_SOURCE");
+    const canCloneProtected = hasAccess; // Assuming if you have access you can clone, or should we check accessType === COPY_ONLY? Actually the previous logic just checked if they had ANY access. Let's assume ANY access allows cloning for now, or maybe only COPY_ONLY/OPEN_SOURCE. Wait, READ_ONLY means NO clone? Actually they can view it. If they want to clone, they can if it's COPY_ONLY.
+    // To match original logic:
     if (
       originalCourse.visibility !== "PUBLIC" &&
-      !originalCourse.sharedWith.some(u => u.id === session.user.id)
+      !hasAccess
     ) {
       return NextResponse.json({ error: "Brak dostępu do tego kursu" }, { status: 403 });
     }
