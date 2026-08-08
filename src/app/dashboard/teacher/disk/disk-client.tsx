@@ -34,6 +34,7 @@ export function DiskClient({ initialMaterials }: DiskClientProps) {
   const [filter, setFilter] = useState<"ALL" | "COURSE" | "HOMEWORK">("ALL");
   const [courseFilter, setCourseFilter] = useState<string>("ALL");
   const [chapterFilter, setChapterFilter] = useState<string>("ALL");
+  const [subchapterFilter, setSubchapterFilter] = useState<string>("ALL");
   const [materials, setMaterials] = useState<DiskMaterial[]>(initialMaterials);
 
   // Extract unique courses
@@ -60,6 +61,19 @@ export function DiskClient({ initialMaterials }: DiskClientProps) {
   }
   const chapters = Array.from(chaptersMap.entries()).map(([id, title]) => ({ id, title }));
 
+  // Extract subchapters for selected chapter
+  const subchaptersMap = new Map();
+  if (chapterFilter !== "ALL") {
+    materials.forEach((m) => {
+      m.usedIn.forEach((u) => {
+        if (u.chapterId === chapterFilter && !subchaptersMap.has(u.subchapterId)) {
+          subchaptersMap.set(u.subchapterId, u.subchapterTitle);
+        }
+      });
+    });
+  }
+  const subchapters = Array.from(subchaptersMap.entries()).map(([id, title]) => ({ id, title }));
+
   const filtered = materials.filter((m) => {
     if (filter !== "ALL" && m.source !== filter) return false;
     
@@ -70,6 +84,13 @@ export function DiskClient({ initialMaterials }: DiskClientProps) {
       if (chapterFilter !== "ALL") {
         const isInChapter = m.usedIn.some((u) => u.courseId === courseFilter && u.chapterId === chapterFilter);
         if (!isInChapter) return false;
+        
+        if (subchapterFilter !== "ALL") {
+          const isInSubchapter = m.usedIn.some(
+            (u) => u.chapterId === chapterFilter && u.subchapterId === subchapterFilter
+          );
+          if (!isInSubchapter) return false;
+        }
       }
     }
     
@@ -104,8 +125,9 @@ export function DiskClient({ initialMaterials }: DiskClientProps) {
               onChange={(e) => {
                 setCourseFilter(e.target.value);
                 setChapterFilter("ALL");
+                setSubchapterFilter("ALL");
               }}
-              className="text-sm bg-white border border-gray-200 rounded-md py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="text-sm bg-white border border-gray-200 rounded-md py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[200px] truncate"
             >
               <option value="ALL">Wszystkie kursy</option>
               {courses.map((c) => (
@@ -119,11 +141,30 @@ export function DiskClient({ initialMaterials }: DiskClientProps) {
               <label className="text-sm text-gray-500 font-medium">Rozdział:</label>
               <select
                 value={chapterFilter}
-                onChange={(e) => setChapterFilter(e.target.value)}
-                className="text-sm bg-white border border-gray-200 rounded-md py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => {
+                  setChapterFilter(e.target.value);
+                  setSubchapterFilter("ALL");
+                }}
+                className="text-sm bg-white border border-gray-200 rounded-md py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[200px] truncate"
               >
                 <option value="ALL">Wszystkie rozdziały</option>
                 {chapters.map((c) => (
+                  <option key={c.id} value={c.id}>{c.title}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {chapterFilter !== "ALL" && subchapters.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-500 font-medium">Podrozdział:</label>
+              <select
+                value={subchapterFilter}
+                onChange={(e) => setSubchapterFilter(e.target.value)}
+                className="text-sm bg-white border border-gray-200 rounded-md py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[200px] truncate"
+              >
+                <option value="ALL">Wszystkie podrozdziały</option>
+                {subchapters.map((c) => (
                   <option key={c.id} value={c.id}>{c.title}</option>
                 ))}
               </select>
