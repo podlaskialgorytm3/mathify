@@ -20,7 +20,7 @@ export async function DELETE(
     const material = await prisma.material.findUnique({
       where: { id: materialId },
       include: {
-        materialSubchapters: {
+        subchapters: {
           include: {
             subchapter: {
               include: { chapter: true }
@@ -41,7 +41,7 @@ export async function DELETE(
     let hasAccess = material.ownerId === session.user.id;
     
     if (!hasAccess) {
-      for (const ms of material.materialSubchapters) {
+      for (const ms of material.subchapters) {
         if (await verifyCourseEditAccess(ms.subchapter.chapter.courseId, session.user.id)) {
           hasAccess = true;
           break;
@@ -111,7 +111,7 @@ export async function PUT(
     const material = await prisma.material.findUnique({
       where: { id: materialId },
       include: {
-        materialSubchapters: {
+        subchapters: {
           include: {
             subchapter: {
               include: { chapter: true }
@@ -132,7 +132,7 @@ export async function PUT(
     let hasAccess = material.ownerId === session.user.id;
     
     if (!hasAccess) {
-      for (const ms of material.materialSubchapters) {
+      for (const ms of material.subchapters) {
         if (await verifyCourseEditAccess(ms.subchapter.chapter.courseId, session.user.id)) {
           hasAccess = true;
           break;

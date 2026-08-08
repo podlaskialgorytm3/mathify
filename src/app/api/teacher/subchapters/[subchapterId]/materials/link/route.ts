@@ -73,7 +73,7 @@ export async function POST(
       const materialWithSubchapters = await prisma.material.findUnique({
         where: { id: materialId },
         include: {
-          materialSubchapters: {
+          subchapters: {
             include: {
               subchapter: { include: { chapter: true } }
             }
@@ -81,7 +81,7 @@ export async function POST(
         }
       });
       if (materialWithSubchapters) {
-        for (const ms of materialWithSubchapters.materialSubchapters) {
+        for (const ms of materialWithSubchapters.subchapters) {
           if (await verifyCourseEditAccess(ms.subchapter.chapter.courseId, session.user.id)) {
             hasMaterialAccess = true;
             break;

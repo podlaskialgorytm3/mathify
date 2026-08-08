@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
         id: { in: materialIds },
       },
       include: {
-        materialSubchapters: {
+        subchapters: {
           include: {
             subchapter: {
               include: { chapter: true }
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     for (const material of materials) {
       let hasAccess = material.ownerId === session.user.id;
       if (!hasAccess) {
-        for (const ms of material.materialSubchapters) {
+        for (const ms of material.subchapters) {
           if (await verifyCourseEditAccess(ms.subchapter.chapter.courseId, session.user.id)) {
             hasAccess = true;
             break;
