@@ -22,6 +22,9 @@ interface Course {
   id: string;
   title: string;
   description: string | null;
+  visibility: string;
+  isSharedCopy: boolean;
+  sharedWith: { id: string }[];
   createdAt: string;
   updatedAt: string;
   _count: {
@@ -38,28 +41,64 @@ interface Course {
   }>;
 }
 
+interface SharedCourse {
+  id: string;
+  title: string;
+  description: string | null;
+  visibility: string;
+  teacher: { firstName: string; lastName: string };
+  _count: { chapters: number };
+}
+
+interface Colleague {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
 export default function TeacherCoursesPage() {
   const router = useRouter();
   const [courses, setCourses] = useState<Course[]>([]);
+  const [sharedCourses, setSharedCourses] = useState<SharedCourse[]>([]);
+  const [colleagues, setColleagues] = useState<Colleague[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Modal states
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [createTab, setCreateTab] = useState<"OWN" | "SHARED">("OWN");
   const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+  
+  // Form states
+  const [visibility, setVisibility] = useState<string>("PROTECTED");
+  const [selectedColleagues, setSelectedColleagues] = useState<string[]>([]);
+  
   const { toast } = useToast();
 
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const response = await fetch("/api/teacher/courses");
-      const data = await response.json();
+      const [coursesRes, colRes] = await Promise.all([
+        fetch("/api/teacher/courses"),
+        fetch("/api/teacher/colleagues"),
+      ]);
+      
+      const data = await coursesRes.json();
+      const colData = await colRes.json();
 
-      if (response.ok) {
+      if (coursesRes.ok) {
         setCourses(data.courses);
+        setSharedCourses(data.sharedCourses || []);
       } else {
         toast({
           title: "Błąd",
           description: data.error || "Nie udało się pobrać kursów",
           variant: "destructive",
         });
+      }
+      
+      if (colRes.ok) {
+        setColleagues(colData.colleagues || []);
       }
     } catch (error) {
       toast({
@@ -87,6 +126,8 @@ export default function TeacherCoursesPage() {
         body: JSON.stringify({
           title: formData.get("title"),
           description: formData.get("description"),
+          visibility,
+          sharedWithUsers: visibility === "PROTECTED" ? selectedColleagues : [],
         }),
       });
 
@@ -128,6 +169,8 @@ export default function TeacherCoursesPage() {
         body: JSON.stringify({
           title: formData.get("title"),
           description: formData.get("description"),
+          visibility,
+          sharedWithUsers: visibility === "PROTECTED" ? selectedColleagues : [],
         }),
       });
 
@@ -153,6 +196,27 @@ export default function TeacherCoursesPage() {
         description: "Wystąpił błąd podczas aktualizacji kursu",
         variant: "destructive",
       });
+    }
+  };
+
+  const cloneSharedCourse = async (courseId: string) => {
+    try {
+      const response = await fetch("/api/teacher/courses/clone", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId }),
+      });
+      const data = await response.json();
+
+      if (response.ok) {
+        toast({ title: "Sukces", description: data.message });
+        setShowCreateModal(false);
+        fetchCourses();
+      } else {
+        toast({ title: "Błąd", description: data.error, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Błąd", description: "Błąd klonowania kursu", variant: "destructive" });
     }
   };
 
@@ -294,7 +358,14 @@ export default function TeacherCoursesPage() {
           {courses.map((course) => (
             <Card key={course.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
-                <CardTitle className="text-lg">{course.title}</CardTitle>
+                <div className="flex justify-between items-start">
+                  <CardTitle className="text-lg">{course.title}</CardTitle>
+                  {course.isSharedCopy && (
+                    <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-medium">
+                      Kopia udostępniona
+                    </span>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-gray-600 mb-4 line-clamp-2 min-h-[40px]">
@@ -347,7 +418,11 @@ export default function TeacherCoursesPage() {
                     size="sm"
                     variant="outline"
                     className="w-full"
-                    onClick={() => setEditingCourse(course)}
+                    onClick={() => {
+                      setEditingCourse(course);
+                      setVisibility(course.visibility || "PRIVATE");
+                      setSelectedColleagues(course.sharedWith?.map(u => u.id) || []);
+                    }}
                   >
                     <Pencil className="w-4 h-4 mr-1" />
                     Edytuj
@@ -382,41 +457,120 @@ export default function TeacherCoursesPage() {
       {/* Create Course Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md">
+          <Card className="w-full max-w-2xl max-h-[90vh] flex flex-col">
             <CardHeader>
-              <CardTitle>Utwórz Nowy Kurs</CardTitle>
+              <div className="flex justify-between items-center mb-4">
+                <CardTitle>Utwórz Nowy Kurs</CardTitle>
+                <Button variant="ghost" onClick={() => setShowCreateModal(false)}>✕</Button>
+              </div>
+              <div className="flex space-x-4 border-b">
+                <button
+                  onClick={() => setCreateTab("OWN")}
+                  className={`pb-2 px-1 border-b-2 font-medium text-sm ${
+                    createTab === "OWN" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"
+                  }`}
+                >
+                  Twój własny
+                </button>
+                <button
+                  onClick={() => setCreateTab("SHARED")}
+                  className={`pb-2 px-1 border-b-2 font-medium text-sm ${
+                    createTab === "SHARED" ? "border-blue-600 text-blue-600" : "border-transparent text-gray-500"
+                  }`}
+                >
+                  Udostępniony
+                </button>
+              </div>
             </CardHeader>
-            <CardContent>
-              <form onSubmit={createCourse} className="space-y-4">
-                <div>
-                  <Label htmlFor="title">Tytuł kursu *</Label>
-                  <Input
-                    id="title"
-                    name="title"
-                    placeholder="np. Algebra I"
-                    required
-                  />
+            <CardContent className="overflow-y-auto">
+              {createTab === "OWN" ? (
+                <form onSubmit={createCourse} className="space-y-4">
+                  <div>
+                    <Label htmlFor="title">Tytuł kursu *</Label>
+                    <Input id="title" name="title" placeholder="np. Algebra I" required />
+                  </div>
+                  <div>
+                    <Label htmlFor="description">Opis</Label>
+                    <textarea
+                      id="description"
+                      name="description"
+                      className="w-full p-2 border rounded-md min-h-[100px]"
+                      placeholder="Opis kursu..."
+                    />
+                  </div>
+                  
+                  <div className="border-t pt-4">
+                    <Label className="mb-2 block">Widoczność Kursu</Label>
+                    <select 
+                      value={visibility}
+                      onChange={(e) => setVisibility(e.target.value)}
+                      className="w-full p-2 border rounded-md mb-4"
+                    >
+                      <option value="PRIVATE">Prywatny (tylko ja)</option>
+                      <option value="PROTECTED">Chroniony (wybrani nauczyciele)</option>
+                      <option value="PUBLIC">Publiczny (wszyscy nauczyciele)</option>
+                    </select>
+
+                    {visibility === "PROTECTED" && (
+                      <div className="bg-gray-50 p-3 rounded-md mb-4">
+                        <Label className="mb-2 block">Udostępnij nauczycielom:</Label>
+                        <div className="max-h-40 overflow-y-auto space-y-2 border bg-white p-2 rounded">
+                          {colleagues.map((col) => (
+                            <label key={col.id} className="flex items-center space-x-2">
+                              <input 
+                                type="checkbox"
+                                checked={selectedColleagues.includes(col.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) setSelectedColleagues([...selectedColleagues, col.id]);
+                                  else setSelectedColleagues(selectedColleagues.filter(id => id !== col.id));
+                                }}
+                              />
+                              <span>{col.firstName} {col.lastName} <span className="text-gray-400 text-xs">({col.email})</span></span>
+                            </label>
+                          ))}
+                          {colleagues.length === 0 && <p className="text-xs text-gray-500">Brak innych nauczycieli w systemie.</p>}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2 justify-end pt-4">
+                    <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
+                      Anuluj
+                    </Button>
+                    <Button type="submit">Utwórz Kurs</Button>
+                  </div>
+                </form>
+              ) : (
+                <div className="space-y-4">
+                  {sharedCourses.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      Brak kursów udostępnionych dla Ciebie.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {sharedCourses.map(sc => (
+                        <Card key={sc.id}>
+                          <CardHeader className="p-4 pb-2">
+                            <CardTitle className="text-md">{sc.title}</CardTitle>
+                          </CardHeader>
+                          <CardContent className="p-4 pt-0">
+                            <p className="text-xs text-gray-500 mb-2">Autor: {sc.teacher.firstName} {sc.teacher.lastName}</p>
+                            <p className="text-sm text-gray-600 mb-4 line-clamp-2">{sc.description || "Brak opisu"}</p>
+                            <div className="flex justify-between items-center text-xs text-gray-500 mb-4">
+                              <span>Rozdziałów: {sc._count.chapters}</span>
+                              <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded">{sc.visibility === "PUBLIC" ? "Publiczny" : "Udostępniony dla Ciebie"}</span>
+                            </div>
+                            <Button className="w-full text-xs" onClick={() => cloneSharedCourse(sc.id)}>
+                              Dodaj do swojego konta
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <Label htmlFor="description">Opis</Label>
-                  <textarea
-                    id="description"
-                    name="description"
-                    className="w-full p-2 border rounded-md min-h-[100px]"
-                    placeholder="Opis kursu..."
-                  />
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setShowCreateModal(false)}
-                  >
-                    Anuluj
-                  </Button>
-                  <Button type="submit">Utwórz Kurs</Button>
-                </div>
-              </form>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -449,6 +603,42 @@ export default function TeacherCoursesPage() {
                     defaultValue={editingCourse.description || ""}
                   />
                 </div>
+
+                {!editingCourse.isSharedCopy && (
+                  <div className="border-t pt-4">
+                    <Label className="mb-2 block">Widoczność Kursu</Label>
+                    <select 
+                      value={visibility}
+                      onChange={(e) => setVisibility(e.target.value)}
+                      className="w-full p-2 border rounded-md mb-4"
+                    >
+                      <option value="PRIVATE">Prywatny (tylko ja)</option>
+                      <option value="PROTECTED">Chroniony (wybrani nauczyciele)</option>
+                      <option value="PUBLIC">Publiczny (wszyscy nauczyciele)</option>
+                    </select>
+
+                    {visibility === "PROTECTED" && (
+                      <div className="bg-gray-50 p-3 rounded-md mb-4">
+                        <Label className="mb-2 block">Udostępnij nauczycielom:</Label>
+                        <div className="max-h-40 overflow-y-auto space-y-2 border bg-white p-2 rounded">
+                          {colleagues.map((col) => (
+                            <label key={col.id} className="flex items-center space-x-2">
+                              <input 
+                                type="checkbox"
+                                checked={selectedColleagues.includes(col.id)}
+                                onChange={(e) => {
+                                  if (e.target.checked) setSelectedColleagues([...selectedColleagues, col.id]);
+                                  else setSelectedColleagues(selectedColleagues.filter(id => id !== col.id));
+                                }}
+                              />
+                              <span>{col.firstName} {col.lastName} <span className="text-gray-400 text-xs">({col.email})</span></span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="flex gap-2 justify-end">
                   <Button
                     type="button"

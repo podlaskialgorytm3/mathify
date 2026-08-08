@@ -15,6 +15,9 @@ export async function GET(request: NextRequest) {
         teacherId: session.user.id,
       },
       include: {
+        sharedWith: {
+          select: { id: true, firstName: true, lastName: true },
+        },
         _count: {
           select: {
             chapters: true,
@@ -39,7 +42,29 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({ courses });
+    const sharedCourses = await prisma.course.findMany({
+      where: {
+        teacherId: { not: session.user.id },
+        isSharedCopy: false,
+        OR: [
+          { visibility: "PUBLIC" },
+          { sharedWith: { some: { id: session.user.id } } },
+        ],
+      },
+      include: {
+        teacher: {
+          select: { firstName: true, lastName: true },
+        },
+        _count: {
+          select: { chapters: true },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return NextResponse.json({ courses, sharedCourses });
   } catch (error) {
     console.error("Error fetching teacher courses:", error);
     return NextResponse.json(
@@ -58,7 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description } = body;
+    const { title, description, visibility, sharedWithUsers } = body;
 
     if (!title) {
       return NextResponse.json(
@@ -67,13 +92,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const courseData: any = {
+      title,
+      description: description || null,
+      teacherId: session.user.id,
+      visibility: visibility || "PROTECTED",
+    };
+
+    if (visibility === "PROTECTED" && sharedWithUsers && sharedWithUsers.length > 0) {
+      courseData.sharedWith = {
+        connect: sharedWithUsers.map((id: string) => ({ id })),
+      };
+    }
+
     const course = await prisma.course.create({
-      data: {
-        title,
-        description: description || null,
-        teacherId: session.user.id,
-      },
+      data: courseData,
       include: {
+        sharedWith: {
+          select: { id: true, firstName: true, lastName: true },
+        },
         _count: {
           select: {
             chapters: true,

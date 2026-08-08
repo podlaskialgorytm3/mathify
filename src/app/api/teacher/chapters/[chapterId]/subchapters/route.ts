@@ -67,12 +67,16 @@ export async function POST(
 
     if (teacher?.plan) {
       const totalSubchapters = teacher.createdCourses.reduce(
-        (sum, course) =>
-          sum +
-          course.chapters.reduce(
-            (chapterSum, chapter) => chapterSum + chapter.subchapters.length,
-            0
-          ),
+        (sum, course) => {
+          if (course.isSharedCopy) return sum; // Do not count subchapters from shared copies
+          return (
+            sum +
+            course.chapters.reduce(
+              (chapterSum, chapter) => chapterSum + chapter.subchapters.length,
+              0
+            )
+          );
+        },
         0
       );
 

@@ -111,7 +111,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { title, description, aiPromptTemplateId } = body;
+    const { title, description, aiPromptTemplateId, visibility, sharedWithUsers } = body;
 
     // Check if course belongs to teacher
     const existingCourse = await prisma.course.findUnique({
@@ -151,11 +151,25 @@ export async function PUT(
     if (aiPromptTemplateId !== undefined) {
       updateData.aiPromptTemplateId = aiPromptTemplateId || null;
     }
+    if (visibility) updateData.visibility = visibility;
+
+    if (visibility === "PROTECTED" && sharedWithUsers) {
+      updateData.sharedWith = {
+        set: sharedWithUsers.map((id: string) => ({ id })), // This will replace existing relations
+      };
+    } else if (visibility && visibility !== "PROTECTED") {
+      updateData.sharedWith = {
+        set: [], // Clear relations if changed to something else
+      };
+    }
 
     const course = await prisma.course.update({
       where: { id },
       data: updateData,
       include: {
+        sharedWith: {
+          select: { id: true, firstName: true, lastName: true },
+        },
         aiPromptTemplate: {
           select: {
             id: true,

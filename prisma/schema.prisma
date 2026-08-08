@@ -41,6 +41,12 @@ enum VisibilityType {
   PROGRESS_BASED
 }
 
+enum CourseVisibility {
+  PRIVATE
+  PUBLIC
+  PROTECTED
+}
+
 enum Currency {
   PLN
   USD
@@ -70,6 +76,7 @@ model User {
   // Relations
   plan                Plan?            @relation(fields: [planId], references: [id], onDelete: SetNull)
   createdCourses      Course[]         @relation("TeacherCourses")
+  accessibleCourses   Course[]         @relation("CourseSharedWith")
   enrolledCourses     CourseEnrollment[]
   submissions         Submission[]
   notifications       Notification[]
@@ -105,6 +112,12 @@ model Course {
   aiPromptTemplate   AIPromptTemplate?   @relation("CourseAIPrompt", fields: [aiPromptTemplateId], references: [id], onDelete: SetNull)
   chapters           Chapter[]
   enrollments        CourseEnrollment[]
+  
+  // Visibility & Sharing
+  visibility         CourseVisibility    @default(PROTECTED)
+  isSharedCopy       Boolean             @default(false)
+  originalCourseId   String?
+  sharedWith         User[]              @relation("CourseSharedWith")
 
   @@index([teacherId])
   @@index([aiPromptTemplateId])
