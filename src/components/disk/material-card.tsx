@@ -15,6 +15,9 @@ interface DiskMaterial {
   usedIn: {
     subchapterId: string;
     subchapterTitle: string;
+    chapterId: string;
+    chapterTitle: string;
+    courseId: string;
     courseTitle: string;
   }[];
 }
@@ -125,6 +128,8 @@ export function MaterialCard({
           {material.usedIn.map((u) => (
             <li key={u.subchapterId} className="truncate">
               <span className="font-medium">{u.courseTitle}</span>
+              {" / "}
+              {u.chapterTitle}
               {" / "}
               {u.subchapterTitle}
             </li>

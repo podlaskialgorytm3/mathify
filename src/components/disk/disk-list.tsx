@@ -15,6 +15,9 @@ interface DiskMaterial {
   usedIn: {
     subchapterId: string;
     subchapterTitle: string;
+    chapterId: string;
+    chapterTitle: string;
+    courseId: string;
     courseTitle: string;
   }[];
 }
@@ -137,7 +140,7 @@ function ListRow({
             <ul className="text-xs text-gray-600 space-y-0.5 ml-7">
               {material.usedIn.map((u) => (
                 <li key={u.subchapterId}>
-                  <span className="font-medium">{u.courseTitle}</span>{" / "}{u.subchapterTitle}
+                  <span className="font-medium">{u.courseTitle}</span>{" / "}{u.chapterTitle}{" / "}{u.subchapterTitle}
                 </li>
               ))}
             </ul>

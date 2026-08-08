@@ -68,6 +68,7 @@ export default async function AdminDiskPage({
       subchapterId: ms.subchapterId,
       subchapterTitle: ms.subchapter.title,
       chapterId: ms.subchapter.chapterId,
+      chapterTitle: ms.subchapter.chapter.title,
       courseId: ms.subchapter.chapter.courseId,
       courseTitle: ms.subchapter.chapter.course.title,
       order: ms.order,

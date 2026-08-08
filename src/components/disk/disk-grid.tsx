@@ -12,6 +12,9 @@ interface DiskMaterial {
   usedIn: {
     subchapterId: string;
     subchapterTitle: string;
+    chapterId: string;
+    chapterTitle: string;
+    courseId: string;
     courseTitle: string;
   }[];
 }
