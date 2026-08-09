@@ -30,7 +30,13 @@ export async function GET(request: NextRequest) {
         _count: {
           select: {
             chapters: true,
-            enrollments: true,
+            enrollments: {
+              where: {
+                student: {
+                  createdById: session.user.id
+                }
+              }
+            },
           },
         },
         chapters: {
@@ -169,7 +175,13 @@ export async function POST(request: NextRequest) {
         _count: {
           select: {
             chapters: true,
-            enrollments: true,
+            enrollments: {
+              where: {
+                student: {
+                  createdById: session.user.id
+                }
+              }
+            },
           },
         },
       },

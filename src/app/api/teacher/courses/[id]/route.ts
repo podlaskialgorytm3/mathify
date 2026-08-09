@@ -68,6 +68,11 @@ export async function GET(
           },
         },
         enrollments: {
+          where: {
+            student: {
+              createdById: session.user.id
+            }
+          },
           include: {
             student: {
               select: {
@@ -81,7 +86,13 @@ export async function GET(
         },
         _count: {
           select: {
-            enrollments: true,
+            enrollments: {
+              where: {
+                student: {
+                  createdById: session.user.id
+                }
+              }
+            },
           },
         },
       },
@@ -215,7 +226,13 @@ export async function PUT(
         _count: {
           select: {
             chapters: true,
-            enrollments: true,
+            enrollments: {
+              where: {
+                student: {
+                  createdById: session.user.id
+                }
+              }
+            },
           },
         },
       },
