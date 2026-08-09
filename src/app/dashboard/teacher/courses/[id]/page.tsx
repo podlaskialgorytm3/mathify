@@ -847,18 +847,18 @@ export default function CourseDetailsPage({
             </p>
           </div>
         </div>
-        {canEdit && (
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setShowEnrollModal(true)}>
-              <UserPlus className="w-4 h-4 mr-2" />
-              Dodaj ucznia
-            </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setShowEnrollModal(true)}>
+            <UserPlus className="w-4 h-4 mr-2" />
+            Dodaj ucznia
+          </Button>
+          {canEdit && (
             <Button onClick={() => setShowChapterModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Nowy Rozdział
             </Button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* AI Template Selector */}
