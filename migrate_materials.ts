@@ -3,46 +3,21 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('Rozpoczynam migrację danych materiałów...');
+  console.log('Rozpoczynam zoptymalizowaną migrację w SQL...');
   
-  // Pobierz wszystkie materiały, które mają przypisany subchapterId
-  const materials = await prisma.material.findMany({
-    where: {
-      subchapterId: {
-        not: null
-      }
-    }
-  });
-
-  console.log(`Znaleziono ${materials.length} materiałów do zmigrowania.`);
-
-  let successCount = 0;
-  
-  for (const material of materials) {
-    if (material.subchapterId) {
-      try {
-        await prisma.materialSubchapter.upsert({
-          where: {
-            materialId_subchapterId: {
-              materialId: material.id,
-              subchapterId: material.subchapterId
-            }
-          },
-          update: {},
-          create: {
-            materialId: material.id,
-            subchapterId: material.subchapterId,
-            order: material.order || 0
-          }
-        });
-        successCount++;
-      } catch (e) {
-        console.error(`Błąd przy migracji materiału ${material.id}:`, e);
-      }
-    }
+  try {
+    const result = await prisma.$executeRawUnsafe(`
+      INSERT INTO "MaterialSubchapter" ("id", "materialId", "subchapterId", "order", "addedAt")
+      SELECT gen_random_uuid()::text, "id", "subchapterId", COALESCE("order", 0), NOW()
+      FROM "Material"
+      WHERE "subchapterId" IS NOT NULL
+      ON CONFLICT ("materialId", "subchapterId") DO NOTHING;
+    `);
+    
+    console.log('Gotowe! Wykonano błyskawicznie w ramach jednego zapytania SQL.');
+  } catch (e) {
+    console.error('Błąd:', e);
   }
-
-  console.log(`Zakończono! Zmigrowano pomyślnie: ${successCount}/${materials.length}`);
 }
 
 main()
