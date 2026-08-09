@@ -16,6 +16,7 @@ import {
   Trash2,
   Eye,
   Settings,
+  Link as LinkIcon,
 } from "lucide-react";
 
 interface Course {
