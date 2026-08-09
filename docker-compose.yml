@@ -17,7 +17,7 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: mathify-app
     restart: unless-stopped
     ports:
@@ -31,6 +31,9 @@ services:
     depends_on:
       - postgres
     volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
       - uploads:/app/uploads
     networks:
       - mathify-network

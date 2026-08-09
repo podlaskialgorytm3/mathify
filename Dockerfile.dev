@@ -1,0 +1,18 @@
+FROM node:20-alpine
+
+RUN apk add --no-cache libc6-compat openssl
+
+WORKDIR /app
+
+# Install dependencies first for better caching
+COPY package.json package-lock.json* ./
+COPY prisma ./prisma
+RUN npm install
+
+# Don't copy all source files here, as they will be mounted via volumes in docker-compose
+# We just need to generate the Prisma client during image build
+RUN npx prisma generate
+
+# Expose port and start development server
+EXPOSE 3000
+CMD ["npm", "run", "dev"]

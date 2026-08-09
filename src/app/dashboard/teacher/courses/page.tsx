@@ -488,21 +488,23 @@ export default function TeacherCoursesPage() {
                   </div>
                 )}
 
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      setEditingCourse(course);
-                      setVisibility(course.visibility || "PRIVATE");
-                      setPublicAccessType(course.publicAccessType || "READ_ONLY");
-                      setSelectedColleagues(course.teacherAccesses?.map(a => ({ id: a.teacher.id, accessType: a.accessType })) || []);
-                    }}
-                  >
-                    <Pencil className="w-4 h-4 mr-1" />
-                    Edytuj
-                  </Button>
+                <div className={`grid gap-2 ${course.computedAccessType === 'READ_ONLY' ? 'grid-cols-1' : 'grid-cols-2'}`}>
+                  {course.computedAccessType !== 'READ_ONLY' && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setEditingCourse(course);
+                        setVisibility(course.visibility || "PRIVATE");
+                        setPublicAccessType(course.publicAccessType || "READ_ONLY");
+                        setSelectedColleagues(course.teacherAccesses?.map(a => ({ id: a.teacher.id, accessType: a.accessType })) || []);
+                      }}
+                    >
+                      <Pencil className="w-4 h-4 mr-1" />
+                      Edytuj
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     variant="outline"
