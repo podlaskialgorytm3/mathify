@@ -254,6 +254,8 @@ model Material {
   content     String         @db.Text // URL for links, file path for PDFs
   source      MaterialSource @default(COURSE)
   ownerId     String?
+  subchapterId String?
+  order        Int?
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
