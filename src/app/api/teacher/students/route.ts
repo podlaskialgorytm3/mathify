@@ -16,7 +16,11 @@ export async function GET(request: NextRequest) {
     // Pobierz kursy nauczyciela
     const teacherCourses = await prisma.course.findMany({
       where: {
-        teacherId: session.user.id,
+        OR: [
+          { teacherId: session.user.id },
+          { visibility: "PUBLIC" },
+          { teacherAccesses: { some: { teacherId: session.user.id } } },
+        ],
       },
       select: {
         id: true,
@@ -29,13 +33,7 @@ export async function GET(request: NextRequest) {
     // Buduj zapytanie dla uczniów
     const whereClause: any = {
       role: "STUDENT",
-      enrolledCourses: {
-        some: {
-          courseId: {
-            in: courseIds,
-          },
-        },
-      },
+      createdById: session.user.id,
     };
 
     // Filtruj po konkretnym kursie jeśli podano
