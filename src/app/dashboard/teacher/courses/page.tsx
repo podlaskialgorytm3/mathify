@@ -249,6 +249,39 @@ export default function TeacherCoursesPage() {
     }
   };
 
+  const unlinkCourse = async (courseId: string) => {
+    try {
+      const checkRes = await fetch(`/api/teacher/courses/${courseId}/unlink`);
+      const checkData = await checkRes.json();
+      
+      if (!checkRes.ok) {
+        toast({ title: "Błąd", description: checkData.error, variant: "destructive" });
+        return;
+      }
+      
+      let message = "Czy na pewno chcesz odpiąć ten kurs od swojego konta?";
+      if (checkData.count > 0) {
+        message = `Do tego kursu przypisanych jest Twoich ${checkData.count} uczniów. Odpięcie kursu spowoduje usunięcie ich z tego kursu. Czy na pewno chcesz kontynuować?`;
+      }
+      
+      if (!confirm(message)) {
+        return;
+      }
+
+      const res = await fetch(`/api/teacher/courses/${courseId}/unlink`, { method: "DELETE" });
+      const data = await res.json();
+      
+      if (res.ok) {
+        toast({ title: "Sukces", description: data.message });
+        fetchCourses();
+      } else {
+        toast({ title: "Błąd", description: data.error, variant: "destructive" });
+      }
+    } catch (error) {
+      toast({ title: "Błąd", description: "Wystąpił błąd podczas odpinania kursu", variant: "destructive" });
+    }
+  };
+
   const deleteCourse = async (courseId: string) => {
     if (
       !confirm(
@@ -389,11 +422,23 @@ export default function TeacherCoursesPage() {
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <CardTitle className="text-lg">{course.title}</CardTitle>
-                  {course.isSharedCopy && (
-                    <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-medium">
-                      Kopia udostępniona
-                    </span>
-                  )}
+                  <div className="flex flex-col gap-1 items-end">
+                    {course.isSharedCopy && (
+                      <span className="bg-purple-100 text-purple-700 text-xs px-2 py-1 rounded-full font-medium">
+                        (Kopia do edycji)
+                      </span>
+                    )}
+                    {course.computedAccessType === 'READ_ONLY' && (
+                      <span className="bg-gray-100 text-gray-700 text-xs px-2 py-1 rounded-full font-medium">
+                        (Oryginalny bez edycji)
+                      </span>
+                    )}
+                    {course.computedAccessType === 'OPEN_SOURCE' && (
+                      <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full font-medium">
+                        (Open Source)
+                      </span>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -469,15 +514,27 @@ export default function TeacherCoursesPage() {
                     Zarządzaj
                   </Button>
                 </div>
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  className="w-full mt-2"
-                  onClick={() => deleteCourse(course.id)}
-                >
-                  <Trash2 className="w-4 h-4 mr-1" />
-                  Usuń kurs
-                </Button>
+                {course.computedAccessType !== "OWNER" ? (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="w-full mt-2"
+                    onClick={() => unlinkCourse(course.id)}
+                  >
+                    <LinkIcon className="w-4 h-4 mr-1" />
+                    Odepnij kurs
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    className="w-full mt-2"
+                    onClick={() => deleteCourse(course.id)}
+                  >
+                    <Trash2 className="w-4 h-4 mr-1" />
+                    Usuń kurs
+                  </Button>
+                )}
               </CardContent>
             </Card>
           ))}
