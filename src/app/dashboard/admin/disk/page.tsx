@@ -62,7 +62,7 @@ export default async function AdminDiskPage({
     content: m.content,
     source: m.source,
     createdAt: m.createdAt.toISOString(),
-    ownerName: `${m.owner.firstName} ${m.owner.lastName}`,
+    ownerName: m.owner ? `${m.owner.firstName} ${m.owner.lastName}` : 'Nieznany',
     usedInCount: m.subchapters.length,
     usedIn: m.subchapters.map((ms) => ({
       subchapterId: ms.subchapterId,
