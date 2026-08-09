@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { verifyCourseEditAccess } from "@/lib/course-access";
 
 export async function GET(
   request: NextRequest,
@@ -15,12 +16,17 @@ export async function GET(
 
     const { id } = await params;
 
-    const course = await prisma.course.findUnique({
+    const course = await prisma.course.findFirst({
       where: {
         id,
-        teacherId: session.user.id, // Only teacher's own courses
+        OR: [
+          { teacherId: session.user.id },
+          { visibility: "PUBLIC" },
+          { teacherAccesses: { some: { teacherId: session.user.id } } },
+        ],
       },
       include: {
+        teacherAccesses: true,
         aiPromptTemplate: {
           select: {
             id: true,
@@ -32,14 +38,17 @@ export async function GET(
           include: {
             subchapters: {
               include: {
-                materials: {
+                materialSubchapters: {
+                  include: {
+                    material: true,
+                  },
                   orderBy: {
                     order: "asc",
                   },
                 },
                 _count: {
                   select: {
-                    materials: true,
+                    materialSubchapters: true,
                     submissions: true,
                   },
                 },
@@ -59,6 +68,11 @@ export async function GET(
           },
         },
         enrollments: {
+          where: {
+            student: {
+              createdById: session.user.id
+            }
+          },
           include: {
             student: {
               select: {
@@ -72,7 +86,13 @@ export async function GET(
         },
         _count: {
           select: {
-            enrollments: true,
+            enrollments: {
+              where: {
+                student: {
+                  createdById: session.user.id
+                }
+              }
+            },
           },
         },
       },
@@ -85,7 +105,19 @@ export async function GET(
       );
     }
 
-    return NextResponse.json({ course });
+    let computedAccessType = "OWNER";
+    if (course.teacherId !== session.user.id) {
+      const access = course.teacherAccesses.find(
+        (a) => a.teacherId === session.user.id
+      );
+      if (access) {
+        computedAccessType = access.accessType;
+      } else if (course.visibility === "PUBLIC") {
+        computedAccessType = course.publicAccessType || "READ_ONLY";
+      }
+    }
+
+    return NextResponse.json({ course: { ...course, computedAccessType } });
   } catch (error) {
     console.error("Error fetching course:", error);
     return NextResponse.json(
@@ -108,20 +140,27 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { title, description, aiPromptTemplateId } = body;
+    const { title, description, aiPromptTemplateId, visibility, publicAccessType, sharedWithUsers } = body;
 
-    // Check if course belongs to teacher
+    // Check if course exists and teacher has edit access
     const existingCourse = await prisma.course.findUnique({
       where: {
         id,
-        teacherId: session.user.id,
       },
     });
 
     if (!existingCourse) {
       return NextResponse.json(
-        { error: "Kurs nie istnieje lub nie masz do niego dostępu" },
+        { error: "Kurs nie istnieje" },
         { status: 404 }
+      );
+    }
+
+    const hasAccess = await verifyCourseEditAccess(id, session.user.id);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Brak uprawnień do edycji tego kursu" },
+        { status: 403 }
       );
     }
 
@@ -148,11 +187,36 @@ export async function PUT(
     if (aiPromptTemplateId !== undefined) {
       updateData.aiPromptTemplateId = aiPromptTemplateId || null;
     }
+    if (visibility) updateData.visibility = visibility;
+    if (visibility === "PUBLIC" && publicAccessType) {
+      updateData.publicAccessType = publicAccessType;
+    }
+
+    if (visibility === "PROTECTED" && sharedWithUsers) {
+      const newIds = sharedWithUsers.map((u: any) => u.id);
+      updateData.teacherAccesses = {
+        deleteMany: {
+          teacherId: { notIn: newIds },
+        },
+        upsert: sharedWithUsers.map((u: any) => ({
+          where: { courseId_teacherId: { courseId: id, teacherId: u.id } },
+          create: { teacherId: u.id, accessType: u.accessType, addedToAccount: false },
+          update: { accessType: u.accessType },
+        })),
+      };
+    } else if (visibility && visibility !== "PROTECTED") {
+      updateData.teacherAccesses = {
+        deleteMany: {}, // Clear relations if changed to something else
+      };
+    }
 
     const course = await prisma.course.update({
       where: { id },
       data: updateData,
       include: {
+        teacherAccesses: {
+          include: { teacher: { select: { id: true, firstName: true, lastName: true } } },
+        },
         aiPromptTemplate: {
           select: {
             id: true,
@@ -162,7 +226,13 @@ export async function PUT(
         _count: {
           select: {
             chapters: true,
-            enrollments: true,
+            enrollments: {
+              where: {
+                student: {
+                  createdById: session.user.id
+                }
+              }
+            },
           },
         },
       },

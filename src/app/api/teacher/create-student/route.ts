@@ -122,11 +122,15 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check if courses belong to the teacher
+    // Check if courses belong to the teacher or are shared with them
     const courses = await prisma.course.findMany({
       where: {
         id: { in: courseIds },
-        teacherId: session.user.id,
+        OR: [
+          { teacherId: session.user.id },
+          { visibility: "PUBLIC" },
+          { teacherAccesses: { some: { teacherId: session.user.id } } },
+        ],
       },
     });
 

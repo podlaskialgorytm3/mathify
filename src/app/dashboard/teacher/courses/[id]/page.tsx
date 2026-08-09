@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import FileUpload from "@/components/FileUpload";
+import { CopySubchapterDialog } from "@/components/course-management/copy-subchapter-dialog";
+import { CopyMaterialDialog } from "@/components/course-management/copy-material-dialog";
 import {
   ArrowLeft,
   Plus,
@@ -28,6 +30,8 @@ import {
   Search,
   CheckSquare,
   Square,
+  Copy,
+  HardDrive,
 } from "lucide-react";
 
 interface Material {
@@ -36,7 +40,14 @@ interface Material {
   description: string | null;
   type: "PDF" | "LINK";
   content: string;
+  source?: "COURSE" | "HOMEWORK";
+}
+
+interface MaterialSubchapterEntry {
+  id: string;
+  materialId: string;
   order: number;
+  material: Material;
 }
 
 interface Subchapter {
@@ -49,9 +60,9 @@ interface Subchapter {
   visibleUntilDate: Date | null;
   requiresPrevious: boolean;
   allowSubmissions: boolean;
-  materials: Material[];
+  materialSubchapters: MaterialSubchapterEntry[];
   _count: {
-    materials: number;
+    materialSubchapters: number;
     submissions: number;
   };
 }
@@ -77,6 +88,7 @@ interface Course {
     name: string;
     description: string | null;
   } | null;
+  computedAccessType?: string;
   chapters: Chapter[];
   _count: {
     enrollments: number;
@@ -133,7 +145,12 @@ export default function CourseDetailsPage({
     new Set()
   );
   const [selectionMode, setSelectionMode] = useState(false);
+  const [showCopySubchapterDialog, setShowCopySubchapterDialog] = useState(false);
+  const [showCopyMaterialDialog, setShowCopyMaterialDialog] = useState(false);
+  const [copyTargetSubchapterId, setCopyTargetSubchapterId] = useState<string | null>(null);
   const { toast } = useToast();
+
+  const canEdit = course?.computedAccessType === 'OWNER' || course?.computedAccessType === 'OPEN_SOURCE';
 
   const fetchCourse = async () => {
     try {
@@ -835,10 +852,12 @@ export default function CourseDetailsPage({
             <UserPlus className="w-4 h-4 mr-2" />
             Dodaj ucznia
           </Button>
-          <Button onClick={() => setShowChapterModal(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Nowy Rozdział
-          </Button>
+          {canEdit && (
+            <Button onClick={() => setShowChapterModal(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              Nowy Rozdział
+            </Button>
+          )}
         </div>
       </div>
 
@@ -857,7 +876,7 @@ export default function CourseDetailsPage({
                 id="ai-template"
                 value={selectedTemplateId}
                 onChange={(e) => updateAITemplate(e.target.value)}
-                disabled={updatingTemplate}
+                disabled={!canEdit || updatingTemplate}
                 className="w-full p-2 border rounded-md mt-1"
               >
                 <option value="">Brak szablonu</option>
@@ -884,10 +903,12 @@ export default function CourseDetailsPage({
           <CardContent className="py-12 text-center">
             <FileText className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600 mb-4">Brak rozdziałów w tym kursie</p>
-            <Button onClick={() => setShowChapterModal(true)}>
-              <Plus className="w-4 h-4 mr-2" />
-              Dodaj pierwszy rozdział
-            </Button>
+            {canEdit && (
+              <Button onClick={() => setShowChapterModal(true)}>
+                <Plus className="w-4 h-4 mr-2" />
+                Dodaj pierwszy rozdział
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
@@ -928,36 +949,38 @@ export default function CourseDetailsPage({
                     </p>
                   </div>
                 </div>
-                <div
-                  className="flex items-center gap-2"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      setSelectedChapterId(chapter.id);
-                      setShowSubchapterModal(true);
-                    }}
+                {canEdit && (
+                  <div
+                    className="flex items-center gap-2"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Podrozdział
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setEditingChapter(chapter)}
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => deleteChapter(chapter.id)}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedChapterId(chapter.id);
+                        setShowSubchapterModal(true);
+                      }}
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Podrozdział
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setEditingChapter(chapter)}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => deleteChapter(chapter.id)}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Subchapters */}
@@ -966,16 +989,18 @@ export default function CourseDetailsPage({
                   {!chapter.subchapters || chapter.subchapters.length === 0 ? (
                     <div className="text-center py-8">
                       <p className="text-gray-500 mb-3">Brak podrozdziałów</p>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setSelectedChapterId(chapter.id);
-                          setShowSubchapterModal(true);
-                        }}
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Dodaj podrozdział
-                      </Button>
+                      {canEdit && (
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setSelectedChapterId(chapter.id);
+                            setShowSubchapterModal(true);
+                          }}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          Dodaj podrozdział
+                        </Button>
+                      )}
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -1010,108 +1035,138 @@ export default function CourseDetailsPage({
                                 </p>
                               )}
                               <p className="text-xs text-gray-500 mt-1">
-                                {subchapter._count.materials} materiałów •{" "}
+                                {subchapter._count.materialSubchapters} materiałów •{" "}
                                 {subchapter._count.submissions} rozwiązań
                               </p>
                             </div>
-                            <div className="flex items-center gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  setSelectedSubchapterId(subchapter.id);
-                                  setShowMaterialModal(true);
-                                }}
-                              >
-                                <Plus className="w-4 h-4 mr-1" />
-                                Materiał
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() =>
-                                  setEditingSubchapter({ chapter, subchapter })
-                                }
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="destructive"
-                                onClick={() =>
-                                  deleteSubchapter(chapter.id, subchapter.id)
-                                }
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
+                            {canEdit && (
+                              <div className="flex items-center gap-2">
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    setSelectedSubchapterId(subchapter.id);
+                                    setShowMaterialModal(true);
+                                  }}
+                                >
+                                  <Plus className="w-4 h-4 mr-1" />
+                                  Materiał
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  title="Dodaj istniejący materiał z Dysku"
+                                  onClick={() => {
+                                    setCopyTargetSubchapterId(subchapter.id);
+                                    setShowCopyMaterialDialog(true);
+                                  }}
+                                >
+                                  <HardDrive className="w-4 h-4 mr-1" />
+                                  Z Dysku
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  title="Skopiuj materiały z innego podrozdziału"
+                                  onClick={() => {
+                                    setCopyTargetSubchapterId(subchapter.id);
+                                    setShowCopySubchapterDialog(true);
+                                  }}
+                                >
+                                  <Copy className="w-4 h-4 mr-1" />
+                                  Kopiuj
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    setEditingSubchapter({ chapter, subchapter })
+                                  }
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="destructive"
+                                  onClick={() =>
+                                    deleteSubchapter(chapter.id, subchapter.id)
+                                  }
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            )}
                           </div>
 
                           {/* Materials List */}
-                          {subchapter.materials &&
-                            subchapter.materials.length > 0 && (
+                          {subchapter.materialSubchapters &&
+                            subchapter.materialSubchapters.length > 0 && (
                               <div className="border-t px-3 py-2 bg-gray-50">
                                 <div className="flex items-center justify-between mb-2">
                                   <p className="text-xs font-semibold text-gray-600">
                                     Materiały:
                                   </p>
                                   <div className="flex items-center gap-2">
-                                    {!selectionMode ? (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={() => setSelectionMode(true)}
-                                        className="text-xs h-7"
-                                      >
-                                        <CheckSquare className="w-3 h-3 mr-1" />
-                                        Zaznacz
-                                      </Button>
-                                    ) : (
+                                    {canEdit && (
                                       <>
-                                        <Button
-                                          size="sm"
-                                          variant="outline"
-                                          onClick={() =>
-                                            toggleSelectAllMaterials(
-                                              subchapter.materials
-                                            )
-                                          }
-                                          className="text-xs h-7"
-                                        >
-                                          {subchapter.materials.every((m) =>
-                                            selectedMaterials.has(m.id)
-                                          )
-                                            ? "Odznacz wszystkie"
-                                            : "Zaznacz wszystkie"}
-                                        </Button>
-                                        {selectedMaterials.size > 0 && (
+                                        {!selectionMode ? (
                                           <Button
                                             size="sm"
-                                            variant="destructive"
-                                            onClick={bulkDeleteMaterials}
+                                            variant="outline"
+                                            onClick={() => setSelectionMode(true)}
                                             className="text-xs h-7"
                                           >
-                                            <Trash2 className="w-3 h-3 mr-1" />
-                                            Usuń ({selectedMaterials.size})
+                                            <CheckSquare className="w-3 h-3 mr-1" />
+                                            Zaznacz
                                           </Button>
+                                        ) : (
+                                          <>
+                                            <Button
+                                              size="sm"
+                                              variant="outline"
+                                              onClick={() =>
+                                                toggleSelectAllMaterials(
+                                                  subchapter.materialSubchapters.map(ms => ms.material)
+                                                )
+                                              }
+                                              className="text-xs h-7"
+                                            >
+                                              {subchapter.materialSubchapters.every((ms) =>
+                                                selectedMaterials.has(ms.material.id)
+                                              )
+                                                ? "Odznacz wszystkie"
+                                                : "Zaznacz wszystkie"}
+                                            </Button>
+                                            {selectedMaterials.size > 0 && (
+                                              <Button
+                                                size="sm"
+                                                variant="destructive"
+                                                onClick={bulkDeleteMaterials}
+                                                className="text-xs h-7"
+                                              >
+                                                <Trash2 className="w-3 h-3 mr-1" />
+                                                Usuń ({selectedMaterials.size})
+                                              </Button>
+                                            )}
+                                            <Button
+                                              size="sm"
+                                              variant="ghost"
+                                              onClick={() => {
+                                                setSelectionMode(false);
+                                                setSelectedMaterials(new Set());
+                                              }}
+                                              className="text-xs h-7"
+                                            >
+                                              <X className="w-3 h-3" />
+                                            </Button>
+                                          </>
                                         )}
-                                        <Button
-                                          size="sm"
-                                          variant="ghost"
-                                          onClick={() => {
-                                            setSelectionMode(false);
-                                            setSelectedMaterials(new Set());
-                                          }}
-                                          className="text-xs h-7"
-                                        >
-                                          <X className="w-3 h-3" />
-                                        </Button>
                                       </>
                                     )}
                                   </div>
                                 </div>
                                 <div className="space-y-1">
-                                  {subchapter.materials.map((material) => (
+                                  {subchapter.materialSubchapters.map(({ material }) => (
                                     <div
                                       key={material.id}
                                       className="flex items-center justify-between p-2 bg-white rounded border text-sm"
@@ -1180,27 +1235,31 @@ export default function CourseDetailsPage({
                                               <LinkIcon className="w-3 h-3" />
                                             </Button>
                                           )}
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() =>
-                                              setEditingMaterial({
-                                                subchapterId: subchapter.id,
-                                                material,
-                                              })
-                                            }
-                                          >
-                                            <Pencil className="w-3 h-3" />
-                                          </Button>
-                                          <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            onClick={() =>
-                                              deleteMaterial(material.id)
-                                            }
-                                          >
-                                            <Trash2 className="w-3 h-3 text-red-500" />
-                                          </Button>
+                                          {canEdit && (
+                                            <>
+                                              <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() =>
+                                                  setEditingMaterial({
+                                                    subchapterId: subchapter.id,
+                                                    material,
+                                                  })
+                                                }
+                                              >
+                                                <Pencil className="w-3 h-3" />
+                                              </Button>
+                                              <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                onClick={() =>
+                                                  deleteMaterial(material.id)
+                                                }
+                                              >
+                                                <Trash2 className="w-3 h-3 text-red-500" />
+                                              </Button>
+                                            </>
+                                          )}
                                         </div>
                                       )}
                                     </div>
@@ -1297,6 +1356,30 @@ export default function CourseDetailsPage({
           enrolling={enrolling}
           onSearch={searchStudents}
           onEnroll={enrollStudent}
+        />
+      )}
+
+      {/* Copy Subchapter Dialog */}
+      {showCopySubchapterDialog && copyTargetSubchapterId && (
+        <CopySubchapterDialog
+          targetSubchapterId={copyTargetSubchapterId}
+          onClose={() => {
+            setShowCopySubchapterDialog(false);
+            setCopyTargetSubchapterId(null);
+            fetchCourse();
+          }}
+        />
+      )}
+
+      {/* Copy Material from Disk Dialog */}
+      {showCopyMaterialDialog && copyTargetSubchapterId && (
+        <CopyMaterialDialog
+          targetSubchapterId={copyTargetSubchapterId}
+          onClose={() => {
+            setShowCopyMaterialDialog(false);
+            setCopyTargetSubchapterId(null);
+            fetchCourse();
+          }}
         />
       )}
     </div>

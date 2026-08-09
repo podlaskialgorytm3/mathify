@@ -24,11 +24,15 @@ export async function POST(
       );
     }
 
-    // Sprawdź czy kurs należy do nauczyciela
-    const course = await prisma.course.findUnique({
+    // Sprawdź czy kurs należy do nauczyciela lub ma do niego dostęp
+    const course = await prisma.course.findFirst({
       where: {
         id: courseId,
-        teacherId: session.user.id,
+        OR: [
+          { teacherId: session.user.id },
+          { visibility: "PUBLIC" },
+          { teacherAccesses: { some: { teacherId: session.user.id } } },
+        ],
       },
       include: {
         chapters: {

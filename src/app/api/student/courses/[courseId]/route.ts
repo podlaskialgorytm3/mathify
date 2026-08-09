@@ -83,15 +83,20 @@ export async function GET(
                     canSubmit: true,
                   },
                 },
-                materials: {
+                materialSubchapters: {
                   orderBy: {
                     order: "asc",
                   },
                   select: {
-                    id: true,
-                    title: true,
-                    type: true,
-                    content: true,
+                    order: true,
+                    material: {
+                      select: {
+                        id: true,
+                        title: true,
+                        type: true,
+                        content: true,
+                      },
+                    },
                   },
                 },
               },
@@ -125,7 +130,7 @@ export async function GET(
           allowSubmissions: subchapter.allowSubmissions,
           isVisible: subchapter.visibility[0]?.isVisible || false,
           canSubmit: subchapter.visibility[0]?.canSubmit || false,
-          materials: subchapter.materials,
+          materials: subchapter.materialSubchapters.map((ms) => ms.material),
         })),
       })),
     };

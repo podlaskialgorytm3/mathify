@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { verifyCourseEditAccess } from "@/lib/course-access";
 
 export async function POST(
   request: NextRequest,
@@ -15,7 +16,7 @@ export async function POST(
 
     const { subchapterId } = await params;
 
-    // Verify subchapter belongs to teacher's course
+    // Verify subchapter exists and teacher has edit access
     const subchapter = await prisma.subchapter.findUnique({
       where: { id: subchapterId },
       include: {
@@ -27,18 +28,23 @@ export async function POST(
       },
     });
 
-    if (
-      !subchapter ||
-      subchapter.chapter.course.teacherId !== session.user.id
-    ) {
+    if (!subchapter) {
       return NextResponse.json(
-        { error: "Podrozdział nie istnieje lub nie masz do niego dostępu" },
+        { error: "Podrozdział nie istnieje" },
         { status: 404 }
       );
     }
 
+    const hasAccess = await verifyCourseEditAccess(subchapter.chapter.courseId, session.user.id);
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: "Brak uprawnień do edycji tego kursu" },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
-    const { title, description, type, content } = body;
+    const { title, description, type, content, source } = body;
 
     if (!title || !type || !content) {
       return NextResponse.json(
@@ -54,22 +60,38 @@ export async function POST(
       );
     }
 
-    // Get next order
-    const lastMaterial = await prisma.material.findFirst({
+    const materialSource =
+      source === "HOMEWORK" ? "HOMEWORK" : "COURSE";
+
+    // Get next order for this subchapter
+    const lastEntry = await prisma.materialSubchapter.findFirst({
       where: { subchapterId },
       orderBy: { order: "desc" },
     });
-    const order = lastMaterial ? lastMaterial.order + 1 : 1;
+    const order = lastEntry ? lastEntry.order + 1 : 1;
 
-    const material = await prisma.material.create({
-      data: {
-        title,
-        description: description || null,
-        type,
-        content,
-        order,
-        subchapterId,
-      },
+    // Create Material + MaterialSubchapter in a transaction
+    const material = await prisma.$transaction(async (tx) => {
+      const newMaterial = await tx.material.create({
+        data: {
+          title,
+          description: description || null,
+          type,
+          content,
+          source: materialSource,
+          ownerId: subchapter.chapter.course.teacherId, // Assign owner to course's original teacher
+        },
+      });
+
+      await tx.materialSubchapter.create({
+        data: {
+          materialId: newMaterial.id,
+          subchapterId,
+          order,
+        },
+      });
+
+      return newMaterial;
     });
 
     return NextResponse.json({
@@ -98,10 +120,19 @@ export async function GET(
 
     const { subchapterId } = await params;
 
-    const materials = await prisma.material.findMany({
+    const entries = await prisma.materialSubchapter.findMany({
       where: { subchapterId },
       orderBy: { order: "asc" },
+      include: {
+        material: true,
+      },
     });
+
+    const materials = entries.map((e) => ({
+      ...e.material,
+      order: e.order,
+      addedAt: e.addedAt,
+    }));
 
     return NextResponse.json({ materials });
   } catch (error) {

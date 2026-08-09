@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import cloudinary from "@/lib/cloudinary";
+import { verifyCourseEditAccess } from "@/lib/course-access";
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,37 +22,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get all materials with their course info
+    // Get all materials - verify ownership via ownerId or edit access to a linked course
     const materials = await prisma.material.findMany({
       where: {
-        id: {
-          in: materialIds,
-        },
+        id: { in: materialIds },
       },
       include: {
-        subchapter: {
+        subchapters: {
           include: {
-            chapter: {
-              include: {
-                course: true,
-              },
-            },
-          },
-        },
-      },
+            subchapter: {
+              include: { chapter: true }
+            }
+          }
+        }
+      }
     });
 
-    // Verify all materials belong to teacher's courses
-    const unauthorizedMaterial = materials.find(
-      (material) =>
-        material.subchapter.chapter.course.teacherId !== session.user.id
-    );
+    // Verify all materials
+    for (const material of materials) {
+      let hasAccess = material.ownerId === session.user.id;
+      if (!hasAccess) {
+        for (const ms of material.subchapters) {
+          if (await verifyCourseEditAccess(ms.subchapter.chapter.courseId, session.user.id)) {
+            hasAccess = true;
+            break;
+          }
+        }
+      }
 
-    if (unauthorizedMaterial) {
-      return NextResponse.json(
-        { error: "Nie masz uprawnień do usunięcia niektórych materiałów" },
-        { status: 403 }
-      );
+      if (!hasAccess) {
+        return NextResponse.json(
+          { error: "Nie masz uprawnień do usunięcia niektórych materiałów" },
+          { status: 403 }
+        );
+      }
     }
 
     // Delete files from Cloudinary for PDFs

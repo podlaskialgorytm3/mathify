@@ -14,6 +14,7 @@ import {
   UserCircle,
   UserPlus,
   Award,
+  HardDrive,
 } from "lucide-react";
 
 export default async function DashboardLayout({
@@ -36,6 +37,7 @@ export default async function DashboardLayout({
       { name: "Kursy", href: "/dashboard/admin/courses", icon: BookOpen },
       { name: "Plany", href: "/dashboard/admin/plans", icon: Award },
       { name: "Ustawienia", href: "/dashboard/admin/settings", icon: Settings },
+      { name: "Dysk", href: "/dashboard/admin/disk", icon: HardDrive },
     ],
     TEACHER: [
       { name: "Panel główny", href: "/dashboard", icon: Home },
@@ -59,6 +61,11 @@ export default async function DashboardLayout({
         name: "Tworzenie kont uczniom",
         href: "/dashboard/teacher/create-student",
         icon: UserPlus,
+      },
+      {
+        name: "Dysk",
+        href: "/dashboard/teacher/disk",
+        icon: HardDrive,
       },
     ],
     STUDENT: [

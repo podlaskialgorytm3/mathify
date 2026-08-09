@@ -41,11 +41,28 @@ enum VisibilityType {
   PROGRESS_BASED
 }
 
+enum CourseVisibility {
+  PRIVATE
+  PUBLIC
+  PROTECTED
+}
+
+enum CourseAccessType {
+  READ_ONLY
+  COPY_ONLY
+  OPEN_SOURCE
+}
+
 enum Currency {
   PLN
   USD
   EUR
   GBP
+}
+
+enum MaterialSource {
+  COURSE
+  HOMEWORK
 }
 
 model User {
@@ -65,6 +82,7 @@ model User {
   // Relations
   plan                Plan?            @relation(fields: [planId], references: [id], onDelete: SetNull)
   createdCourses      Course[]         @relation("TeacherCourses")
+  courseAccesses      CourseTeacherAccess[]
   enrolledCourses     CourseEnrollment[]
   submissions         Submission[]
   notifications       Notification[]
@@ -76,6 +94,7 @@ model User {
   subchapterVisibility SubchapterVisibility[]
   aiPromptTemplates   AIPromptTemplate[] @relation("TeacherAIPrompts")
   verificationTokens  VerificationToken[]
+  ownedMaterials      Material[]         @relation("OwnedMaterials")
 
   @@index([email])
   @@index([username])
@@ -99,9 +118,32 @@ model Course {
   aiPromptTemplate   AIPromptTemplate?   @relation("CourseAIPrompt", fields: [aiPromptTemplateId], references: [id], onDelete: SetNull)
   chapters           Chapter[]
   enrollments        CourseEnrollment[]
+  
+  // Visibility & Sharing
+  visibility         CourseVisibility    @default(PROTECTED)
+  publicAccessType   CourseAccessType?
+  isSharedCopy       Boolean             @default(false)
+  originalCourseId   String?
+  teacherAccesses    CourseTeacherAccess[]
 
   @@index([teacherId])
   @@index([aiPromptTemplateId])
+}
+
+model CourseTeacherAccess {
+  id               String           @id @default(cuid())
+  courseId         String
+  teacherId        String
+  accessType       CourseAccessType
+  addedToAccount   Boolean          @default(false)
+
+  // Relations
+  course           Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  teacher          User             @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, teacherId])
+  @@index([courseId])
+  @@index([teacherId])
 }
 
 model CourseEnrollment {
@@ -178,10 +220,10 @@ model Subchapter {
   allowSubmissions Boolean @default(false)
 
   // Relations
-  chapter     Chapter      @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-  materials   Material[]
-  submissions Submission[]
-  visibility  SubchapterVisibility[]
+  chapter              Chapter               @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  materialSubchapters  MaterialSubchapter[]
+  submissions          Submission[]
+  visibility           SubchapterVisibility[]
 
   @@index([chapterId])
   @@index([order])
@@ -205,21 +247,39 @@ model SubchapterVisibility {
 }
 
 model Material {
-  id           String       @id @default(cuid())
-  title        String
-  description  String?      @db.Text
-  type         MaterialType
-  content      String       @db.Text // URL for links, file path for PDFs
-  order        Int
-  subchapterId String
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
+  id          String         @id @default(cuid())
+  title       String
+  description String?        @db.Text
+  type        MaterialType
+  content     String         @db.Text // URL for links, file path for PDFs
+  source      MaterialSource @default(COURSE)
+  ownerId     String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
 
   // Relations
-  subchapter   Subchapter   @relation(fields: [subchapterId], references: [id], onDelete: Cascade)
+  owner       User?              @relation("OwnedMaterials", fields: [ownerId], references: [id])
+  subchapters MaterialSubchapter[]
 
+  @@index([ownerId])
+  @@index([source])
+  @@index([createdAt])
+}
+
+model MaterialSubchapter {
+  id           String     @id @default(cuid())
+  materialId   String
+  subchapterId String
+  order        Int        @default(0)
+  addedAt      DateTime   @default(now())
+
+  // Relations
+  material     Material   @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  subchapter   Subchapter @relation(fields: [subchapterId], references: [id], onDelete: Cascade)
+
+  @@unique([materialId, subchapterId])
   @@index([subchapterId])
-  @@index([order])
+  @@index([materialId])
 }
 
 model Submission {

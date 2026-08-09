@@ -132,15 +132,15 @@ export async function POST(
       const imagesPdf = await convertImagesToPDF(imageBuffers);
 
       // Pobierz materiały PDF dla tego podrozdziału
-      const allPdfMaterials = await prisma.material.findMany({
+      const pdfEntries = await prisma.materialSubchapter.findMany({
         where: {
           subchapterId: subchapterId,
-          type: "PDF",
+          material: { type: "PDF" },
         },
-        orderBy: {
-          order: "asc",
-        },
+        orderBy: { order: "asc" },
+        include: { material: true },
       });
+      const allPdfMaterials = pdfEntries.map((e) => e.material);
 
       const systemSettings = await prisma.systemSettings.findFirst();
       const homeworkFileName =

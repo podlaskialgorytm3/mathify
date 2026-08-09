@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: mathify_password
       POSTGRES_DB: mathify
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -17,14 +17,17 @@ services:
   app:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: mathify-app
     restart: unless-stopped
     ports:
       - "3000:3000"
+    env_file:
+      - .env
     environment:
       - DATABASE_URL=postgresql://mathify:mathify_password@postgres:5432/mathify?schema=public
       - NEXTAUTH_URL=http://localhost:3000
+      - AUTH_TRUST_HOST=true
     depends_on:
       - postgres
     volumes:
@@ -34,7 +37,6 @@ services:
       - uploads:/app/uploads
     networks:
       - mathify-network
-    command: sh -c "npm run db:push && npm run dev"
 
 volumes:
   postgres_data:
