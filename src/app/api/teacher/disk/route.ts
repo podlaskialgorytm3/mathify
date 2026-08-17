@@ -16,7 +16,28 @@ export async function GET(request: NextRequest) {
     const source = searchParams.get("source"); // COURSE | HOMEWORK | null (wszystkie)
     const sort = searchParams.get("sort") || "desc"; // asc | desc
 
-    const where: Record<string, unknown> = { ownerId: session.user.id };
+    const where: any = {
+      OR: [
+        { ownerId: session.user.id },
+        {
+          subchapters: {
+            some: {
+              subchapter: {
+                chapter: {
+                  course: {
+                    OR: [
+                      { teacherId: session.user.id },
+                      { teacherAccesses: { some: { teacherId: session.user.id } } },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    };
+
     if (source === "COURSE" || source === "HOMEWORK") {
       where.source = source;
     }

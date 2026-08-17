@@ -17,7 +17,27 @@ export default async function TeacherDiskPage() {
 
   // Pobierz materiały nauczyciela z relacjami (Server Component)
   const materials = await prisma.material.findMany({
-    where: { ownerId: session.user.id },
+    where: {
+      OR: [
+        { ownerId: session.user.id },
+        {
+          subchapters: {
+            some: {
+              subchapter: {
+                chapter: {
+                  course: {
+                    OR: [
+                      { teacherId: session.user.id },
+                      { teacherAccesses: { some: { teacherId: session.user.id } } },
+                    ],
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    },
     orderBy: { createdAt: "desc" },
     include: {
       subchapters: {
