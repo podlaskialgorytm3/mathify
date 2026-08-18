@@ -528,6 +528,8 @@ export default function CourseDetailsPage({
     description: string;
     type: "PDF" | "LINK";
     content: string;
+    existingMaterialId?: string;
+    hashCode?: string;
   }) => {
     if (!selectedSubchapterId) return;
 
@@ -1519,8 +1521,10 @@ function MaterialModal({
   const [materialDescription, setMaterialDescription] = useState("");
   const [materialUrl, setMaterialUrl] = useState("");
   const [uploadedFileUrl, setUploadedFileUrl] = useState("");
+  const [existingMaterialId, setExistingMaterialId] = useState<string | undefined>();
+  const [hashCode, setHashCode] = useState<string | undefined>();
   const [quickFiles, setQuickFiles] = useState<
-    Array<{ file: File; url: string; uploading: boolean }>
+    Array<{ file: File; url: string; uploading: boolean; existingMaterialId?: string; hashCode?: string; title?: string }>
   >([]);
 
   const handleQuickFileSelect = async (
@@ -1563,17 +1567,48 @@ function MaterialModal({
       formData.append("file", file);
 
       try {
-        const response = await fetch("/api/upload", {
+        let response = await fetch("/api/upload", {
           method: "POST",
           body: formData,
         });
 
-        const data = await response.json();
+        let data = await response.json();
+
+        if (response.status === 409 && data.isDuplicate) {
+          const useReference = window.confirm(
+            `Plik "${file.name}" istnieje w bazie danych.\nCzy zamiast tego chcesz wstawić referencję do istniejącego pliku?\n\n[OK] - Wstaw referencję\n[Anuluj] - Wstaw duplikat`
+          );
+
+          if (useReference) {
+            setQuickFiles((prev) =>
+              prev.map((f) =>
+                f.file === file
+                  ? {
+                      ...f,
+                      url: data.existingMaterial.content,
+                      existingMaterialId: data.existingMaterial.id,
+                      hashCode: data.existingMaterial.hashCode,
+                      title: data.existingMaterial.title,
+                      uploading: false,
+                    }
+                  : f
+              )
+            );
+            continue;
+          } else {
+            formData.append("forceDuplicate", "true");
+            response = await fetch("/api/upload", {
+              method: "POST",
+              body: formData,
+            });
+            data = await response.json();
+          }
+        }
 
         if (response.ok) {
           setQuickFiles((prev) =>
-            prev.map((f, idx) =>
-              f.file === file ? { ...f, url: data.url, uploading: false } : f
+            prev.map((f) =>
+              f.file === file ? { ...f, url: data.url, hashCode: data.hashCode, uploading: false } : f
             )
           );
         } else {
@@ -1597,12 +1632,14 @@ function MaterialModal({
 
     // Submit each file as a separate material
     for (const fileData of readyFiles) {
-      const fileName = fileData.file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+      const fileName = fileData.title || fileData.file.name.replace(/\.[^/.]+$/, ""); // Remove extension
       await onSubmit({
         title: fileName,
         description: "",
         type: "PDF",
         content: fileData.url,
+        existingMaterialId: fileData.existingMaterialId,
+        hashCode: fileData.hashCode,
       });
     }
   };
@@ -1628,6 +1665,8 @@ function MaterialModal({
       description: materialDescription,
       type: materialType,
       content: materialType === "PDF" ? uploadedFileUrl : materialUrl,
+      existingMaterialId: materialType === "PDF" ? existingMaterialId : undefined,
+      hashCode: materialType === "PDF" ? hashCode : undefined,
     });
   };
 
@@ -1803,6 +1842,8 @@ function MaterialModal({
                   <FileUpload
                     onUploadComplete={(data) => {
                       setUploadedFileUrl(data.url);
+                      if (data.existingMaterialId) setExistingMaterialId(data.existingMaterialId);
+                      if (data.hashCode) setHashCode(data.hashCode);
                       if (!materialTitle) {
                         setMaterialTitle(
                           data.filename.replace(/\.[^/.]+$/, "")

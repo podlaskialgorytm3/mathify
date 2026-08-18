@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { uploadToCloudinary } from "@/lib/cloudinary";
+import { prisma } from "@/lib/prisma";
+import crypto from "crypto";
 
 export const runtime = "nodejs";
 
@@ -19,6 +21,7 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get("file") as File;
+    const forceDuplicate = formData.get("forceDuplicate") === "true";
 
     if (!file) {
       return NextResponse.json({ error: "Brak pliku" }, { status: 400 });
@@ -60,6 +63,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const hashCode = crypto.createHash("sha256").update(buffer).digest("hex");
+
+    if (!forceDuplicate) {
+      const existingMaterial = await prisma.material.findFirst({
+        where: { hashCode, ownerId: session.user.id },
+      });
+
+      if (existingMaterial) {
+        return NextResponse.json(
+          {
+            isDuplicate: true,
+            existingMaterial: {
+              id: existingMaterial.id,
+              title: existingMaterial.title,
+              content: existingMaterial.content,
+              hashCode: existingMaterial.hashCode,
+            },
+            message: "Plik istnieje w bazie",
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     // Upload do Cloudinary
     const result = await uploadToCloudinary(file, "mathify/materials");
 
@@ -69,6 +97,7 @@ export async function POST(request: NextRequest) {
       filename: file.name,
       size: file.size,
       type: file.type,
+      hashCode,
     });
   } catch (error) {
     console.error("Błąd uploadu:", error);
