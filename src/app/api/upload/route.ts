@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { uploadToCloudinary } from "@/lib/cloudinary";
+import { uploadBufferToCloudinary } from "@/lib/cloudinary";
 import { prisma } from "@/lib/prisma";
 import crypto from "crypto";
 
@@ -88,8 +88,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Upload do Cloudinary
-    const result = await uploadToCloudinary(file, "mathify/materials");
+    // Upload do Cloudinary za pomocą zbuforowanych danych
+    const result = await uploadBufferToCloudinary(
+      buffer,
+      file.name,
+      file.type,
+      "mathify/materials"
+    );
 
     return NextResponse.json({
       url: result.url,
@@ -99,10 +104,10 @@ export async function POST(request: NextRequest) {
       type: file.type,
       hashCode,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Błąd uploadu:", error);
     return NextResponse.json(
-      { error: "Błąd podczas uploadu pliku" },
+      { error: "Błąd podczas uploadu pliku: " + (error?.message || String(error)) },
       { status: 500 }
     );
   }
