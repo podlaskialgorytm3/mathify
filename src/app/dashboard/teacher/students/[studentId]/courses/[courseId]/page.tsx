@@ -105,6 +105,7 @@ export default function StudentCourseVisibilityPage() {
     try {
       const response = await fetch(
         `/api/teacher/students/${params.studentId}/courses/${params.courseId}/visibility`,
+        { cache: "no-store" }
       );
       const result = await response.json();
 
@@ -118,7 +119,7 @@ export default function StudentCourseVisibilityPage() {
       console.error("Error fetching visibility:", error);
       toast({
         title: "Błąd",
-        description: "Nie udało się pobrać danych widoczności",
+        description: error instanceof Error ? error.message : "Nie udało się pobrać danych widoczności",
         variant: "destructive",
       });
     } finally {

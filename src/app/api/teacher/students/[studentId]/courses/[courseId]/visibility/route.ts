@@ -121,25 +121,33 @@ export async function GET(
       },
       select: {
         subchapterId: true,
-        material: {
-          select: {
-            _count: {
-              select: {
-                views: {
-                  where: { studentId },
-                },
-              },
-            },
-          },
-        },
+        materialId: true,
       },
     });
+
+    const materialIds = materialSubchapters.map((ms) => ms.materialId);
+
+    const views = materialIds.length > 0 ? await prisma.materialView.groupBy({
+      by: ['materialId'],
+      where: {
+        materialId: { in: materialIds },
+        studentId: studentId,
+      },
+      _count: {
+        _all: true,
+      },
+    }) : [];
+
+    const viewsCountPerMaterial: Record<string, number> = {};
+    for (const v of views) {
+      viewsCountPerMaterial[v.materialId] = v._count._all;
+    }
 
     const viewsCountPerSubchapter: Record<string, number> = {};
     for (const ms of materialSubchapters) {
       viewsCountPerSubchapter[ms.subchapterId] =
         (viewsCountPerSubchapter[ms.subchapterId] || 0) +
-        (ms.material?._count?.views || 0);
+        (viewsCountPerMaterial[ms.materialId] || 0);
     }
 
     // Przekształć dane do bardziej czytelnego formatu
