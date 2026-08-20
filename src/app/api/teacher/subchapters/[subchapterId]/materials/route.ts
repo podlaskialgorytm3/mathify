@@ -46,6 +46,38 @@ export async function POST(
     const body = await request.json();
     const { title, description, type, content, source, hashCode, existingMaterialId } = body;
 
+    if (existingMaterialId) {
+      const existingLink = await prisma.materialSubchapter.findFirst({
+        where: {
+          materialId: existingMaterialId,
+          subchapterId: subchapterId,
+        }
+      });
+
+      if (existingLink) {
+        return NextResponse.json(
+          { error: "Nie można dodawać drugi raz tego samego materiału do jednego podrozdziału." },
+          { status: 400 }
+        );
+      }
+    } else if (hashCode) {
+      const existingLink = await prisma.materialSubchapter.findFirst({
+        where: {
+          subchapterId: subchapterId,
+          material: {
+            hashCode: hashCode,
+          }
+        }
+      });
+
+      if (existingLink) {
+        return NextResponse.json(
+          { error: "Nie można dodawać drugi raz tego samego materiału do jednego podrozdziału." },
+          { status: 400 }
+        );
+      }
+    }
+
     if (!existingMaterialId && (!title || !type || !content)) {
       return NextResponse.json(
         { error: "Tytuł, typ i zawartość są wymagane" },
