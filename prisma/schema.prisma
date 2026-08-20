@@ -95,6 +95,7 @@ model User {
   aiPromptTemplates   AIPromptTemplate[] @relation("TeacherAIPrompts")
   verificationTokens  VerificationToken[]
   ownedMaterials      Material[]         @relation("OwnedMaterials")
+  materialViews       MaterialView[]
 
   @@index([email])
   @@index([username])
@@ -261,6 +262,7 @@ model Material {
   // Relations
   owner       User?              @relation("OwnedMaterials", fields: [ownerId], references: [id])
   subchapters MaterialSubchapter[]
+  views       MaterialView[]
 
   @@index([ownerId])
   @@index([source])
@@ -424,3 +426,18 @@ model SystemSettings {
   createdAt                 DateTime @default(now())
   updatedAt                 DateTime @updatedAt
 }
+
+model MaterialView {
+  id          String   @id @default(cuid())
+  materialId  String
+  studentId   String
+  viewedAt    DateTime @default(now())
+
+  material    Material @relation(fields: [materialId], references: [id], onDelete: Cascade)
+  student     User     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([materialId])
+  @@index([studentId])
+  @@index([materialId, studentId])
+}
+

@@ -39,6 +39,7 @@ interface Subchapter {
     canSubmit: boolean;
     unlockedAt: string | null;
   } | null;
+  viewsCount: number;
 }
 
 interface Chapter {
@@ -610,6 +611,12 @@ export default function StudentCourseVisibilityPage() {
                                 <span className="text-sm text-gray-600">
                                   {subchapterVisible ? "Widoczny" : "Ukryty"}
                                 </span>
+                                <div className="flex items-center gap-1 ml-2 pl-2 border-l border-gray-300">
+                                  <Eye className="h-4 w-4 text-gray-500" />
+                                  <span className="text-sm text-gray-500">
+                                    {subchapter.viewsCount}
+                                  </span>
+                                </div>
                               </div>
 
                               {/* Możliwość wysyłania pracy */}

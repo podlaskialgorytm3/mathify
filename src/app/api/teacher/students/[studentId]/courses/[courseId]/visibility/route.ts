@@ -110,6 +110,38 @@ export async function GET(
       },
     });
 
+    // Pobierz liczbę wyświetleń materiałów per podrozdział dla ucznia
+    const subchapterIds = chapters.flatMap((c) =>
+      c.subchapters.map((s) => s.id)
+    );
+
+    const materialSubchapters = await prisma.materialSubchapter.findMany({
+      where: {
+        subchapterId: { in: subchapterIds },
+      },
+      select: {
+        subchapterId: true,
+        material: {
+          select: {
+            _count: {
+              select: {
+                views: {
+                  where: { studentId },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const viewsCountPerSubchapter: Record<string, number> = {};
+    for (const ms of materialSubchapters) {
+      viewsCountPerSubchapter[ms.subchapterId] =
+        (viewsCountPerSubchapter[ms.subchapterId] || 0) +
+        (ms.material?._count?.views || 0);
+    }
+
     // Przekształć dane do bardziej czytelnego formatu
     const formattedChapters = chapters.map((chapter) => ({
       id: chapter.id,
@@ -122,6 +154,7 @@ export async function GET(
         order: subchapter.order,
         allowSubmissions: subchapter.allowSubmissions,
         visibility: subchapter.visibility[0] || null,
+        viewsCount: viewsCountPerSubchapter[subchapter.id] || 0,
       })),
     }));
 

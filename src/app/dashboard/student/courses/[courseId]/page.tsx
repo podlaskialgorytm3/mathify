@@ -220,6 +220,11 @@ export default function StudentCourseDetailsPage() {
   };
 
   const openMaterial = (material: Material) => {
+    // Fire-and-forget: rejestracja wyświetlenia
+    fetch(`/api/student/materials/${material.id}/view`, { method: "POST" }).catch(() => {
+      // Ciche niepowodzenie - brak zapisu nie blokuje materiału
+    });
+
     if (material.type === "LINK") {
       window.open(material.content, "_blank");
     } else if (material.type === "PDF") {

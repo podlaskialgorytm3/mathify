@@ -1511,6 +1511,8 @@ function MaterialModal({
     description: string;
     type: "PDF" | "LINK";
     content: string;
+    existingMaterialId?: string;
+    hashCode?: string;
   }) => void;
   title: string;
   uploading: boolean;
