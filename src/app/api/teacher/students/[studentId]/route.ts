@@ -72,7 +72,39 @@ export async function GET(
       return NextResponse.json({ error: "Student not found" }, { status: 404 });
     }
 
-    return NextResponse.json(student);
+    // Policz wyświetlenia dla każdego z kursów, na które zapisany jest uczeń
+    const coursesWithViews = await Promise.all(
+      student.enrolledCourses.map(async (enrollment) => {
+        const viewsCount = await prisma.materialView.count({
+          where: {
+            studentId: studentId,
+            material: {
+              subchapters: {
+                some: {
+                  subchapter: {
+                    chapter: {
+                      courseId: enrollment.course.id,
+                    },
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        return {
+          ...enrollment,
+          viewsCount,
+        };
+      })
+    );
+
+    const studentWithViews = {
+      ...student,
+      enrolledCourses: coursesWithViews,
+    };
+
+    return NextResponse.json(studentWithViews);
   } catch (error) {
     console.error("Error fetching student details:", error);
     return NextResponse.json(
