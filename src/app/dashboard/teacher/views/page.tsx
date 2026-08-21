@@ -139,6 +139,7 @@ export default function ViewsOverviewPage() {
               key={student.id}
               student={student}
               subtitle={`${student.totalViews} wyświetleń`}
+              hideManageStudentButton={true}
             />
           ))}
         </div>

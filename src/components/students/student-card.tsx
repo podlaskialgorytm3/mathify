@@ -17,10 +17,11 @@ export interface StudentCardData {
 interface StudentCardProps {
   student: StudentCardData;
   subtitle?: string;
+  hideManageStudentButton?: boolean;
   children?: React.ReactNode;
 }
 
-export function StudentCard({ student, subtitle, children }: StudentCardProps) {
+export function StudentCard({ student, subtitle, hideManageStudentButton, children }: StudentCardProps) {
   const router = useRouter();
 
   const getStatusBadge = (status: string) => {
@@ -79,15 +80,17 @@ export function StudentCard({ student, subtitle, children }: StudentCardProps) {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0 w-full sm:w-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push(`/dashboard/teacher/students/${student.id}/edit`)}
-              className="shrink-0 flex-1 sm:flex-none gap-2"
-            >
-              <UserCog className="h-4 w-4 shrink-0" />
-              <span className="truncate">Zarządzaj uczniem</span>
-            </Button>
+            {!hideManageStudentButton && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => router.push(`/dashboard/teacher/students/${student.id}/edit`)}
+                className="shrink-0 flex-1 sm:flex-none gap-2"
+              >
+                <UserCog className="h-4 w-4 shrink-0" />
+                <span className="truncate">Zarządzaj uczniem</span>
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
