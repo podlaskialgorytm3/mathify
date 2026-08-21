@@ -55,6 +55,7 @@ export default function TeacherStudentsPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCourse, setSelectedCourse] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("ACTIVE");
   const { toast } = useToast();
 
   const fetchStudents = async () => {
@@ -97,13 +98,17 @@ export default function TeacherStudentsPage() {
     fetchStudents();
   }, [selectedCourse]);
 
-  const filteredStudents = students.filter(
-    (student) =>
+  const filteredStudents = students.filter((student) => {
+    const matchesSearch =
       student.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      student.username.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      student.username.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesStatus = statusFilter === "ALL" || student.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -214,7 +219,7 @@ export default function TeacherStudentsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="search">
                 <Search className="w-4 h-4 inline mr-2" />
@@ -244,6 +249,22 @@ export default function TeacherStudentsPage() {
                     {course.title}
                   </option>
                 ))}
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="status-filter">
+                <Filter className="w-4 h-4 inline mr-2" />
+                Filtruj po statusie
+              </Label>
+              <select
+                id="status-filter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="ACTIVE">Tylko aktywni</option>
+                <option value="INACTIVE">Tylko nieaktywni</option>
+                <option value="ALL">Wszyscy</option>
               </select>
             </div>
           </div>

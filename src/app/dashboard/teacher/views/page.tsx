@@ -16,6 +16,7 @@ export default function ViewsOverviewPage() {
   const [students, setStudents] = useState<StudentWithViews[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("ACTIVE");
   const { toast } = useToast();
 
   const fetchViewsSummary = async () => {
@@ -48,12 +49,16 @@ export default function ViewsOverviewPage() {
     fetchViewsSummary();
   }, []);
 
-  const filteredStudents = students.filter(
-    (student) =>
+  const filteredStudents = students.filter((student) => {
+    const matchesSearch =
       student.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (student.username && student.username.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+      (student.username && student.username.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+    const matchesStatus = statusFilter === "ALL" || student.status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
 
   if (loading) {
     return <div className="text-center py-12">Ładowanie...</div>;
@@ -74,17 +79,35 @@ export default function ViewsOverviewPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="max-w-md">
-            <Label htmlFor="search">
-              <Search className="w-4 h-4 inline mr-2" />
-              Szukaj ucznia
-            </Label>
-            <Input
-              id="search"
-              placeholder="Imię, nazwisko lub nazwa użytkownika..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+            <div>
+              <Label htmlFor="search">
+                <Search className="w-4 h-4 inline mr-2" />
+                Szukaj ucznia
+              </Label>
+              <Input
+                id="search"
+                placeholder="Imię, nazwisko lub nazwa użytkownika..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="status-filter">
+                <Users className="w-4 h-4 inline mr-2" />
+                Filtruj po statusie
+              </Label>
+              <select
+                id="status-filter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full p-2 border rounded-md"
+              >
+                <option value="ACTIVE">Tylko aktywni</option>
+                <option value="INACTIVE">Tylko nieaktywni</option>
+                <option value="ALL">Wszyscy</option>
+              </select>
+            </div>
           </div>
         </CardContent>
       </Card>

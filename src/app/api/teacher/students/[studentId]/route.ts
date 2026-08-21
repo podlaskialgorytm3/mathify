@@ -81,3 +81,67 @@ export async function GET(
     );
   }
 }
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ studentId: string }> }
+) {
+  try {
+    const session = await auth();
+
+    if (!session || session.user.role !== "TEACHER") {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { studentId } = await params;
+    const body = await request.json();
+    const { firstName, lastName, status } = body;
+
+    if (!firstName || !lastName || !status) {
+      return NextResponse.json(
+        { error: "Imię, nazwisko i status są wymagane" },
+        { status: 400 }
+      );
+    }
+
+    // Sprawdź czy to uczeń tego nauczyciela
+    const teacherCourses = await prisma.course.findMany({
+      where: { teacherId: session.user.id },
+      select: { id: true },
+    });
+    
+    const courseIds = teacherCourses.map((c) => c.id);
+    
+    const studentExists = await prisma.user.findFirst({
+      where: {
+        id: studentId,
+        role: "STUDENT",
+        enrolledCourses: {
+          some: { courseId: { in: courseIds } },
+        },
+      },
+    });
+    
+    if (!studentExists) {
+      return NextResponse.json({ error: "Student not found or unauthorized" }, { status: 404 });
+    }
+
+    // Aktualizuj dane
+    const updatedStudent = await prisma.user.update({
+      where: { id: studentId },
+      data: {
+        firstName,
+        lastName,
+        status,
+      },
+    });
+
+    return NextResponse.json(updatedStudent);
+  } catch (error) {
+    console.error("Error updating student:", error);
+    return NextResponse.json(
+      { error: "Wystąpił błąd podczas aktualizacji ucznia" },
+      { status: 500 }
+    );
+  }
+}
