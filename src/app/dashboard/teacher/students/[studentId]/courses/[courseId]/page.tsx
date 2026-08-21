@@ -72,6 +72,7 @@ export default function StudentCourseVisibilityPage() {
   const { toast } = useToast();
   const [data, setData] = useState<CourseVisibilityData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [changes, setChanges] = useState<
     Record<
@@ -98,10 +99,15 @@ export default function StudentCourseVisibilityPage() {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    fetchVisibilityData();
-  }, [params.studentId, params.courseId]);
+    if (params?.studentId && params?.courseId) {
+      fetchVisibilityData();
+    }
+  }, [params?.studentId, params?.courseId]);
 
   const fetchVisibilityData = async () => {
+    if (!params?.studentId || !params?.courseId) return;
+    setLoading(true);
+    setError(null);
     try {
       const response = await fetch(
         `/api/teacher/students/${params.studentId}/courses/${params.courseId}/visibility`,
@@ -117,6 +123,7 @@ export default function StudentCourseVisibilityPage() {
       setChanges({});
     } catch (error) {
       console.error("Error fetching visibility:", error);
+      setError(error instanceof Error ? error.message : "Nie udało się pobrać danych widoczności");
       toast({
         title: "Błąd",
         description: error instanceof Error ? error.message : "Nie udało się pobrać danych widoczności",
@@ -421,6 +428,18 @@ export default function StudentCourseVisibilityPage() {
           <div className="h-8 bg-gray-200 rounded w-1/4"></div>
           <div className="h-64 bg-gray-200 rounded"></div>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-8">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-center text-red-500">Wystąpił błąd: {error}</p>
+          </CardContent>
+        </Card>
       </div>
     );
   }
