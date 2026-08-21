@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
 import { Search, Users, Eye } from "lucide-react";
 import { StudentCard, StudentCardData } from "@/components/students/student-card";
+import { useRouter } from "next/navigation";
 
 interface StudentWithViews extends StudentCardData {
   totalViews: number;
@@ -18,6 +19,7 @@ export default function ViewsOverviewPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("ACTIVE");
   const { toast } = useToast();
+  const router = useRouter();
 
   const fetchViewsSummary = async () => {
     try {
@@ -140,6 +142,8 @@ export default function ViewsOverviewPage() {
               student={student}
               subtitle={`${student.totalViews} wyświetleń`}
               hideManageStudentButton={true}
+              hideManageVisibilityButton={true}
+              onClick={() => router.push(`/dashboard/teacher/students/${student.id}`)}
             />
           ))}
         </div>

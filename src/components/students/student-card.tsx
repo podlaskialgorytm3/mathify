@@ -18,10 +18,12 @@ interface StudentCardProps {
   student: StudentCardData;
   subtitle?: string;
   hideManageStudentButton?: boolean;
+  hideManageVisibilityButton?: boolean;
+  onClick?: () => void;
   children?: React.ReactNode;
 }
 
-export function StudentCard({ student, subtitle, hideManageStudentButton, children }: StudentCardProps) {
+export function StudentCard({ student, subtitle, hideManageStudentButton, hideManageVisibilityButton, onClick, children }: StudentCardProps) {
   const router = useRouter();
 
   const getStatusBadge = (status: string) => {
@@ -47,7 +49,10 @@ export function StudentCard({ student, subtitle, hideManageStudentButton, childr
   };
 
   return (
-    <Card>
+    <Card 
+      onClick={onClick} 
+      className={onClick ? "cursor-pointer hover:bg-slate-50 transition-colors" : ""}
+    >
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex-1 min-w-[200px]">
@@ -84,22 +89,30 @@ export function StudentCard({ student, subtitle, hideManageStudentButton, childr
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => router.push(`/dashboard/teacher/students/${student.id}/edit`)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/dashboard/teacher/students/${student.id}/edit`);
+                }}
                 className="shrink-0 flex-1 sm:flex-none gap-2"
               >
                 <UserCog className="h-4 w-4 shrink-0" />
                 <span className="truncate">Zarządzaj uczniem</span>
               </Button>
             )}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push(`/dashboard/teacher/students/${student.id}`)}
-              className="shrink-0 flex-1 sm:flex-none gap-2"
-            >
-              <Settings className="h-4 w-4 shrink-0" />
-              <span className="truncate">Zarządzaj widocznością</span>
-            </Button>
+            {!hideManageVisibilityButton && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  router.push(`/dashboard/teacher/students/${student.id}`);
+                }}
+                className="shrink-0 flex-1 sm:flex-none gap-2"
+              >
+                <Settings className="h-4 w-4 shrink-0" />
+                <span className="truncate">Zarządzaj widocznością</span>
+              </Button>
+            )}
           </div>
         </div>
       </CardHeader>
