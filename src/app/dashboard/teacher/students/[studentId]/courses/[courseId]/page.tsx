@@ -39,6 +39,7 @@ interface Subchapter {
     canSubmit: boolean;
     unlockedAt: string | null;
   } | null;
+  viewsCount: number;
 }
 
 interface Chapter {
@@ -71,6 +72,7 @@ export default function StudentCourseVisibilityPage() {
   const { toast } = useToast();
   const [data, setData] = useState<CourseVisibilityData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [changes, setChanges] = useState<
     Record<
@@ -97,13 +99,19 @@ export default function StudentCourseVisibilityPage() {
   const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
-    fetchVisibilityData();
-  }, [params.studentId, params.courseId]);
+    if (params?.studentId && params?.courseId) {
+      fetchVisibilityData();
+    }
+  }, [params?.studentId, params?.courseId]);
 
   const fetchVisibilityData = async () => {
+    if (!params?.studentId || !params?.courseId) return;
+    setLoading(true);
+    setError(null);
     try {
       const response = await fetch(
         `/api/teacher/students/${params.studentId}/courses/${params.courseId}/visibility`,
+        { cache: "no-store" }
       );
       const result = await response.json();
 
@@ -115,9 +123,10 @@ export default function StudentCourseVisibilityPage() {
       setChanges({});
     } catch (error) {
       console.error("Error fetching visibility:", error);
+      setError(error instanceof Error ? error.message : "Nie udało się pobrać danych widoczności");
       toast({
         title: "Błąd",
-        description: "Nie udało się pobrać danych widoczności",
+        description: error instanceof Error ? error.message : "Nie udało się pobrać danych widoczności",
         variant: "destructive",
       });
     } finally {
@@ -423,6 +432,18 @@ export default function StudentCourseVisibilityPage() {
     );
   }
 
+  if (error) {
+    return (
+      <div className="p-8">
+        <Card>
+          <CardContent className="pt-6">
+            <p className="text-center text-red-500">Wystąpił błąd: {error}</p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!data) {
     return (
       <div className="p-8">
@@ -610,6 +631,12 @@ export default function StudentCourseVisibilityPage() {
                                 <span className="text-sm text-gray-600">
                                   {subchapterVisible ? "Widoczny" : "Ukryty"}
                                 </span>
+                                <div className="flex items-center gap-1 ml-2 pl-2 border-l border-gray-300">
+                                  <Eye className="h-4 w-4 text-gray-500" />
+                                  <span className="text-sm text-gray-500">
+                                    {subchapter.viewsCount}
+                                  </span>
+                                </div>
                               </div>
 
                               {/* Możliwość wysyłania pracy */}

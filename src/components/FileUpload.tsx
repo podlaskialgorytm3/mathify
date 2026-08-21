@@ -9,6 +9,8 @@ interface FileUploadProps {
     url: string;
     publicId: string;
     filename: string;
+    existingMaterialId?: string;
+    hashCode?: string;
   }) => void;
   acceptedTypes?: string[];
   maxSize?: number; // w MB
@@ -98,19 +100,53 @@ export default function FileUpload({
         });
       }, 200);
 
-      const response = await fetch("/api/upload", {
+      let response = await fetch("/api/upload", {
         method: "POST",
         body: formData,
       });
 
-      clearInterval(progressInterval);
+      let data = await response.json();
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Błąd podczas uploadu");
+      if (response.status === 409 && data.isDuplicate) {
+        clearInterval(progressInterval);
+        setProgress(0);
+        setUploading(false);
+        
+        // Zapytanie użytkownika o duplikat
+        const useReference = window.confirm(
+          "Czy na pewno chcesz wstawić ten plik? - istnieje on w bazie danych, czy zamiast tego w te miejsce chcesz wstawić referencje?\n\n[OK] - Zgadzam się (Wstaw referencję)\n[Anuluj] - Nie zgadzam się (Wstaw duplikat)"
+        );
+
+        if (useReference) {
+          // Zwróć dane istniejącego materiału, aby rodzic mógł użyć go jako referencji
+          onUploadComplete({
+            url: data.existingMaterial.content,
+            publicId: "", // Brak nowego publicId
+            filename: data.existingMaterial.title,
+            existingMaterialId: data.existingMaterial.id,
+            hashCode: data.existingMaterial.hashCode,
+          });
+          setSelectedFile(null);
+          return;
+        } else {
+          // Wymuś duplikat
+          setUploading(true);
+          formData.append("forceDuplicate", "true");
+          response = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+          });
+          data = await response.json();
+          if (!response.ok) {
+            throw new Error(data.error || "Błąd podczas uploadu duplikatu");
+          }
+        }
+      } else if (!response.ok) {
+        clearInterval(progressInterval);
+        throw new Error(data.error || "Błąd podczas uploadu");
       }
 
-      const data = await response.json();
+      clearInterval(progressInterval);
       setProgress(100);
 
       setTimeout(() => {
@@ -118,6 +154,7 @@ export default function FileUpload({
           url: data.url,
           publicId: data.publicId,
           filename: data.filename,
+          hashCode: data.hashCode,
         });
         setSelectedFile(null);
         setUploading(false);

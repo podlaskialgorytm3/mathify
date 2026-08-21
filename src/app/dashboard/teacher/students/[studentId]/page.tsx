@@ -12,10 +12,12 @@ import {
   Mail,
   User,
   GraduationCap,
+  Eye,
 } from "lucide-react";
 
 interface StudentCourse {
   enrolledAt: string;
+  viewsCount?: number;
   course: {
     id: string;
     title: string;
@@ -183,12 +185,20 @@ export default function StudentDetailsPage() {
                         <h3 className="font-semibold">
                           {enrollment.course.title}
                         </h3>
-                        <p className="text-sm text-gray-500">
-                          Zapisany:{" "}
-                          {new Date(enrollment.enrolledAt).toLocaleDateString(
-                            "pl-PL"
+                        <div className="flex items-center gap-4 mt-1">
+                          <p className="text-sm text-gray-500">
+                            Zapisany:{" "}
+                            {new Date(enrollment.enrolledAt).toLocaleDateString(
+                              "pl-PL"
+                            )}
+                          </p>
+                          {enrollment.viewsCount !== undefined && (
+                            <p className="text-sm font-medium text-gray-700 flex items-center gap-1" title="Liczba wyświetlonych materiałów">
+                              <Eye className="w-4 h-4 text-gray-400" />
+                              {enrollment.viewsCount}
+                            </p>
                           )}
-                        </p>
+                        </div>
                       </div>
                     </div>
                     <Button variant="outline" size="sm">

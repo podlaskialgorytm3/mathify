@@ -15,6 +15,7 @@ import {
   UserPlus,
   Award,
   HardDrive,
+  Eye,
 } from "lucide-react";
 
 export default async function DashboardLayout({
@@ -66,6 +67,11 @@ export default async function DashboardLayout({
         name: "Dysk",
         href: "/dashboard/teacher/disk",
         icon: HardDrive,
+      },
+      {
+        name: "Wyświetlenia",
+        href: "/dashboard/teacher/views",
+        icon: Eye,
       },
     ],
     STUDENT: [

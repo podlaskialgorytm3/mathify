@@ -44,16 +44,48 @@ export async function POST(
     }
 
     const body = await request.json();
-    const { title, description, type, content, source } = body;
+    const { title, description, type, content, source, hashCode, existingMaterialId } = body;
 
-    if (!title || !type || !content) {
+    if (existingMaterialId) {
+      const existingLink = await prisma.materialSubchapter.findFirst({
+        where: {
+          materialId: existingMaterialId,
+          subchapterId: subchapterId,
+        }
+      });
+
+      if (existingLink) {
+        return NextResponse.json(
+          { error: "Nie można dodawać drugi raz tego samego materiału do jednego podrozdziału." },
+          { status: 400 }
+        );
+      }
+    } else if (hashCode) {
+      const existingLink = await prisma.materialSubchapter.findFirst({
+        where: {
+          subchapterId: subchapterId,
+          material: {
+            hashCode: hashCode,
+          }
+        }
+      });
+
+      if (existingLink) {
+        return NextResponse.json(
+          { error: "Nie można dodawać drugi raz tego samego materiału do jednego podrozdziału." },
+          { status: 400 }
+        );
+      }
+    }
+
+    if (!existingMaterialId && (!title || !type || !content)) {
       return NextResponse.json(
         { error: "Tytuł, typ i zawartość są wymagane" },
         { status: 400 }
       );
     }
 
-    if (!["PDF", "LINK"].includes(type)) {
+    if (!existingMaterialId && !["PDF", "LINK"].includes(type)) {
       return NextResponse.json(
         { error: "Nieprawidłowy typ materiału" },
         { status: 400 }
@@ -72,26 +104,41 @@ export async function POST(
 
     // Create Material + MaterialSubchapter in a transaction
     const material = await prisma.$transaction(async (tx) => {
-      const newMaterial = await tx.material.create({
-        data: {
-          title,
-          description: description || null,
-          type,
-          content,
-          source: materialSource,
-          ownerId: subchapter.chapter.course.teacherId, // Assign owner to course's original teacher
-        },
-      });
+      let finalMaterial;
+
+      if (existingMaterialId) {
+        // Just link to existing material
+        finalMaterial = await tx.material.findUnique({
+          where: { id: existingMaterialId },
+        });
+
+        if (!finalMaterial) {
+          throw new Error("Wybrany materiał nie istnieje");
+        }
+      } else {
+        // Create new material
+        finalMaterial = await tx.material.create({
+          data: {
+            title,
+            description: description || null,
+            type,
+            content,
+            source: materialSource,
+            ownerId: subchapter.chapter.course.teacherId, // Assign owner to course's original teacher
+            hashCode: hashCode || null,
+          },
+        });
+      }
 
       await tx.materialSubchapter.create({
         data: {
-          materialId: newMaterial.id,
+          materialId: finalMaterial.id,
           subchapterId,
           order,
         },
       });
 
-      return newMaterial;
+      return finalMaterial;
     });
 
     return NextResponse.json({
