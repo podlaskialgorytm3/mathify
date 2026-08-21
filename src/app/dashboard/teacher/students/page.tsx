@@ -18,6 +18,7 @@ import {
   Filter,
   Settings,
 } from "lucide-react";
+import { StudentCard } from "@/components/students/student-card";
 
 interface Student {
   id: string;
@@ -283,45 +284,7 @@ export default function TeacherStudentsPage() {
       ) : (
         <div className="space-y-4">
           {filteredStudents.map((student) => (
-            <Card key={student.id}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
-                        <span className="text-lg font-semibold text-blue-600">
-                          {student.firstName[0]}
-                          {student.lastName[0]}
-                        </span>
-                      </div>
-                      <div>
-                        <CardTitle className="text-xl">
-                          {student.firstName} {student.lastName}
-                        </CardTitle>
-                        <div className="flex items-center gap-3 mt-1">
-                          <p className="text-sm text-gray-600">
-                            @{student.username}
-                          </p>
-                          <span className="text-gray-400">•</span>
-                          {getStatusBadge(student.status)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      router.push(`/dashboard/teacher/students/${student.id}`)
-                    }
-                    className="gap-2"
-                  >
-                    <Settings className="h-4 w-4" />
-                    Zarządzaj widocznością
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
+            <StudentCard key={student.id} student={student}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Contact Info */}
                   <div>
@@ -414,8 +377,7 @@ export default function TeacherStudentsPage() {
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+            </StudentCard>
           ))}
         </div>
       )}
