@@ -37,16 +37,24 @@ export async function POST(req: Request) {
     }
   }
 
-  const document = await prisma.latexDocument.create({
-    data: {
-      title,
-      sourceCode,
-      ownerId: session.user.id,
-      templateId: templateId ?? null,
-    },
-  });
+  try {
+    const document = await prisma.latexDocument.create({
+      data: {
+        title,
+        sourceCode,
+        ownerId: session.user.id,
+        templateId: templateId ?? null,
+      },
+    });
 
-  return Response.json({ document }, { status: 201 });
+    return Response.json({ document }, { status: 201 });
+  } catch (error: any) {
+    console.error("Błąd podczas tworzenia dokumentu LaTeX:", error);
+    return Response.json(
+      { error: "Wystąpił błąd serwera", details: error.message },
+      { status: 500 }
+    );
+  }
 }
 
 // GET /api/teacher/latex-documents — list all documents for the current teacher
