@@ -1,6 +1,6 @@
 FROM node:20-alpine
 
-RUN apk add --no-cache libc6-compat openssl
+RUN apk add --no-cache libc6-compat openssl curl tectonic
 
 WORKDIR /app
 
