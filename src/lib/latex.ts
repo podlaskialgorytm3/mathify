@@ -7,7 +7,11 @@ import { promisify } from "util";
 const execFileAsync = promisify(execFile);
 
 const LATEX_JOB_DIR = "/tmp/latex-jobs";
-const COMPILE_TIMEOUT_MS = 15_000; // 15 seconds
+// Persistent cache shared across all jobs — tectonic downloads packages once and reuses them.
+// This directory survives between compilations (only cleared on container restart).
+const TECTONIC_CACHE_DIR = process.env.TECTONIC_CACHE_DIR ?? "/tmp/tectonic-cache";
+// 120s to handle first-run package downloads; subsequent runs are <5s from cache.
+const COMPILE_TIMEOUT_MS = 120_000;
 
 /**
  * Compiles a LaTeX source string to a PDF buffer.
@@ -54,8 +58,9 @@ export async function compileLatex(sourceCode: string): Promise<Buffer> {
           maxBuffer: 10 * 1024 * 1024, // 10 MB max output buffer
           env: {
             ...process.env,
-            // Restrict tectonic cache to our job dir to avoid cross-job contamination
-            XDG_CACHE_HOME: join(jobDir, ".cache"),
+            // Use a shared persistent cache so tectonic packages are downloaded only once.
+            // Each job still gets an isolated working directory for source/output files.
+            XDG_CACHE_HOME: TECTONIC_CACHE_DIR,
           },
         }
       );
