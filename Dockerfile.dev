@@ -15,4 +15,5 @@ RUN npx prisma generate
 
 # Expose port and start development server
 EXPOSE 3000
-CMD ["npm", "run", "dev"]
+# Re-generate Prisma client on every start to pick up schema changes without image rebuild
+CMD sh -c "npx prisma generate && npm run dev"
