@@ -6,7 +6,14 @@ import { z } from "zod";
 
 const publishSchema = z.object({
   subchapterId: z.string().cuid().optional(), // required only for first publish (when materialId is null)
-  title: z.string().min(1).max(200),
+  title: z
+    .string()
+    .min(1, "Tytuł nie może być pusty")
+    .max(200, "Tytuł może mieć maksymalnie 200 znaków")
+    .regex(
+      /^[^-\\/:|*?"<>\x00]+$/,
+      'Tytuł zawiera niedozwolone znaki. Nie używaj myślnika (-) ani znaków: \\ / : | * ? " < >'
+    ),
 });
 
 // POST /api/teacher/latex-documents/[id]/publish

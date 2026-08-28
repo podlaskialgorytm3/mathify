@@ -46,6 +46,27 @@ interface PublishDialogProps {
   onClose: () => void;
 }
 
+/**
+ * Characters that are illegal in file names on both Windows and Linux,
+ * plus the hyphen "-" which the user explicitly wants to forbid.
+ * Windows forbidden: \ / : * ? " < > |
+ * Linux forbidden:   / and null byte
+ * Extra:             - (hyphen)
+ */
+const INVALID_FILENAME_CHARS = /[-\\/:|*?"<>\x00]/;
+
+function getTitleError(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return "Tytuł nie może być pusty.";
+  const match = trimmed.match(/[-\\/:|*?"<>\x00]/g);
+  if (match) {
+    const unique = [...new Set(match)].map((c) => `„${c === "\x00" ? "NUL" : c}”`).join(", ");
+    return `Niedozwolone znaki: ${unique}. Nie używaj myślnika (-) ani znaków specjalnych.`;
+  }
+  if (trimmed.length > 200) return "Tytuł może mieć maksymalnie 200 znaków.";
+  return null;
+}
+
 function PublishDialog({
   documentId,
   subchapterId,
@@ -55,6 +76,9 @@ function PublishDialog({
   onClose,
 }: PublishDialogProps) {
   const [title, setTitle] = useState(currentTitle);
+  const [titleError, setTitleError] = useState<string | null>(
+    () => getTitleError(currentTitle)
+  );
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -145,7 +169,8 @@ function PublishDialog({
 
   // ── Publish ─────────────────────────────────────────────────────────────────
   const handlePublish = async () => {
-    if (!title.trim()) { setError("Podaj tytuł materiału"); return; }
+    const titleErr = getTitleError(title);
+    if (titleErr) { setError(titleErr); return; }
     if (!hasExistingMaterial && !subchapterId && !selectedSubchapterId) {
       setError("Wybierz kurs, rozdział i podrozdział");
       return;
@@ -178,6 +203,7 @@ function PublishDialog({
   };
 
   const canPublish =
+    !titleError &&
     !!title.trim() &&
     (hasExistingMaterial || !!subchapterId || !!selectedSubchapterId);
 
@@ -207,11 +233,21 @@ function PublishDialog({
             <Input
               id="publish-title"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="np. Funkcje liniowe — teoria"
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setTitleError(getTitleError(e.target.value));
+              }}
+              placeholder="np. Funkcje liniowe teoria"
               disabled={publishing}
-              className="mt-1"
+              className={`mt-1 ${titleError ? "border-red-500 focus-visible:ring-red-500" : ""}`}
             />
+            {titleError ? (
+              <p className="text-xs text-red-500 mt-1">{titleError}</p>
+            ) : (
+              <p className="text-xs text-gray-400 mt-1">
+                Dozwolone: litery, cyfry, spacje, podkreślnik (_), kropka (.). Bez myślnika (-).
+              </p>
+            )}
           </div>
 
           {/* Cascading selects — only for first publish without pre-set subchapterId */}
