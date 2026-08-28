@@ -8,7 +8,27 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, X } from "lucide-react";
+import { Loader2, X, ChevronDown } from "lucide-react";
+
+// ─── Types for cascading course/chapter/subchapter selects ───────────────────
+
+interface CourseOption {
+  id: string;
+  title: string;
+  chapters: ChapterOption[];
+}
+
+interface ChapterOption {
+  id: string;
+  title: string;
+  order: number;
+}
+
+interface SubchapterOption {
+  id: string;
+  title: string;
+  order: number;
+}
 
 interface CompileResult {
   success: boolean;
@@ -35,23 +55,113 @@ function PublishDialog({
   onClose,
 }: PublishDialogProps) {
   const [title, setTitle] = useState(currentTitle);
-  const [subId, setSubId] = useState(subchapterId ?? "");
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ── Cascading selects state ─────────────────────────────────────────────────
+  const [courses, setCourses] = useState<CourseOption[]>([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
+
+  const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [chapters, setChapters] = useState<ChapterOption[]>([]);
+
+  const [selectedChapterId, setSelectedChapterId] = useState("");
+  const [subchapters, setSubchapters] = useState<SubchapterOption[]>([]);
+  const [loadingSubchapters, setLoadingSubchapters] = useState(false);
+
+  const [selectedSubchapterId, setSelectedSubchapterId] = useState(subchapterId ?? "");
+
+  // ── Load courses on mount (only when no pre-set subchapterId) ───────────────
+  useEffect(() => {
+    if (hasExistingMaterial || subchapterId) return;
+
+    const fetchCourses = async () => {
+      setLoadingCourses(true);
+      try {
+        const res = await fetch("/api/teacher/courses");
+        if (res.ok) {
+          const data = await res.json();
+          // courses already include chapters in the list response
+          setCourses(data.courses ?? []);
+        }
+      } catch {
+        // ignore — user will see empty select
+      } finally {
+        setLoadingCourses(false);
+      }
+    };
+    fetchCourses();
+  }, [hasExistingMaterial, subchapterId]);
+
+  // ── When course changes, populate chapters and reset downstream ─────────────
+  useEffect(() => {
+    if (!selectedCourseId) {
+      setChapters([]);
+      setSelectedChapterId("");
+      setSubchapters([]);
+      setSelectedSubchapterId("");
+      return;
+    }
+    const course = courses.find((c) => c.id === selectedCourseId);
+    const sorted = (course?.chapters ?? []).slice().sort((a, b) => a.order - b.order);
+    setChapters(sorted);
+    setSelectedChapterId("");
+    setSubchapters([]);
+    setSelectedSubchapterId("");
+  }, [selectedCourseId, courses]);
+
+  // ── When chapter changes, fetch subchapters ─────────────────────────────────
+  useEffect(() => {
+    if (!selectedChapterId) {
+      setSubchapters([]);
+      setSelectedSubchapterId("");
+      return;
+    }
+
+    const fetchSubchapters = async () => {
+      setLoadingSubchapters(true);
+      setSubchapters([]);
+      setSelectedSubchapterId("");
+      try {
+        const res = await fetch(`/api/teacher/courses/${selectedCourseId}`);
+        if (res.ok) {
+          const data = await res.json();
+          const chapter = (data.course?.chapters ?? []).find(
+            (ch: any) => ch.id === selectedChapterId
+          );
+          const sorted = (chapter?.subchapters ?? []).slice().sort(
+            (a: SubchapterOption, b: SubchapterOption) => a.order - b.order
+          );
+          setSubchapters(sorted);
+        }
+      } catch {
+        // ignore
+      } finally {
+        setLoadingSubchapters(false);
+      }
+    };
+    fetchSubchapters();
+  }, [selectedChapterId, selectedCourseId]);
+
+  // ── Publish ─────────────────────────────────────────────────────────────────
   const handlePublish = async () => {
     if (!title.trim()) { setError("Podaj tytuł materiału"); return; }
-    if (!hasExistingMaterial && !subId.trim()) { setError("Podaj ID podrozdziału"); return; }
+    if (!hasExistingMaterial && !subchapterId && !selectedSubchapterId) {
+      setError("Wybierz kurs, rozdział i podrozdział");
+      return;
+    }
 
     setPublishing(true);
     setError(null);
+
+    const finalSubchapterId = subchapterId || selectedSubchapterId;
 
     const res = await fetch(`/api/teacher/latex-documents/${documentId}/publish`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: title.trim(),
-        subchapterId: hasExistingMaterial ? undefined : subId.trim(),
+        subchapterId: hasExistingMaterial ? undefined : finalSubchapterId,
       }),
     });
 
@@ -67,6 +177,16 @@ function PublishDialog({
     }
   };
 
+  const canPublish =
+    !!title.trim() &&
+    (hasExistingMaterial || !!subchapterId || !!selectedSubchapterId);
+
+  // ── Shared select style ─────────────────────────────────────────────────────
+  const selectCls =
+    "w-full mt-1 rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm" +
+    " focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2" +
+    " disabled:cursor-not-allowed disabled:opacity-50 appearance-none";
+
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[60] p-4">
       <Card className="w-full max-w-md shadow-2xl">
@@ -81,6 +201,7 @@ function PublishDialog({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Title */}
           <div>
             <Label htmlFor="publish-title">Tytuł materiału *</Label>
             <Input
@@ -93,22 +214,84 @@ function PublishDialog({
             />
           </div>
 
-          {/* SubchapterId field — only needed for first publish */}
+          {/* Cascading selects — only for first publish without pre-set subchapterId */}
           {!hasExistingMaterial && !subchapterId && (
-            <div>
-              <Label htmlFor="publish-subchapter">ID podrozdziału *</Label>
-              <Input
-                id="publish-subchapter"
-                value={subId}
-                onChange={(e) => setSubId(e.target.value)}
-                placeholder="cuid podrozdziału"
-                disabled={publishing}
-                className="mt-1"
-              />
-              <p className="text-xs text-gray-500 mt-1">
-                Dokument zostanie przypisany do tego podrozdziału.
-              </p>
-            </div>
+            <>
+              {/* Course */}
+              <div>
+                <Label htmlFor="publish-course">Kurs *</Label>
+                <div className="relative">
+                  <select
+                    id="publish-course"
+                    value={selectedCourseId}
+                    onChange={(e) => setSelectedCourseId(e.target.value)}
+                    disabled={publishing || loadingCourses}
+                    className={selectCls}
+                  >
+                    <option value="">
+                      {loadingCourses ? "Ładowanie kursów…" : "— Wybierz kurs —"}
+                    </option>
+                    {courses.map((c) => (
+                      <option key={c.id} value={c.id}>{c.title}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                </div>
+              </div>
+
+              {/* Chapter */}
+              <div>
+                <Label htmlFor="publish-chapter">Rozdział *</Label>
+                <div className="relative">
+                  <select
+                    id="publish-chapter"
+                    value={selectedChapterId}
+                    onChange={(e) => setSelectedChapterId(e.target.value)}
+                    disabled={publishing || !selectedCourseId}
+                    className={selectCls}
+                  >
+                    <option value="">
+                      {!selectedCourseId ? "Najpierw wybierz kurs" : "— Wybierz rozdział —"}
+                    </option>
+                    {chapters.map((ch) => (
+                      <option key={ch.id} value={ch.id}>{ch.title}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                </div>
+              </div>
+
+              {/* Subchapter */}
+              <div>
+                <Label htmlFor="publish-subchapter">Podrozdział *</Label>
+                <div className="relative">
+                  <select
+                    id="publish-subchapter"
+                    value={selectedSubchapterId}
+                    onChange={(e) => setSelectedSubchapterId(e.target.value)}
+                    disabled={publishing || !selectedChapterId || loadingSubchapters}
+                    className={selectCls}
+                  >
+                    <option value="">
+                      {loadingSubchapters
+                        ? "Ładowanie podrozdziałów…"
+                        : !selectedChapterId
+                        ? "Najpierw wybierz rozdział"
+                        : subchapters.length === 0
+                        ? "Brak podrozdziałów w tym rozdziale"
+                        : "— Wybierz podrozdział —"}
+                    </option>
+                    {subchapters.map((s) => (
+                      <option key={s.id} value={s.id}>{s.title}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  Materiał zostanie przypisany do wybranego podrozdziału.
+                </p>
+              </div>
+            </>
           )}
 
           {error && (
@@ -124,7 +307,7 @@ function PublishDialog({
             <Button
               id="publish-dialog-confirm"
               onClick={handlePublish}
-              disabled={publishing || !title.trim()}
+              disabled={publishing || !canPublish}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               {publishing ? (
