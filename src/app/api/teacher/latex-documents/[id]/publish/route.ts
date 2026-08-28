@@ -95,10 +95,17 @@ export async function POST(
       // ── EDIT: update existing Material, replace PDF file ──
       const oldContent = doc.material.content;
 
-      await prisma.material.update({
-        where: { id: doc.materialId },
-        data: { title, content: newUrl },
-      });
+      // Update material title + content, and sync the LatexDocument title
+      await prisma.$transaction([
+        prisma.material.update({
+          where: { id: doc.materialId },
+          data: { title, content: newUrl },
+        }),
+        prisma.latexDocument.update({
+          where: { id: doc.id },
+          data: { title },
+        }),
+      ]);
 
       // Delete old file from Cloudinary only AFTER successful update
       // (so we never end up with a Material pointing to a deleted file)
@@ -146,10 +153,10 @@ export async function POST(
           },
         });
 
-        // Link LatexDocument to Material (1:1)
+        // Link LatexDocument to Material (1:1) and sync its title
         await tx.latexDocument.update({
           where: { id: doc.id },
-          data: { materialId: material.id },
+          data: { materialId: material.id, title },
         });
 
         return material;

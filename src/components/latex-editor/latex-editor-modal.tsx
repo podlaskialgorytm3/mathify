@@ -42,7 +42,7 @@ interface PublishDialogProps {
   subchapterId?: string;           // pre-set when opened from "Dodaj Materiał"
   hasExistingMaterial: boolean;
   currentTitle: string;
-  onPublished: (pdfUrl: string) => void;
+  onPublished: (pdfUrl: string, newTitle: string) => void;
   onClose: () => void;
 }
 
@@ -169,7 +169,7 @@ function PublishDialog({
     setPublishing(false);
 
     if (res.ok) {
-      onPublished(data.pdfUrl);
+      onPublished(data.pdfUrl, title.trim());
     } else if (data.log) {
       setError(`Błąd kompilacji:\n${data.log}`);
     } else {
@@ -488,9 +488,10 @@ export function LatexEditorModal({
   };
 
   // ── After publish ─────────────────────────────────────────────────────────
-  const handlePublished = (pdfUrl: string) => {
+  const handlePublished = (pdfUrl: string, newTitle: string) => {
     setShowPublishDialog(false);
     setHasExistingMaterial(true);
+    setDocumentTitle(newTitle);   // ← sync toolbar title immediately
     onPublished?.(pdfUrl);
     onClose();
   };
