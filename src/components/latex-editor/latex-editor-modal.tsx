@@ -1,5 +1,6 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { LatexCodePanel } from "./latex-code-panel";
 import { LatexPreviewPanel } from "./latex-preview-panel";
@@ -39,7 +40,7 @@ interface CompileResult {
 
 interface PublishDialogProps {
   documentId: string;
-  subchapterId?: string;           // pre-set when opened from "Dodaj Materiał"
+  subchapterId?: string; // pre-set when opened from "Dodaj Materiał"
   hasExistingMaterial: boolean;
   currentTitle: string;
   onPublished: (pdfUrl: string, newTitle: string) => void;
@@ -60,7 +61,9 @@ function getTitleError(value: string): string | null {
   if (!trimmed) return "Tytuł nie może być pusty.";
   const match = trimmed.match(/[-\\/:|*?"<>\x00]/g);
   if (match) {
-    const unique = [...new Set(match)].map((c) => `„${c === "\x00" ? "NUL" : c}”`).join(", ");
+    const unique = [...new Set(match)]
+      .map((c) => `„${c === "\x00" ? "NUL" : c}”`)
+      .join(", ");
     return `Niedozwolone znaki: ${unique}. Nie używaj myślnika (-) ani znaków specjalnych.`;
   }
   if (trimmed.length > 200) return "Tytuł może mieć maksymalnie 200 znaków.";
@@ -76,8 +79,8 @@ function PublishDialog({
   onClose,
 }: PublishDialogProps) {
   const [title, setTitle] = useState(currentTitle);
-  const [titleError, setTitleError] = useState<string | null>(
-    () => getTitleError(currentTitle)
+  const [titleError, setTitleError] = useState<string | null>(() =>
+    getTitleError(currentTitle),
   );
   const [publishing, setPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -93,7 +96,9 @@ function PublishDialog({
   const [subchapters, setSubchapters] = useState<SubchapterOption[]>([]);
   const [loadingSubchapters, setLoadingSubchapters] = useState(false);
 
-  const [selectedSubchapterId, setSelectedSubchapterId] = useState(subchapterId ?? "");
+  const [selectedSubchapterId, setSelectedSubchapterId] = useState(
+    subchapterId ?? "",
+  );
 
   // ── Load courses on mount (only when no pre-set subchapterId) ───────────────
   useEffect(() => {
@@ -127,7 +132,9 @@ function PublishDialog({
       return;
     }
     const course = courses.find((c) => c.id === selectedCourseId);
-    const sorted = (course?.chapters ?? []).slice().sort((a, b) => a.order - b.order);
+    const sorted = (course?.chapters ?? [])
+      .slice()
+      .sort((a, b) => a.order - b.order);
     setChapters(sorted);
     setSelectedChapterId("");
     setSubchapters([]);
@@ -151,11 +158,13 @@ function PublishDialog({
         if (res.ok) {
           const data = await res.json();
           const chapter = (data.course?.chapters ?? []).find(
-            (ch: any) => ch.id === selectedChapterId
+            (ch: any) => ch.id === selectedChapterId,
           );
-          const sorted = (chapter?.subchapters ?? []).slice().sort(
-            (a: SubchapterOption, b: SubchapterOption) => a.order - b.order
-          );
+          const sorted = (chapter?.subchapters ?? [])
+            .slice()
+            .sort(
+              (a: SubchapterOption, b: SubchapterOption) => a.order - b.order,
+            );
           setSubchapters(sorted);
         }
       } catch {
@@ -170,7 +179,10 @@ function PublishDialog({
   // ── Publish ─────────────────────────────────────────────────────────────────
   const handlePublish = async () => {
     const titleErr = getTitleError(title);
-    if (titleErr) { setError(titleErr); return; }
+    if (titleErr) {
+      setError(titleErr);
+      return;
+    }
     if (!hasExistingMaterial && !subchapterId && !selectedSubchapterId) {
       setError("Wybierz kurs, rozdział i podrozdział");
       return;
@@ -181,14 +193,17 @@ function PublishDialog({
 
     const finalSubchapterId = subchapterId || selectedSubchapterId;
 
-    const res = await fetch(`/api/teacher/latex-documents/${documentId}/publish`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: title.trim(),
-        subchapterId: hasExistingMaterial ? undefined : finalSubchapterId,
-      }),
-    });
+    const res = await fetch(
+      `/api/teacher/latex-documents/${documentId}/publish`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          subchapterId: hasExistingMaterial ? undefined : finalSubchapterId,
+        }),
+      },
+    );
 
     const data = await res.json();
     setPublishing(false);
@@ -214,14 +229,21 @@ function PublishDialog({
     " disabled:cursor-not-allowed disabled:opacity-50 appearance-none";
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-modal p-4">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-modal p-4 w-full h-full overflow-auto">
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle className="text-base">
-              {hasExistingMaterial ? "Aktualizuj materiał PDF" : "Publikuj jako nowy materiał"}
+              {hasExistingMaterial
+                ? "Aktualizuj materiał PDF"
+                : "Publikuj jako nowy materiał"}
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={onClose} disabled={publishing}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              disabled={publishing}
+            >
               <X className="w-4 h-4" />
             </Button>
           </div>
@@ -245,7 +267,8 @@ function PublishDialog({
               <p className="text-xs text-red-500 mt-1">{titleError}</p>
             ) : (
               <p className="text-xs text-gray-400 mt-1">
-                Dozwolone: litery, cyfry, spacje, podkreślnik (_), kropka (.). Bez myślnika (-).
+                Dozwolone: litery, cyfry, spacje, podkreślnik (_), kropka (.).
+                Bez myślnika (-).
               </p>
             )}
           </div>
@@ -265,10 +288,14 @@ function PublishDialog({
                     className={selectCls}
                   >
                     <option value="">
-                      {loadingCourses ? "Ładowanie kursów…" : "— Wybierz kurs —"}
+                      {loadingCourses
+                        ? "Ładowanie kursów…"
+                        : "— Wybierz kurs —"}
                     </option>
                     {courses.map((c) => (
-                      <option key={c.id} value={c.id}>{c.title}</option>
+                      <option key={c.id} value={c.id}>
+                        {c.title}
+                      </option>
                     ))}
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -287,10 +314,14 @@ function PublishDialog({
                     className={selectCls}
                   >
                     <option value="">
-                      {!selectedCourseId ? "Najpierw wybierz kurs" : "— Wybierz rozdział —"}
+                      {!selectedCourseId
+                        ? "Najpierw wybierz kurs"
+                        : "— Wybierz rozdział —"}
                     </option>
                     {chapters.map((ch) => (
-                      <option key={ch.id} value={ch.id}>{ch.title}</option>
+                      <option key={ch.id} value={ch.id}>
+                        {ch.title}
+                      </option>
                     ))}
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -305,20 +336,24 @@ function PublishDialog({
                     id="publish-subchapter"
                     value={selectedSubchapterId}
                     onChange={(e) => setSelectedSubchapterId(e.target.value)}
-                    disabled={publishing || !selectedChapterId || loadingSubchapters}
+                    disabled={
+                      publishing || !selectedChapterId || loadingSubchapters
+                    }
                     className={selectCls}
                   >
                     <option value="">
                       {loadingSubchapters
                         ? "Ładowanie podrozdziałów…"
                         : !selectedChapterId
-                        ? "Najpierw wybierz rozdział"
-                        : subchapters.length === 0
-                        ? "Brak podrozdziałów w tym rozdziale"
-                        : "— Wybierz podrozdział —"}
+                          ? "Najpierw wybierz rozdział"
+                          : subchapters.length === 0
+                            ? "Brak podrozdziałów w tym rozdziale"
+                            : "— Wybierz podrozdział —"}
                     </option>
                     {subchapters.map((s) => (
-                      <option key={s.id} value={s.id}>{s.title}</option>
+                      <option key={s.id} value={s.id}>
+                        {s.title}
+                      </option>
                     ))}
                   </select>
                   <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -351,8 +386,10 @@ function PublishDialog({
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                   Kompilowanie i publikowanie...
                 </>
+              ) : hasExistingMaterial ? (
+                "Zaktualizuj PDF"
               ) : (
-                hasExistingMaterial ? "Zaktualizuj PDF" : "Opublikuj"
+                "Opublikuj"
               )}
             </Button>
           </div>
@@ -365,8 +402,8 @@ function PublishDialog({
 // ─── Main Editor Modal ────────────────────────────────────────────────────────
 
 interface LatexEditorModalProps {
-  documentId: string;              // The LatexDocument.id to work with
-  subchapterId?: string;           // Pre-set when opened from "Dodaj Materiał"
+  documentId: string; // The LatexDocument.id to work with
+  subchapterId?: string; // Pre-set when opened from "Dodaj Materiał"
   onClose: () => void;
   onPublished?: (pdfUrl: string) => void;
 }
@@ -400,12 +437,15 @@ export function LatexEditorModal({
   onClose,
   onPublished,
 }: LatexEditorModalProps) {
+  const [isMounted, setIsMounted] = useState(false);
   const [sourceCode, setSourceCode] = useState("");
   const [documentTitle, setDocumentTitle] = useState("");
   const [hasExistingMaterial, setHasExistingMaterial] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const [compileResult, setCompileResult] = useState<CompileResult | null>(null);
+  const [compileResult, setCompileResult] = useState<CompileResult | null>(
+    null,
+  );
   const [isCompiling, setIsCompiling] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [showPublishDialog, setShowPublishDialog] = useState(false);
@@ -413,6 +453,10 @@ export function LatexEditorModal({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const savedCodeRef = useRef<string>("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   // ── Load document on mount ──────────────────────────────────────────────────
   useEffect(() => {
@@ -439,29 +483,35 @@ export function LatexEditorModal({
   }, [sourceCode]);
 
   // ── Compile (live preview) ─────────────────────────────────────────────────
-  const compile = useCallback(async (code?: string) => {
-    setIsCompiling(true);
-    setCompileResult(null);
+  const compile = useCallback(
+    async (code?: string) => {
+      setIsCompiling(true);
+      setCompileResult(null);
 
-    const res = await fetch(`/api/teacher/latex-documents/${documentId}/compile`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sourceCode: code ?? sourceCode }),
-    });
+      const res = await fetch(
+        `/api/teacher/latex-documents/${documentId}/compile`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sourceCode: code ?? sourceCode }),
+        },
+      );
 
-    const data = await res.json();
-    setIsCompiling(false);
+      const data = await res.json();
+      setIsCompiling(false);
 
-    if (res.ok && data.success) {
-      setCompileResult({ success: true, pdfBase64: data.pdfBase64 });
-    } else {
-      setCompileResult({
-        success: false,
-        error: data.error ?? "Błąd kompilacji",
-        log: data.log ?? "",
-      });
-    }
-  }, [documentId, sourceCode]);
+      if (res.ok && data.success) {
+        setCompileResult({ success: true, pdfBase64: data.pdfBase64 });
+      } else {
+        setCompileResult({
+          success: false,
+          error: data.error ?? "Błąd kompilacji",
+          log: data.log ?? "",
+        });
+      }
+    },
+    [documentId, sourceCode],
+  );
 
   // ── Save (PUT) + compile ───────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
@@ -489,17 +539,20 @@ export function LatexEditorModal({
   }, [documentId, sourceCode, compile]);
 
   // ── Debounced auto-compile after 2s of inactivity ─────────────────────────
-  const handleCodeChange = useCallback((newCode: string) => {
-    setSourceCode(newCode);
+  const handleCodeChange = useCallback(
+    (newCode: string) => {
+      setSourceCode(newCode);
 
-    if (debounceRef.current) {
-      clearTimeout(debounceRef.current);
-    }
-    // Auto-compile after 2s of no typing (does NOT auto-save)
-    debounceRef.current = setTimeout(() => {
-      compile(newCode);
-    }, 2000);
-  }, [compile]);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      // Auto-compile after 2s of no typing (does NOT auto-save)
+      debounceRef.current = setTimeout(() => {
+        compile(newCode);
+      }, 2000);
+    },
+    [compile],
+  );
 
   // ── Keyboard shortcut Ctrl+S ───────────────────────────────────────────────
   useEffect(() => {
@@ -516,7 +569,11 @@ export function LatexEditorModal({
   // ── Close with unsaved changes warning ────────────────────────────────────
   const handleClose = () => {
     if (hasUnsavedChanges) {
-      if (!window.confirm("Masz niezapisane zmiany. Czy na pewno chcesz zamknąć edytor?")) {
+      if (
+        !window.confirm(
+          "Masz niezapisane zmiany. Czy na pewno chcesz zamknąć edytor?",
+        )
+      ) {
         return;
       }
     }
@@ -527,28 +584,33 @@ export function LatexEditorModal({
   const handlePublished = (pdfUrl: string, newTitle: string) => {
     setShowPublishDialog(false);
     setHasExistingMaterial(true);
-    setDocumentTitle(newTitle);   // ← sync toolbar title immediately
+    setDocumentTitle(newTitle); // ← sync toolbar title immediately
     onPublished?.(pdfUrl);
     onClose();
   };
 
   // ─────────────────────────────────────────────────────────────────────────
 
+  if (!isMounted) {
+    return null;
+  }
+
   if (loading) {
-    return (
-      <div className="fixed inset-0 bg-gray-950 flex items-center justify-center z-modal">
+    return createPortal(
+      <div className="fixed inset-0 z-modal h-screen w-screen overflow-hidden bg-gray-950 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4 text-gray-300">
           <Loader2 className="w-10 h-10 animate-spin text-blue-400" />
           <p className="text-sm">Ładowanie dokumentu...</p>
         </div>
-      </div>
+      </div>,
+      document.body,
     );
   }
 
-  return (
+  return createPortal(
     <>
       {/* Full-screen editor */}
-      <div className="fixed inset-0 bg-gray-950 flex flex-col z-modal">
+      <div className="fixed inset-0 z-modal h-screen w-screen overflow-hidden bg-gray-950 flex flex-col">
         {/* Toolbar */}
         <LatexToolbar
           documentTitle={documentTitle}
@@ -593,7 +655,7 @@ export function LatexEditorModal({
           onClose={() => setShowPublishDialog(false)}
         />
       )}
-    </>
+    </>,
+    document.body,
   );
 }
-
