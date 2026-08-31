@@ -7,7 +7,7 @@ import {
 } from "@/lib/student-analytics";
 import { handleStudentStatisticsRequest } from "@/lib/student-analytics/request";
 
-/** Mapa mocnych i słabych stron — agregacja per rozdział. */
+/** Mapa mocnych i słabych stron: agregacja per rozdział. */
 export async function GET(request: NextRequest) {
   return handleStudentStatisticsRequest(request, (data) => {
     const chapters = aggregateByChapter(data.submissions);

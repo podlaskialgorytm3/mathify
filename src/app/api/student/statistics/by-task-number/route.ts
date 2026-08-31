@@ -6,7 +6,7 @@ import {
 } from "@/lib/student-analytics";
 import { handleStudentStatisticsRequest } from "@/lib/student-analytics/request";
 
-/** Profil „zadanie po zadaniu" — skuteczność wg numeru zadania. */
+/** Profil „zadanie po zadaniu”: skuteczność wg numeru zadania. */
 export async function GET(request: NextRequest) {
   return handleStudentStatisticsRequest(request, (data) => {
     const positions = aggregateByTaskNumber(data.submissions);

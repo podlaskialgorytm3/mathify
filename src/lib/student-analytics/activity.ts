@@ -16,7 +16,7 @@ export function toDateKey(date: Date | string): string {
 /**
  * Heatmapa kalendarzowa i miary rytmu pracy.
  *
- * Uwaga: to są miary **motywacyjne**, nie oceniające — nie mieszamy ich
+ * Uwaga: to są miary **motywacyjne**, nie oceniające. Nie mieszamy ich
  * do średniej wyników i nie robimy z nich kar.
  */
 export function buildActivitySummary(

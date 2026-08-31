@@ -5,7 +5,7 @@ import {
 import { getGradedSubmissions, roundTo, submissionPercentage } from "./scoring";
 import type { AnalyticsSubmission, TrendPoint, TrendSummary } from "./types";
 
-/** Średnia krocząca — wygładza pojedynczą słabą pracę psującą obraz trendu. */
+/** Średnia krocząca, która wygładza pojedynczą słabą pracę psującą obraz trendu. */
 export function movingAverage(
   values: number[],
   window: number = MOVING_AVERAGE_WINDOW
@@ -80,7 +80,7 @@ export function describeTrend(
       direction: "down",
       message: `Twoje wyniki spadają średnio o ${Math.abs(
         rounded
-      )} p.p. na pracę — to dobry moment, żeby wrócić do materiałów.`,
+      )} p.p. na pracę. To dobry moment, żeby wrócić do materiałów.`,
       enoughData: true,
     };
   }

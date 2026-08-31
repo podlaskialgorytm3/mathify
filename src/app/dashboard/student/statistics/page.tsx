@@ -207,8 +207,8 @@ export default function StudentStatisticsPage() {
                 </h3>
                 <p className="mt-2 text-gray-500">
                   Statystyki liczymy wyłącznie z prac sprawdzonych przez
-                  nauczyciela — dzięki temu diagnoza opiera się na finalnych
-                  punktach, a nie na wstępnej ocenie AI.
+                  nauczyciela, dzięki czemu diagnoza opiera się na finalnych
+                  punktach.
                 </p>
               </div>
             </div>
@@ -251,15 +251,15 @@ export default function StudentStatisticsPage() {
                 <Card>
                   <CardContent className="space-y-2 pt-6 text-sm text-gray-600">
                     <p>
-                      Nauczyciel skorygował ocenę AI w{" "}
+                      Zestawienie powstało z{" "}
                       <span className="font-semibold">
-                        {overview.teacherEditedTasks}
+                        {overview.totalTasks}
                       </span>{" "}
-                      z {overview.totalTasks} zadań.
+                      sprawdzonych zadań.
                     </p>
                     <p>
-                      Wszystkie statystyki liczymy z punktów finalnych — po
-                      ewentualnej korekcie nauczyciela.
+                      Wszystkie statystyki liczymy z punktów finalnych, czyli
+                      tych, które widzisz przy sprawdzonej pracy.
                     </p>
                   </CardContent>
                 </Card>

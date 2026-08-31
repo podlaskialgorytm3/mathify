@@ -5,7 +5,7 @@ import type { AnalyticsSubmission, MaterialImpactSummary } from "./types";
 /**
  * Wpływ oglądania materiałów na wynik.
  *
- * To jest **korelacja, nie przyczynowość** — i tak jest formułowany komunikat
+ * To jest **korelacja, nie przyczynowość**, i tak jest formułowany komunikat
  * ("prace oddane po obejrzeniu materiałów", a nie "materiały podnoszą wynik").
  */
 export function summarizeMaterialImpact(

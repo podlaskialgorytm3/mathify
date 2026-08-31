@@ -16,8 +16,8 @@ function cellColor(submissions: number): string {
 }
 
 /**
- * Heatmapa kalendarzowa w stylu "GitHub contributions" na własnym gridzie CSS —
- * gotowe biblioteki do tego są ciężkie i nadmiarowe.
+ * Heatmapa kalendarzowa w stylu "GitHub contributions" na własnym gridzie CSS,
+ * bo gotowe biblioteki do tego są ciężkie i nadmiarowe.
  */
 export function ActivityHeatmap({ activity }: Props) {
   const weeks: Array<typeof activity.days> = [];
@@ -34,7 +34,7 @@ export function ActivityHeatmap({ activity }: Props) {
           Rytm pracy
         </CardTitle>
         <p className="text-sm text-gray-500">
-          Kiedy oddajesz prace. To miara motywacyjna — nie wpływa na Twoje
+          Kiedy oddajesz prace. To miara motywacyjna, która nie wpływa na Twoje
           wyniki.
         </p>
       </CardHeader>
@@ -72,7 +72,7 @@ export function ActivityHeatmap({ activity }: Props) {
             <p className="text-gray-500">Średnia przerwa między pracami</p>
             <p className="text-xl font-semibold">
               {activity.averageDaysBetweenSubmissions === null
-                ? "—"
+                ? "brak danych"
                 : `${activity.averageDaysBetweenSubmissions} dni`}
             </p>
           </div>

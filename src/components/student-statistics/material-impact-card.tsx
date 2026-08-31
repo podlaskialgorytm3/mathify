@@ -8,7 +8,7 @@ interface Props {
   impact: MaterialImpactSummary;
 }
 
-/** Wpływ oglądania materiałów na wynik — komunikowany jako korelacja. */
+/** Wpływ oglądania materiałów na wynik, komunikowany jako korelacja. */
 export function MaterialImpactCard({ impact }: Props) {
   return (
     <Card>
@@ -45,7 +45,7 @@ export function MaterialImpactCard({ impact }: Props) {
             </div>
 
             <p className="text-xs text-gray-500">
-              To zestawienie pokazuje zależność, a nie przyczynę — uczniowie,
+              To zestawienie pokazuje zależność, a nie przyczynę. Uczniowie,
               którzy zaglądają do materiałów, zwykle mają też więcej czasu na
               pracę.
             </p>

@@ -5,13 +5,12 @@ import type { AnalyticsSubmission, ErrorCategorySummary } from "./types";
 /**
  * Kategoryzacja błędów na podstawie komentarzy do zadań.
  *
- * Świadoma decyzja: zamiast dodatkowego wywołania AI (drogo, wolno) oraz
- * zamiast nowej kolumny w bazie (wymaga migracji i zmiany promptu),
+ * Świadoma decyzja: zamiast nowej kolumny w bazie (wymaga migracji)
  * klasyfikujemy istniejące komentarze `Task.comment` / `Task.teacherComment`
  * zamkniętą listą reguł słownikowych. Reguły są deterministyczne
  * i w całości pokryte testami.
  *
- * Kolejność ma znaczenie — pierwsza dopasowana reguła wygrywa.
+ * Kolejność ma znaczenie, bo pierwsza dopasowana reguła wygrywa.
  */
 export const ERROR_CATEGORIES: Array<{
   id: string;
@@ -144,9 +143,9 @@ export function getCategoryLabel(categoryId: string): string {
 /**
  * Najczęstsze typy błędów ucznia.
  *
- * Liczymy wyłącznie zadania, w których faktycznie stracono punkty —
- * komentarz do zadania na 100% punktów nie jest opisem błędu.
- * Komentarz nauczyciela ma pierwszeństwo nad komentarzem AI.
+ * Liczymy wyłącznie zadania, w których faktycznie stracono punkty,
+ * bo komentarz do zadania na 100% punktów nie jest opisem błędu.
+ * Komentarz nauczyciela ma pierwszeństwo nad komentarzem ogólnym.
  */
 export function summarizeErrorCategories(
   submissions: AnalyticsSubmission[],

@@ -47,7 +47,6 @@ function mockSubmissionRow(overrides: Record<string, unknown> = {}) {
         maxPoints: 4,
         comment: "Źle policzona delta",
         teacherComment: null,
-        teacherEdited: false,
       },
     ],
     review: { approved: true, reviewedAt: new Date("2025-01-11T10:00:00.000Z") },

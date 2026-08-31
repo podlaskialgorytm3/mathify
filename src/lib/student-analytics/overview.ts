@@ -22,13 +22,12 @@ export interface StatisticsOverview {
   totalTasks: number;
   perfectTasks: number;
   weakTasks: number;
-  teacherEditedTasks: number;
   currentStreak: number;
   trend: TrendSummary;
   trendPoints: TrendPoint[];
 }
 
-/** Zestaw KPI + trend — fundament panelu, liczony po stronie serwera. */
+/** Zestaw KPI + trend: fundament panelu, liczony po stronie serwera. */
 export function buildOverview(
   submissions: AnalyticsSubmission[],
   now: Date = new Date()
@@ -58,7 +57,6 @@ export function buildOverview(
     totalTasks: allTasks.length,
     perfectTasks: allTasks.filter(isPerfectTask).length,
     weakTasks: allTasks.filter(isWeakTask).length,
-    teacherEditedTasks: allTasks.filter((task) => task.teacherEdited).length,
     currentStreak: activity.currentStreak,
     trend,
     trendPoints,

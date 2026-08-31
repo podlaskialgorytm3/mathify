@@ -9,7 +9,7 @@ interface Props {
   chapters: ChapterPerformance[];
 }
 
-/** Paleta stonowana — celowo bez ściany czerwieni. */
+/** Paleta stonowana, celowo bez ściany czerwieni. */
 function barColor(percentage: number): string {
   if (percentage >= 85) return "bg-emerald-500";
   if (percentage >= 70) return "bg-sky-500";
@@ -75,7 +75,7 @@ export function WeaknessList({ chapters }: Props) {
                     href={`/dashboard/student/courses/${chapter.courseId}/subchapters/${subchapter.subchapterId}`}
                     className="rounded-full border border-gray-200 px-3 py-1 text-xs text-gray-700 hover:border-sky-300 hover:text-sky-700"
                   >
-                    {subchapter.subchapterTitle} — {subchapter.percentage}%
+                    {subchapter.subchapterTitle}: {subchapter.percentage}%
                   </Link>
                 ))}
               </div>

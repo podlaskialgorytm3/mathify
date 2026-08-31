@@ -36,7 +36,6 @@ function task(overrides: Partial<AnalyticsTask> = {}): AnalyticsTask {
     maxPoints: 2,
     comment: null,
     teacherComment: null,
-    teacherEdited: false,
     ...overrides,
   };
 }
@@ -491,7 +490,6 @@ describe("student-analytics / overview", () => {
               taskNumber: 2,
               pointsEarned: 1,
               maxPoints: 4,
-              teacherEdited: true,
             }),
           ],
         }),
@@ -515,7 +513,6 @@ describe("student-analytics / overview", () => {
     expect(overview.totalTasks).toBe(2);
     expect(overview.perfectTasks).toBe(1);
     expect(overview.weakTasks).toBe(1);
-    expect(overview.teacherEditedTasks).toBe(1);
     expect(overview.trend.enoughData).toBe(false);
   });
 

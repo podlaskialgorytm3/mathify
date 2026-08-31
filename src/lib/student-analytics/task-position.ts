@@ -3,7 +3,7 @@ import { getGradedSubmissions, roundTo, toPercentage } from "./scoring";
 import type { AnalyticsSubmission, TaskPositionPerformance } from "./types";
 
 /**
- * Profil „zadanie po zadaniu" — skuteczność wg pozycji zadania w pracy.
+ * Profil „zadanie po zadaniu”: skuteczność wg pozycji zadania w pracy.
  * Ujawnia wzorzec, którego nie widać w średniej pracy: np. opadanie
  * skuteczności na końcowych zadaniach.
  */

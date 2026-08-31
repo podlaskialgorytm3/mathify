@@ -47,7 +47,7 @@ export function StatsKpiRow({ overview }: Props) {
               ? `${overview.trend.slopePerSubmission > 0 ? "+" : ""}${
                   overview.trend.slopePerSubmission
                 } p.p.`
-              : "—"}
+              : "brak danych"}
           </div>
           <p className="text-xs text-gray-500 mt-1">{overview.trend.message}</p>
         </CardContent>

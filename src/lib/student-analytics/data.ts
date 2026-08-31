@@ -11,7 +11,7 @@ export interface StatisticsQuery {
 /**
  * Parsuje parametry zapytania statystyk.
  *
- * Świadomie NIE przyjmujemy `studentId` — zakres danych zawsze wynika
+ * Świadomie NIE przyjmujemy `studentId`, bo zakres danych zawsze wynika
  * z sesji, inaczej endpointy stałyby się prostą drogą do wycieku
  * wyników innych uczniów.
  */
@@ -52,7 +52,7 @@ export interface StudentAnalyticsData {
 
 /**
  * Pobiera i normalizuje dane potrzebne do wszystkich statystyk ucznia.
- * Liczenie odbywa się na serwerze — przeglądarka dostaje gotowe agregaty.
+ * Liczenie odbywa się na serwerze, a przeglądarka dostaje gotowe agregaty.
  */
 export async function getStudentAnalyticsData(
   studentId: string,
@@ -94,7 +94,6 @@ export async function getStudentAnalyticsData(
           maxPoints: true,
           comment: true,
           teacherComment: true,
-          teacherEdited: true,
         },
         orderBy: { taskNumber: "asc" },
       },
@@ -132,7 +131,6 @@ export async function getStudentAnalyticsData(
         maxPoints: task.maxPoints,
         comment: task.comment,
         teacherComment: task.teacherComment,
-        teacherEdited: task.teacherEdited,
       })),
     };
   });

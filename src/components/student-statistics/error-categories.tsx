@@ -38,14 +38,14 @@ export function ErrorCategories({ categories }: Props) {
                   <p className="font-medium text-gray-900">
                     {category.label}{" "}
                     <span className="font-normal text-gray-500">
-                      — {category.occurrences}{" "}
+                      ({category.occurrences}{" "}
                       {category.occurrences === 1 ? "wystąpienie" : "wystąpień"}
-                      , {category.lostPoints} straconych punktów
+                      , {category.lostPoints} straconych punktów)
                     </span>
                   </p>
                   {category.examples[0] && (
                     <p className="text-sm text-gray-500 italic">
-                      „{category.examples[0]}"
+                      „{category.examples[0]}”
                     </p>
                   )}
                 </div>

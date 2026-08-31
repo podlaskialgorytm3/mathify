@@ -9,7 +9,7 @@ interface Props {
   recommendations: Recommendation[];
 }
 
-/** Karta „Co dalej?" — diagnoza, przyczyna i konkretny link do materiałów. */
+/** Karta „Co dalej?”: diagnoza, przyczyna i konkretny link do materiałów. */
 export function NextStepsCard({ recommendations }: Props) {
   return (
     <Card className="border-sky-200 bg-sky-50">

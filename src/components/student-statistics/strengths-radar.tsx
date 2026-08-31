@@ -22,8 +22,8 @@ interface Props {
 
 /**
  * Wykres radarowy per rozdział.
- * Na radarze pokazujemy wyłącznie rozdziały z wiarygodną próbką —
- * wynik z dwóch zadań to szum, nie diagnoza.
+ * Na radarze pokazujemy wyłącznie rozdziały z wiarygodną próbką,
+ * bo wynik z dwóch zadań to szum, a nie diagnoza.
  */
 export function StrengthsRadar({ chapters }: Props) {
   const reliable = chapters.filter((chapter) => chapter.enoughData);

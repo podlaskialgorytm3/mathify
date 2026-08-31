@@ -19,8 +19,8 @@ interface Accumulator {
 }
 
 /**
- * Mapa mocnych i słabych stron — agregacja per rozdział, a nie per praca.
- * Rozdział jest „wystarczająco dobrą" jednostką tematyczną i nie wymaga
+ * Mapa mocnych i słabych stron: agregacja per rozdział, a nie per praca.
+ * Rozdział jest „wystarczająco dobrą” jednostką tematyczną i nie wymaga
  * ręcznego tagowania zadań przez nauczyciela.
  */
 export function aggregateByChapter(
@@ -103,7 +103,7 @@ export function findWeakestChapter(
   );
 }
 
-/** Najmocniejszy rozdział — komunikat rozwojowy potrzebuje też pozytywu. */
+/** Najmocniejszy rozdział, bo komunikat rozwojowy potrzebuje też pozytywu. */
 export function findStrongestChapter(
   chapters: ChapterPerformance[]
 ): ChapterPerformance | null {

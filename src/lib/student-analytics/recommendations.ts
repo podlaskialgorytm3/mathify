@@ -18,10 +18,10 @@ function subchapterHref(courseId: string, subchapterId: string): string {
 }
 
 /**
- * Karta „Co dalej?" — diagnoza → przyczyna → konkretny link.
+ * Karta „Co dalej?”: diagnoza, przyczyna i konkretny link.
  *
- * Język komunikatów jest rozwojowy („tu jest największy potencjał"),
- * a nie oceniający — panel ma motywować, a nie zniechęcać.
+ * Język komunikatów jest rozwojowy („tu jest największy potencjał”),
+ * a nie oceniający, bo panel ma motywować, a nie zniechęcać.
  */
 export function buildRecommendations(
   submissions: AnalyticsSubmission[]
@@ -51,7 +51,7 @@ export function buildRecommendations(
     const links = weakest.weakestSubchapters
       .slice(0, 3)
       .map((subchapter) => ({
-        label: `Wróć do materiałów: „${subchapter.subchapterTitle}" (${subchapter.percentage}%)`,
+        label: `Wróć do materiałów: „${subchapter.subchapterTitle}” (${subchapter.percentage}%)`,
         href: subchapterHref(weakest.courseId, subchapter.subchapterId),
       }));
 
@@ -62,7 +62,7 @@ export function buildRecommendations(
 
     recommendations.push({
       id: "weakest-chapter",
-      title: `Największy potencjał do zysku: „${weakest.chapterTitle}" (${weakest.percentage}%)`,
+      title: `Największy potencjał do zysku: „${weakest.chapterTitle}” (${weakest.percentage}%)`,
       description: `Wynik policzony z ${weakest.taskCount} zadań w ${weakest.submissionCount} pracach.${errorSentence}`,
       links,
     });
@@ -97,7 +97,7 @@ export function buildRecommendations(
     recommendations.push({
       id: "materials",
       title: "Materiały przed pracą robią różnicę",
-      description: `${materialImpact.message} To korelacja, nie gwarancja — ale warto zajrzeć do materiałów przed kolejną pracą.`,
+      description: `${materialImpact.message} To korelacja, nie gwarancja, ale warto zajrzeć do materiałów przed kolejną pracą.`,
       links: [],
     });
   }
@@ -118,7 +118,7 @@ export function buildRecommendations(
       id: "strongest-chapter",
       title: `Twoja mocna strona: „${strongest.chapterTitle}” (${strongest.percentage}%)`,
       description:
-        "Ten dział masz opanowany — problem nie jest „z matmy”, tylko z konkretnym tematem.",
+        "Ten dział masz opanowany, więc problem nie jest „z matmy”, tylko z konkretnym tematem.",
       links: [],
     });
   }

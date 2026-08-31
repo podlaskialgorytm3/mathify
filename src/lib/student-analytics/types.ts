@@ -1,7 +1,7 @@
 /**
  * Znormalizowany model danych wejściowych dla statystyk ucznia.
  *
- * Warstwa obliczeń celowo nie zna Prismy — dzięki temu całą analitykę
+ * Warstwa obliczeń celowo nie zna Prismy, dzięki czemu całą analitykę
  * da się testować bez bazy danych.
  */
 
@@ -11,14 +11,13 @@ export interface AnalyticsTask {
   maxPoints: number;
   comment: string | null;
   teacherComment: string | null;
-  teacherEdited: boolean;
 }
 
 export interface AnalyticsSubmission {
   id: string;
   submittedAt: string;
   reviewedAt: string | null;
-  /** Praca sprawdzona przez nauczyciela — tylko takie dane są podstawą diagnozy. */
+  /** Praca sprawdzona przez nauczyciela: tylko takie dane są podstawą diagnozy. */
   reviewed: boolean;
   approved: boolean | null;
   courseId: string;
