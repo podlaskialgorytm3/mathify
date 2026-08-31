@@ -39,9 +39,9 @@ export function LatexToolbar({
   const isTemplate = entityType === "template";
 
   return (
-    <div className="flex items-center gap-3 px-4 py-2.5 bg-gray-900 border-b border-gray-700 flex-shrink-0">
+    <div className="safe-top safe-x flex items-center gap-2 px-3 py-2.5 sm:gap-3 sm:px-4 bg-gray-900 border-b border-gray-700 flex-shrink-0">
       {/* Logo / icon */}
-      <div className="flex items-center gap-2 mr-2">
+      <div className="flex items-center gap-2 sm:mr-2">
         <FileCode className="w-5 h-5 text-blue-400" />
         <span className="text-sm font-semibold text-white hidden sm:block">
           Edytor LaTeX

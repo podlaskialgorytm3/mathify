@@ -139,9 +139,9 @@ export default function TeacherStudentsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Uczniowie</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl text-gray-900">Uczniowie</h1>
           <p className="text-gray-600 mt-1">
             Zarządzaj uczniami zapisanymi na Twoje kursy
           </p>
@@ -149,7 +149,7 @@ export default function TeacherStudentsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -219,7 +219,7 @@ export default function TeacherStudentsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <Label htmlFor="search">
                 <Search className="w-4 h-4 inline mr-2" />

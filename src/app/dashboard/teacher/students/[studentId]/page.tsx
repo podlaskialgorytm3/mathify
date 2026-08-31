@@ -71,7 +71,7 @@ export default function StudentDetailsPage() {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div>
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-1/4"></div>
           <div className="h-64 bg-gray-200 rounded"></div>
@@ -82,7 +82,7 @@ export default function StudentDetailsPage() {
 
   if (!student) {
     return (
-      <div className="p-8">
+      <div>
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-gray-500">Nie znaleziono ucznia</p>
@@ -93,18 +93,19 @@ export default function StudentDetailsPage() {
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-start gap-3 sm:gap-4">
         <Button
           variant="outline"
           size="icon"
+          className="flex-shrink-0"
           onClick={() => router.push("/dashboard/teacher/students")}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold sm:text-3xl break-words">
             {student.firstName} {student.lastName}
           </h1>
           <p className="text-gray-500">Zarządzaj widocznością kursów</p>
@@ -119,11 +120,13 @@ export default function StudentDetailsPage() {
             Informacje o uczniu
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4">
-          <div className="flex items-center gap-2">
+        <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Mail className="h-4 w-4 text-gray-400" />
             <span className="text-sm text-gray-600">Email:</span>
-            <span className="text-sm font-medium">{student.email}</span>
+            <span className="text-sm font-medium break-all">
+              {student.email}
+            </span>
           </div>
           <div className="flex items-center gap-2">
             <User className="h-4 w-4 text-gray-400" />
@@ -176,16 +179,16 @@ export default function StudentDetailsPage() {
                     )
                   }
                 >
-                  <CardContent className="flex items-center justify-between p-4">
-                    <div className="flex items-center gap-3">
-                      <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="h-12 w-12 flex-shrink-0 bg-blue-100 rounded-lg flex items-center justify-center">
                         <BookOpen className="h-6 w-6 text-blue-600" />
                       </div>
-                      <div>
-                        <h3 className="font-semibold">
+                      <div className="min-w-0">
+                        <h3 className="font-semibold break-words">
                           {enrollment.course.title}
                         </h3>
-                        <div className="flex items-center gap-4 mt-1">
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
                           <p className="text-sm text-gray-500">
                             Zapisany:{" "}
                             {new Date(enrollment.enrolledAt).toLocaleDateString(
@@ -201,7 +204,11 @@ export default function StudentDetailsPage() {
                         </div>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full sm:w-auto flex-shrink-0"
+                    >
                       Zarządzaj widocznością
                     </Button>
                   </CardContent>

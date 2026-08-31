@@ -177,7 +177,7 @@ export default function CourseSubmissionsPage({
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div>
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-1/4"></div>
           <div className="h-64 bg-gray-200 rounded"></div>
@@ -188,7 +188,7 @@ export default function CourseSubmissionsPage({
 
   if (!data) {
     return (
-      <div className="p-8">
+      <div>
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-gray-500">Nie znaleziono danych</p>
@@ -220,32 +220,33 @@ export default function CourseSubmissionsPage({
   );
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-start gap-3 sm:gap-4">
           <Button
             variant="outline"
             size="icon"
+            className="flex-shrink-0"
             onClick={() =>
               router.push(`/dashboard/teacher/courses/${courseId}`)
             }
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Prace domowe</h1>
-            <p className="text-gray-500">{data.course.title}</p>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold sm:text-3xl">Prace domowe</h1>
+            <p className="text-gray-500 break-words">{data.course.title}</p>
           </div>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-5">
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-gray-900">
+              <p className="text-2xl font-bold sm:text-3xl text-gray-900">
                 {data.stats.total}
               </p>
               <p className="text-sm text-gray-500">Wszystkie</p>
@@ -255,7 +256,7 @@ export default function CourseSubmissionsPage({
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-yellow-600">
+              <p className="text-2xl font-bold sm:text-3xl text-yellow-600">
                 {data.stats.pending}
               </p>
               <p className="text-sm text-gray-500">Oczekujące</p>
@@ -265,7 +266,7 @@ export default function CourseSubmissionsPage({
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-blue-600">
+              <p className="text-2xl font-bold sm:text-3xl text-blue-600">
                 {data.stats.reviewing}
               </p>
               <p className="text-sm text-gray-500">Sprawdzane</p>
@@ -275,7 +276,7 @@ export default function CourseSubmissionsPage({
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-green-600">
+              <p className="text-2xl font-bold sm:text-3xl text-green-600">
                 {data.stats.approved}
               </p>
               <p className="text-sm text-gray-500">Zaakceptowane</p>
@@ -285,7 +286,7 @@ export default function CourseSubmissionsPage({
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
-              <p className="text-3xl font-bold text-red-600">
+              <p className="text-2xl font-bold sm:text-3xl text-red-600">
                 {data.stats.rejected}
               </p>
               <p className="text-sm text-gray-500">Odrzucone</p>
@@ -297,9 +298,9 @@ export default function CourseSubmissionsPage({
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="flex gap-4 items-center">
-            <Filter className="h-5 w-5 text-gray-500" />
-            <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+            <Filter className="h-5 w-5 text-gray-500 flex-shrink-0" />
+            <div className="flex-1 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="text-sm font-medium text-gray-700 mb-2 block">
                   Status
@@ -359,12 +360,12 @@ export default function CourseSubmissionsPage({
               className="hover:shadow-md transition-shadow"
             >
               <CardContent className="pt-6">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1 space-y-3">
+                <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="flex-1 min-w-0 space-y-3">
                     {/* Student and Subchapter */}
                     <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-lg font-semibold text-gray-900">
+                      <div className="flex flex-wrap items-center gap-2 mb-1">
+                        <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                           {submission.student.firstName}{" "}
                           {submission.student.lastName}
                         </h3>
@@ -385,10 +386,10 @@ export default function CourseSubmissionsPage({
                     </div>
 
                     {/* File Info */}
-                    <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                      <FileText className="h-5 w-5 text-gray-600" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-900">
+                    <div className="flex flex-col gap-3 p-3 bg-gray-50 rounded-lg sm:flex-row sm:items-center">
+                      <FileText className="h-5 w-5 text-gray-600 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 break-words">
                           {submission.fileName}
                         </p>
                         <p className="text-xs text-gray-500">
@@ -411,7 +412,7 @@ export default function CourseSubmissionsPage({
                         onClick={() =>
                           window.open(submission.filePath, "_blank")
                         }
-                        className="gap-2"
+                        className="gap-2 w-full sm:w-auto"
                       >
                         <Download className="h-4 w-4" />
                         Pobierz
@@ -469,12 +470,12 @@ export default function CourseSubmissionsPage({
                   </div>
 
                   {/* Actions */}
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 lg:w-auto">
                     <Button
                       variant="default"
                       size="sm"
                       onClick={() => window.open(submission.filePath, "_blank")}
-                      className="gap-2"
+                      className="gap-2 w-full lg:w-auto"
                     >
                       <Eye className="h-4 w-4" />
                       Zobacz pracę

@@ -371,7 +371,7 @@ function PublishDialog({
             </pre>
           )}
 
-          <div className="flex gap-2 justify-end pt-2">
+          <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
             <Button variant="outline" onClick={onClose} disabled={publishing}>
               Anuluj
             </Button>
@@ -660,9 +660,9 @@ export function LatexEditorModal({
         />
 
         {/* Split editor */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
           {/* Left: code */}
-          <div className="w-1/2 flex flex-col border-r border-gray-700 overflow-hidden">
+          <div className="h-1/2 w-full flex flex-col border-b border-gray-700 overflow-hidden lg:h-full lg:w-1/2 lg:border-b-0 lg:border-r">
             <LatexCodePanel
               ref={codePanelRef}
               value={sourceCode}
@@ -672,7 +672,7 @@ export function LatexEditorModal({
           </div>
 
           {/* Right: preview */}
-          <div className="w-1/2 flex flex-col overflow-hidden">
+          <div className="h-1/2 w-full flex flex-col overflow-hidden lg:h-full lg:w-1/2">
             <LatexPreviewPanel
               compileResult={compileResult}
               isCompiling={isCompiling}

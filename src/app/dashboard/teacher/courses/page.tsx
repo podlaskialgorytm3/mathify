@@ -335,27 +335,30 @@ export default function TeacherCoursesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Moje Kursy</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Moje Kursy</h1>
           <p className="text-gray-600 mt-2">
             Zarządzaj swoimi kursami i materiałami
           </p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
+        <Button
+          className="w-full sm:w-auto"
+          onClick={() => setShowCreateModal(true)}
+        >
           <Plus className="w-4 h-4 mr-2" />
           Nowy Kurs
         </Button>
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Moje kursy</p>
-                <p className="text-3xl font-bold">{courses.length}</p>
+                <p className="text-2xl font-bold sm:text-3xl">{courses.length}</p>
               </div>
               <BookOpen className="w-8 h-8 text-blue-600" />
             </div>
@@ -366,7 +369,7 @@ export default function TeacherCoursesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Rozdziały</p>
-                <p className="text-3xl font-bold">
+                <p className="text-2xl font-bold sm:text-3xl">
                   {courses.reduce((sum, c) => sum + c._count.chapters, 0)}
                 </p>
               </div>
@@ -379,7 +382,7 @@ export default function TeacherCoursesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Podrozdziały</p>
-                <p className="text-3xl font-bold">{getTotalSubchapters()}</p>
+                <p className="text-2xl font-bold sm:text-3xl">{getTotalSubchapters()}</p>
               </div>
               <FileText className="w-8 h-8 text-purple-600" />
             </div>
@@ -390,7 +393,7 @@ export default function TeacherCoursesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Zapisani uczniowie</p>
-                <p className="text-3xl font-bold">
+                <p className="text-2xl font-bold sm:text-3xl">
                   {courses.reduce((sum, c) => sum + c._count.enrollments, 0)}
                 </p>
               </div>
@@ -417,7 +420,7 @@ export default function TeacherCoursesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
           {courses.map((course) => (
             <Card key={course.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
@@ -546,7 +549,7 @@ export default function TeacherCoursesPage() {
 
       {/* Create Course Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal p-4">
           <Card className="w-full max-w-2xl max-h-[90vh] flex flex-col">
             <CardHeader>
               <div className="flex justify-between items-center mb-4">
@@ -661,7 +664,7 @@ export default function TeacherCoursesPage() {
                     )}
                   </div>
 
-                  <div className="flex gap-2 justify-end pt-4">
+                  <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end">
                     <Button type="button" variant="outline" onClick={() => setShowCreateModal(false)}>
                       Anuluj
                     </Button>
@@ -675,7 +678,7 @@ export default function TeacherCoursesPage() {
                       Brak kursów udostępnionych dla Ciebie.
                     </div>
                   ) : (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                       {sharedCourses.map(sc => (
                         <Card key={sc.id}>
                           <CardHeader className="p-4 pb-2">
@@ -719,7 +722,7 @@ export default function TeacherCoursesPage() {
 
       {/* Edit Course Modal */}
       {editingCourse && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal p-4">
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle>Edytuj Kurs</CardTitle>
@@ -817,7 +820,7 @@ export default function TeacherCoursesPage() {
                     )}
                   </div>
                 )}
-                <div className="flex gap-2 justify-end">
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                   <Button
                     type="button"
                     variant="outline"

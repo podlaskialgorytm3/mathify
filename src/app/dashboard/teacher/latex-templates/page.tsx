@@ -103,7 +103,7 @@ export default function LatexTemplatesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <LayoutTemplate className="w-6 h-6 text-blue-600" />
@@ -202,7 +202,7 @@ export default function LatexTemplatesPage() {
                     className="mt-1.5"
                   />
                 </div>
-                <div className="flex gap-2 justify-end pt-2">
+                <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
                   <Button
                     type="button"
                     variant="outline"

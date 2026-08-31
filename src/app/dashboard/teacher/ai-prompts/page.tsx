@@ -219,7 +219,7 @@ export default function AIPromptsPage() {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div>
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-1/4"></div>
           <div className="h-64 bg-gray-200 rounded"></div>
@@ -229,16 +229,16 @@ export default function AIPromptsPage() {
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Ustawienia Zapytań AI</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Ustawienia Zapytań AI</h1>
           <p className="text-gray-600 mt-1">
             Zarządzaj szablonami promptów dla sprawdzania prac domowych
           </p>
         </div>
-        <Button onClick={openCreateModal} className="gap-2">
+        <Button onClick={openCreateModal} className="gap-2 w-full sm:w-auto">
           <Plus className="h-4 w-4" />
           Nowy szablon
         </Button>
@@ -258,7 +258,7 @@ export default function AIPromptsPage() {
               Nazwa pliku PDF z pracą domową, który będzie łączony ze zdjęciami
               przesłanymi przez ucznia
             </p>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <Input
                 id="homework-filename"
                 value={defaultHomeworkFileName}
@@ -293,16 +293,16 @@ export default function AIPromptsPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {(templates || []).map((template) => (
             <Card
               key={template.id}
               className="hover:shadow-lg transition-shadow"
             >
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
+                <CardTitle className="flex items-center justify-between gap-2">
                   <span className="truncate">{template.name}</span>
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 flex-shrink-0">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -348,7 +348,7 @@ export default function AIPromptsPage() {
 
       {/* Create/Edit Modal */}
       <Dialog open={showModal} onOpenChange={setShowModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto scroll-touch">
           <DialogHeader>
             <DialogTitle>
               {editingTemplate ? "Edytuj szablon" : "Nowy szablon"}
@@ -405,7 +405,7 @@ export default function AIPromptsPage() {
                 </Button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <textarea
                     id="prompt"
@@ -413,14 +413,14 @@ export default function AIPromptsPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, prompt: e.target.value })
                     }
-                    className="w-full h-96 p-3 border rounded-md font-mono text-sm"
+                    className="w-full h-64 sm:h-96 p-3 border rounded-md font-mono text-xs sm:text-sm"
                     placeholder="Wpisz instrukcje dla AI w formacie Markdown..."
                     required
                   />
                 </div>
 
                 {showPreview && (
-                  <div className="border rounded-md p-3 h-96 overflow-y-auto bg-gray-50">
+                  <div className="border rounded-md p-3 h-64 sm:h-96 overflow-y-auto scroll-touch bg-gray-50">
                     <div className="prose prose-sm max-w-none">
                       <ReactMarkdown>{formData.prompt}</ReactMarkdown>
                     </div>
@@ -429,7 +429,7 @@ export default function AIPromptsPage() {
               </div>
             </div>
 
-            <div className="flex gap-2 justify-end pt-4">
+            <div className="flex flex-col-reverse gap-2 pt-4 sm:flex-row sm:justify-end">
               <Button
                 type="button"
                 variant="outline"

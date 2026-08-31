@@ -418,9 +418,9 @@ export default function TeacherSubmissionsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Sprawdzanie Prac</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl text-gray-900">Sprawdzanie Prac</h1>
           <p className="text-gray-600 mt-1">
             Przeglądaj i oceniaj prace przesłane przez uczniów
           </p>
@@ -428,7 +428,7 @@ export default function TeacherSubmissionsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-6">
         <Card>
           <CardContent className="pt-6">
             <div className="text-center">
@@ -507,7 +507,7 @@ export default function TeacherSubmissionsPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             <div>
               <Label htmlFor="search">
                 <Search className="w-4 h-4 inline mr-2" />
@@ -611,18 +611,18 @@ export default function TeacherSubmissionsPage() {
             .map((submission) => (
               <Card key={submission.id} className="hover:shadow-md transition">
                 <CardContent className="pt-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-start gap-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-3 sm:gap-4">
                         <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
                           <span className="text-sm font-semibold text-blue-600">
                             {submission.student.firstName[0]}
                             {submission.student.lastName[0]}
                           </span>
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-3 mb-2">
-                            <h3 className="font-semibold text-lg">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-wrap items-center gap-2 mb-2 sm:gap-3">
+                            <h3 className="font-semibold text-base sm:text-lg">
                               {submission.student.firstName}{" "}
                               {submission.student.lastName}
                             </h3>
@@ -671,6 +671,7 @@ export default function TeacherSubmissionsPage() {
                     </div>
                     <Button
                       variant="outline"
+                      className="w-full sm:w-auto"
                       onClick={() => openSubmissionDetails(submission)}
                     >
                       <Eye className="w-4 h-4 mr-2" />
@@ -686,7 +687,7 @@ export default function TeacherSubmissionsPage() {
       {/* Submission Details Modal */}
       {selectedSubmission && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal p-4">
-          <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+          <Card className="w-full max-w-4xl max-h-[90vh] overflow-y-auto scroll-touch">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>Szczegóły pracy</CardTitle>
@@ -703,7 +704,7 @@ export default function TeacherSubmissionsPage() {
               {/* Student Info */}
               <div className="p-4 bg-gray-50 rounded-lg">
                 <h3 className="font-semibold mb-2">Informacje o uczniu</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
                   <div>
                     <p className="text-gray-600">Imię i nazwisko</p>
                     <p className="font-medium">
@@ -742,7 +743,7 @@ export default function TeacherSubmissionsPage() {
                     <p className="text-sm text-gray-600">Nazwa pliku:</p>
                     <p className="font-medium">{selectedSubmission.fileName}</p>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap gap-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -778,7 +779,7 @@ export default function TeacherSubmissionsPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => setShowJsonEditor(true)}
-                      className="gap-2 border-blue-600 text-blue-600 hover:bg-blue-50 ml-auto"
+                      className="gap-2 border-blue-600 text-blue-600 hover:bg-blue-50 sm:ml-auto"
                     >
                       <Bot className="w-4 h-4" />
                       Podejrzyj JSON od AI
@@ -790,7 +791,7 @@ export default function TeacherSubmissionsPage() {
               {/* AI Feedback with Student Score */}
               {selectedSubmission.aiFeedback && (
                 <div className="p-4 bg-blue-50 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                     <div className="flex items-center gap-2">
                       <Bot className="w-5 h-5 text-blue-600" />
                       <h3 className="font-semibold text-blue-900">
@@ -873,9 +874,9 @@ export default function TeacherSubmissionsPage() {
                 <div className="space-y-4">
                   {/* Tasks Section */}
                   <div>
-                    <div className="flex items-center justify-between mb-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                       <Label>Zadania</Label>
-                      <div className="flex gap-2">
+                      <div className="flex flex-wrap gap-2">
                         <Button
                           type="button"
                           variant="outline"
@@ -904,8 +905,8 @@ export default function TeacherSubmissionsPage() {
                             className="p-3 border rounded-lg bg-gray-50"
                           >
                             <div className="flex items-start gap-3">
-                              <div className="flex-1 flex gap-3 items-end">
-                                <div className="w-32">
+                              <div className="flex-1 grid grid-cols-2 gap-3 sm:flex sm:items-end">
+                                <div className="sm:w-32">
                                   <Label className="text-xs">Zadanie</Label>
                                   <Input
                                     value={`Zadanie ${task.taskNumber}`}
@@ -913,7 +914,7 @@ export default function TeacherSubmissionsPage() {
                                     className="bg-white"
                                   />
                                 </div>
-                                <div className="w-32">
+                                <div className="sm:w-32">
                                   <Label className="text-xs">
                                     Punkty zdobyte
                                   </Label>
@@ -935,7 +936,7 @@ export default function TeacherSubmissionsPage() {
                                     className="bg-white"
                                   />
                                 </div>
-                                <div className="w-32">
+                                <div className="sm:w-32">
                                   <Label className="text-xs">Max punktów</Label>
                                   <Input
                                     type="number"
@@ -954,7 +955,7 @@ export default function TeacherSubmissionsPage() {
                                     className="bg-white"
                                   />
                                 </div>
-                                <div className="flex-1">
+                                <div className="col-span-2 sm:flex-1">
                                   <Label className="text-xs">Komentarz</Label>
                                   {showLatexPreview ? (
                                     <div className="w-full p-2 border rounded-md min-h-[60px] bg-white">
@@ -1018,7 +1019,7 @@ export default function TeacherSubmissionsPage() {
                       placeholder="Dodaj swój komentarz do pracy ucznia..."
                     />
                   </div>
-                  <div className="flex gap-2 justify-end">
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                     <Button
                       variant="outline"
                       onClick={() => submitReview("TEACHER_REVIEWING")}
@@ -1052,7 +1053,7 @@ export default function TeacherSubmissionsPage() {
       {/* JSON Editor Modal */}
       {showJsonEditor && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal p-4">
-          <Card className="w-full max-w-4xl max-h-[90vh] flex flex-col">
+          <Card className="w-full max-w-4xl max-h-[90vh] flex flex-col overflow-y-auto scroll-touch">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="flex items-center gap-2">
@@ -1090,12 +1091,12 @@ export default function TeacherSubmissionsPage() {
                       id="json-editor"
                       value={editedJsonData}
                       onChange={(e) => setEditedJsonData(e.target.value)}
-                      className="flex-1 min-h-[400px] p-4 border rounded-lg font-mono text-sm resize-none"
+                      className="flex-1 min-h-[240px] sm:min-h-[400px] p-3 sm:p-4 border rounded-lg font-mono text-xs sm:text-sm resize-none"
                       placeholder='[{"Zadanie":"Zadanie 1","Punkty Zdobyte":8,"Max punktów":10,"Komentarz":"..."}]'
                     />
                   </div>
 
-                  <div className="flex gap-2 justify-end">
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                     <Button
                       variant="outline"
                       onClick={() => {
@@ -1132,12 +1133,12 @@ export default function TeacherSubmissionsPage() {
                       id="json-editor"
                       value={editedJsonData}
                       onChange={(e) => setEditedJsonData(e.target.value)}
-                      className="flex-1 min-h-[400px] p-4 border rounded-lg font-mono text-sm resize-none"
+                      className="flex-1 min-h-[240px] sm:min-h-[400px] p-3 sm:p-4 border rounded-lg font-mono text-xs sm:text-sm resize-none"
                       placeholder='[{"Zadanie":"Zadanie 1","Punkty Zdobyte":8,"Max punktów":10,"Komentarz":"..."}]'
                     />
                   </div>
 
-                  <div className="flex gap-2 justify-end">
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                     <Button
                       variant="outline"
                       onClick={() => {

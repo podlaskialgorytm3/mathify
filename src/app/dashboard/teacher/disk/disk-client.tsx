@@ -108,7 +108,7 @@ export function DiskClient({ initialMaterials }: DiskClientProps) {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <DiskFilter value={filter} onChange={setFilter} />
           
-          <div className="flex items-center gap-3 ml-auto">
+          <div className="flex items-center gap-3 sm:ml-auto">
             <span className="text-sm text-gray-500">
               {filtered.length} {filtered.length === 1 ? "materiał" : "materiałów"}
             </span>
@@ -118,7 +118,7 @@ export function DiskClient({ initialMaterials }: DiskClientProps) {
 
         {/* Additional Filters */}
         <div className="flex flex-wrap items-center gap-4 bg-gray-50 p-3 rounded-lg border border-gray-100">
-          <div className="flex items-center gap-2">
+          <div className="flex w-full items-center gap-2 sm:w-auto">
             <label className="text-sm text-gray-500 font-medium">Kurs:</label>
             <select
               value={courseFilter}
@@ -127,7 +127,7 @@ export function DiskClient({ initialMaterials }: DiskClientProps) {
                 setChapterFilter("ALL");
                 setSubchapterFilter("ALL");
               }}
-              className="text-sm bg-white border border-gray-200 rounded-md py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[200px] truncate"
+              className="text-sm bg-white border border-gray-200 rounded-md py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:max-w-[200px] truncate"
             >
               <option value="ALL">Wszystkie kursy</option>
               {courses.map((c) => (
@@ -137,7 +137,7 @@ export function DiskClient({ initialMaterials }: DiskClientProps) {
           </div>
 
           {courseFilter !== "ALL" && chapters.length > 0 && (
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <label className="text-sm text-gray-500 font-medium">Rozdział:</label>
               <select
                 value={chapterFilter}
@@ -145,7 +145,7 @@ export function DiskClient({ initialMaterials }: DiskClientProps) {
                   setChapterFilter(e.target.value);
                   setSubchapterFilter("ALL");
                 }}
-                className="text-sm bg-white border border-gray-200 rounded-md py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[200px] truncate"
+                className="text-sm bg-white border border-gray-200 rounded-md py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:max-w-[200px] truncate"
               >
                 <option value="ALL">Wszystkie rozdziały</option>
                 {chapters.map((c) => (
@@ -156,12 +156,12 @@ export function DiskClient({ initialMaterials }: DiskClientProps) {
           )}
 
           {chapterFilter !== "ALL" && subchapters.length > 0 && (
-            <div className="flex items-center gap-2">
+            <div className="flex w-full items-center gap-2 sm:w-auto">
               <label className="text-sm text-gray-500 font-medium">Podrozdział:</label>
               <select
                 value={subchapterFilter}
                 onChange={(e) => setSubchapterFilter(e.target.value)}
-                className="text-sm bg-white border border-gray-200 rounded-md py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[200px] truncate"
+                className="text-sm bg-white border border-gray-200 rounded-md py-1.5 px-3 focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:max-w-[200px] truncate"
               >
                 <option value="ALL">Wszystkie podrozdziały</option>
                 {subchapters.map((c) => (

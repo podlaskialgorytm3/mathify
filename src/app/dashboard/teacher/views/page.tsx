@@ -69,9 +69,9 @@ export default function ViewsOverviewPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Wyświetlenia</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl text-gray-900">Wyświetlenia</h1>
           <p className="text-gray-600 mt-1">
             Podgląd sumarycznej liczby wyświetleń dla wszystkich Twoich uczniów
           </p>
@@ -81,7 +81,7 @@ export default function ViewsOverviewPage() {
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 max-w-2xl">
             <div>
               <Label htmlFor="search">
                 <Search className="w-4 h-4 inline mr-2" />
@@ -135,7 +135,7 @@ export default function ViewsOverviewPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
           {filteredStudents.map((student) => (
             <StudentCard
               key={student.id}
