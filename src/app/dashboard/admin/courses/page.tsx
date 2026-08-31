@@ -337,7 +337,7 @@ export default function CoursesPage() {
 
       {/* Create Course Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle>Utwórz Nowy Kurs</CardTitle>
@@ -396,7 +396,7 @@ export default function CoursesPage() {
 
       {/* Edit Course Modal */}
       {editingCourse && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle>Edytuj Kurs</CardTitle>
