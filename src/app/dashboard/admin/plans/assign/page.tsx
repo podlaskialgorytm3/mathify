@@ -164,7 +164,7 @@ export default function AssignPlanPage() {
 
   if (isLoading) {
     return (
-      <div className="p-8">
+      <div>
         <div className="flex justify-center items-center h-64">
           <p className="text-lg text-gray-500">Ładowanie nauczycieli...</p>
         </div>
@@ -173,9 +173,9 @@ export default function AssignPlanPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Przypisz Plan</h1>
+    <div>
+      <div className="mb-6 sm:mb-8">
+        <h1 className="text-2xl font-bold sm:text-3xl mb-2">Przypisz Plan</h1>
         <p className="text-gray-600">
           Zarządzaj planami subskrypcyjnymi dla nauczycieli
         </p>
@@ -196,7 +196,7 @@ export default function AssignPlanPage() {
       </div>
 
       {/* Teachers Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 sm:gap-6">
         {filteredTeachers.map((teacher) => {
           const studentsUsage = teacher.plan
             ? getUsageStatus(
@@ -214,11 +214,11 @@ export default function AssignPlanPage() {
           return (
             <Card
               key={teacher.id}
-              className="p-6 cursor-pointer hover:shadow-lg transition-shadow"
+              className="p-4 sm:p-6 cursor-pointer hover:shadow-lg transition-shadow"
               onClick={() => handleTeacherClick(teacher)}
             >
               <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center space-x-3">
+                <div className="flex min-w-0 items-center space-x-3">
                   <div className="p-2 bg-blue-100 rounded-full">
                     <User className="h-5 w-5 text-blue-600" />
                   </div>
@@ -226,7 +226,7 @@ export default function AssignPlanPage() {
                     <h3 className="font-semibold text-lg">
                       {teacher.firstName} {teacher.lastName}
                     </h3>
-                    <p className="text-sm text-gray-500">{teacher.email}</p>
+                    <p className="text-sm text-gray-500 break-all">{teacher.email}</p>
                   </div>
                 </div>
               </div>
@@ -355,7 +355,7 @@ export default function AssignPlanPage() {
 
       {/* Assign Plan Modal */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto scroll-touch">
           <DialogHeader>
             <DialogTitle>Przypisz Plan</DialogTitle>
             <DialogDescription>
@@ -371,21 +371,21 @@ export default function AssignPlanPage() {
                 <p className="text-sm font-medium text-gray-700">
                   Aktualne statystyki:
                 </p>
-                <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="grid grid-cols-3 gap-2 text-center sm:gap-4">
                   <div>
-                    <p className="text-2xl font-bold text-blue-600">
+                    <p className="text-xl font-bold text-blue-600 sm:text-2xl">
                       {selectedTeacher.stats.coursesCount}
                     </p>
                     <p className="text-xs text-gray-600">Kursy</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-green-600">
+                    <p className="text-xl font-bold text-green-600 sm:text-2xl">
                       {selectedTeacher.stats.totalStudents}
                     </p>
                     <p className="text-xs text-gray-600">Uczniowie</p>
                   </div>
                   <div>
-                    <p className="text-2xl font-bold text-purple-600">
+                    <p className="text-xl font-bold text-purple-600 sm:text-2xl">
                       {selectedTeacher.stats.totalSubchapters}
                     </p>
                     <p className="text-xs text-gray-600">Podrozdziały</p>

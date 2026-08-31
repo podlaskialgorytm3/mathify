@@ -110,8 +110,8 @@ export default function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Ustawienia Systemu</h1>
-        <p className="text-gray-600 mt-2">
+        <h1 className="text-2xl font-bold sm:text-3xl">Ustawienia Systemu</h1>
+        <p className="text-gray-600 mt-2 text-sm sm:text-base">
           Konfiguracja i statystyki aplikacji Mathify
         </p>
       </div>
@@ -119,13 +119,13 @@ export default function SettingsPage() {
       {/* System Statistics */}
       <div>
         <h2 className="text-xl font-semibold mb-4">Statystyki Systemu</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Card>
             <CardContent className="pt-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Wszyscy użytkownicy</p>
-                  <p className="text-3xl font-bold">
+                  <p className="text-2xl font-bold sm:text-3xl">
                     {settings.statistics.totalUsers}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">
@@ -142,7 +142,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Oczekujące konta</p>
-                  <p className="text-3xl font-bold">
+                  <p className="text-2xl font-bold sm:text-3xl">
                     {settings.statistics.pendingUsers}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">Do zatwierdzenia</p>
@@ -157,7 +157,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Nauczyciele</p>
-                  <p className="text-3xl font-bold">
+                  <p className="text-2xl font-bold sm:text-3xl">
                     {settings.statistics.totalTeachers}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">Aktywnych</p>
@@ -172,7 +172,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Uczniowie</p>
-                  <p className="text-3xl font-bold">
+                  <p className="text-2xl font-bold sm:text-3xl">
                     {settings.statistics.totalStudents}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">Zarejestrowanych</p>
@@ -187,7 +187,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Kursy</p>
-                  <p className="text-3xl font-bold">
+                  <p className="text-2xl font-bold sm:text-3xl">
                     {settings.statistics.totalCourses}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">Utworzonych</p>
@@ -202,7 +202,7 @@ export default function SettingsPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm text-gray-600">Rozwiązania</p>
-                  <p className="text-3xl font-bold">
+                  <p className="text-2xl font-bold sm:text-3xl">
                     {settings.statistics.totalSubmissions}
                   </p>
                   <p className="text-xs text-gray-500 mt-1">Przesłanych prac</p>
@@ -217,7 +217,7 @@ export default function SettingsPage() {
       {/* Email Configuration */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Mail className="w-5 h-5" />
@@ -241,7 +241,7 @@ export default function SettingsPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <Label>Host SMTP</Label>
               <Input value={settings.email.host || "Nie ustawiono"} disabled />
@@ -256,7 +256,7 @@ export default function SettingsPage() {
             <Input value={settings.email.from || "Nie ustawiono"} disabled />
           </div>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
+            <p className="text-sm text-blue-800 break-words">
               <strong>Jak skonfigurować email:</strong>
               <br />
               Edytuj plik <code className="bg-blue-100 px-1 rounded">
@@ -288,7 +288,7 @@ export default function SettingsPage() {
       {/* AI Configuration */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
                 <Brain className="w-5 h-5" />
@@ -335,7 +335,7 @@ export default function SettingsPage() {
             />
           </div>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
+            <p className="text-sm text-blue-800 break-words">
               <strong>Jak skonfigurować AI:</strong>
               <br />
               Edytuj plik <code className="bg-blue-100 px-1 rounded">
@@ -379,7 +379,7 @@ export default function SettingsPage() {
             <Input value={process.env.NODE_ENV || "development"} disabled />
           </div>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <p className="text-sm text-blue-800">
+            <p className="text-sm text-blue-800 break-words">
               <strong>URL aplikacji:</strong>
               <br />
               Ustaw zmienną{" "}
@@ -404,7 +404,7 @@ export default function SettingsPage() {
           <CardDescription>Przydatne narzędzia administracyjne</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <Button
               variant="outline"
               className="w-full"
@@ -452,7 +452,7 @@ export default function SettingsPage() {
             <span className="text-sm font-medium">Połączono z PostgreSQL</span>
           </div>
           <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-gray-600 break-words">
               <strong>Przydatne komendy:</strong>
               <br />
               <code className="bg-gray-200 px-2 py-1 rounded">
