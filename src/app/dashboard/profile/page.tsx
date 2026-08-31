@@ -151,7 +151,7 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div>
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-1/4"></div>
           <div className="h-64 bg-gray-200 rounded"></div>
@@ -162,7 +162,7 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="p-8">
+      <div>
         <p className="text-red-600">Nie udało się załadować profilu</p>
       </div>
     );
@@ -171,7 +171,7 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Profil użytkownika</h1>
+        <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Profil użytkownika</h1>
         <p className="text-gray-600 mt-1">
           Zarządzaj swoimi danymi osobowymi i ustawieniami konta
         </p>
