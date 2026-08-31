@@ -72,7 +72,7 @@ export function CopyMaterialDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-lg mx-4 max-h-[90vh] flex flex-col">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-gray-900">
@@ -194,3 +194,4 @@ export function CopyMaterialDialog({
     </div>
   );
 }
+

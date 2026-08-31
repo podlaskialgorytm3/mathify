@@ -1462,7 +1462,7 @@ function ChapterModal({
   defaultValues?: any;
 }) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal p-4">
       <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <CardHeader>
           <CardTitle>{title}</CardTitle>
@@ -1738,7 +1738,7 @@ function MaterialModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal p-4">
       <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -1971,7 +1971,7 @@ function EditMaterialModal({
   if (!defaultValues) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal p-4">
       <Card className="w-full max-w-lg">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -2048,7 +2048,7 @@ function SubchapterModal({
   defaultValues?: any;
 }) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal p-4">
       <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <CardHeader>
           <CardTitle>{title}</CardTitle>
@@ -2186,7 +2186,7 @@ function EnrollStudentModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal p-4">
       <Card className="w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -2297,4 +2297,5 @@ function EnrollStudentModal({
     </div>
   );
 }
+
 

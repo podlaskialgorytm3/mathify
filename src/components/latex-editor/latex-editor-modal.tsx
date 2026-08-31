@@ -214,7 +214,7 @@ function PublishDialog({
     " disabled:cursor-not-allowed disabled:opacity-50 appearance-none";
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[9999] p-4">
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-modal p-4">
       <Card className="w-full max-w-md shadow-2xl">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -536,7 +536,7 @@ export function LatexEditorModal({
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-gray-950 flex items-center justify-center z-[9999]">
+      <div className="fixed inset-0 bg-gray-950 flex items-center justify-center z-modal">
         <div className="flex flex-col items-center gap-4 text-gray-300">
           <Loader2 className="w-10 h-10 animate-spin text-blue-400" />
           <p className="text-sm">Ładowanie dokumentu...</p>
@@ -548,7 +548,7 @@ export function LatexEditorModal({
   return (
     <>
       {/* Full-screen editor */}
-      <div className="fixed inset-0 bg-gray-950 flex flex-col z-[9999]">
+      <div className="fixed inset-0 bg-gray-950 flex flex-col z-modal">
         {/* Toolbar */}
         <LatexToolbar
           documentTitle={documentTitle}
@@ -596,3 +596,4 @@ export function LatexEditorModal({
     </>
   );
 }
+

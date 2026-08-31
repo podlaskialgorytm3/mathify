@@ -386,7 +386,7 @@ export default function UsersPage() {
 
       {/* Edit User Modal */}
       {editingUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal">
           <Card className="w-full max-w-md">
             <CardHeader>
               <CardTitle>Edytuj Użytkownika</CardTitle>
@@ -465,3 +465,4 @@ export default function UsersPage() {
     </div>
   );
 }
+
