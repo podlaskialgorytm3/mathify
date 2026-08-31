@@ -21,14 +21,14 @@ export function StatsKpiRow({ overview }: Props) {
       : "text-gray-500";
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Średni wynik</CardTitle>
           <Award className="h-4 w-4 text-amber-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold">{overview.averagePercentage}%</div>
+          <div className="text-2xl font-bold sm:text-3xl">{overview.averagePercentage}%</div>
           <p className="text-xs text-gray-500 mt-1">
             {overview.totalPointsEarned} / {overview.totalPointsMax} punktów z{" "}
             {overview.gradedSubmissions} sprawdzonych prac
@@ -59,7 +59,7 @@ export function StatsKpiRow({ overview }: Props) {
           <Flame className="h-4 w-4 text-orange-500" />
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold">{overview.currentStreak}</div>
+          <div className="text-2xl font-bold sm:text-3xl">{overview.currentStreak}</div>
           <p className="text-xs text-gray-500 mt-1">
             prac z rzędu oddanych i sprawdzonych
           </p>
@@ -74,7 +74,7 @@ export function StatsKpiRow({ overview }: Props) {
           <Target className="h-4 w-4 text-emerald-600" />
         </CardHeader>
         <CardContent>
-          <div className="text-3xl font-bold">{overview.perfectTasks}</div>
+          <div className="text-2xl font-bold sm:text-3xl">{overview.perfectTasks}</div>
           <p className="text-xs text-gray-500 mt-1">
             z {overview.totalTasks} ocenionych zadań ({overview.weakTasks}{" "}
             poniżej 50%)

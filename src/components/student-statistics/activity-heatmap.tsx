@@ -39,7 +39,7 @@ export function ActivityHeatmap({ activity }: Props) {
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex gap-1 overflow-x-auto pb-2">
+        <div className="flex gap-1 overflow-x-auto scroll-touch pb-2">
           {weeks.map((week, weekIndex) => (
             <div key={weekIndex} className="flex flex-col gap-1">
               {week.map((day) => (

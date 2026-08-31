@@ -234,18 +234,16 @@ export default function StudentCourseDetailsPage() {
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
+      <div className="animate-pulse space-y-4">
+        <div className="h-8 bg-gray-200 rounded w-1/2 sm:w-1/4"></div>
+        <div className="h-64 bg-gray-200 rounded"></div>
       </div>
     );
   }
 
   if (!course) {
     return (
-      <div className="p-8">
+      <div>
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-gray-500">Nie znaleziono kursu</p>
@@ -256,19 +254,22 @@ export default function StudentCourseDetailsPage() {
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-start gap-3 sm:gap-4">
         <Button
           variant="outline"
           size="icon"
+          className="flex-shrink-0"
           onClick={() => router.push("/dashboard/student/courses")}
         >
           <ArrowLeft className="h-4 w-4" />
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold">{course.title}</h1>
-          <p className="text-gray-500">
+        <div className="min-w-0">
+          <h1 className="text-2xl sm:text-3xl font-bold break-words">
+            {course.title}
+          </h1>
+          <p className="text-sm sm:text-base text-gray-500">
             Nauczyciel: {course.teacher.firstName} {course.teacher.lastName}
           </p>
         </div>
@@ -302,18 +303,18 @@ export default function StudentCourseDetailsPage() {
                 } cursor-pointer`}
                 onClick={() => toggleChapter(chapter.id)}
               >
-                <div className="flex items-center justify-between">
-                  <CardTitle className="flex items-center gap-2">
+                <div className="flex items-start justify-between gap-3">
+                  <CardTitle className="flex items-start gap-2 text-base sm:text-lg min-w-0">
                     {chapter.isVisible ? (
-                      <BookOpen className="h-5 w-5 text-blue-600" />
+                      <BookOpen className="h-5 w-5 text-blue-600 flex-shrink-0" />
                     ) : (
-                      <Lock className="h-5 w-5 text-gray-400" />
+                      <Lock className="h-5 w-5 text-gray-400 flex-shrink-0" />
                     )}
-                    <span>
+                    <span className="break-words">
                       {chapter.order}. {chapter.title}
                     </span>
                   </CardTitle>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-shrink-0 items-center gap-2">
                     {!chapter.isVisible && (
                       <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
                         Zablokowany
@@ -344,26 +345,26 @@ export default function StudentCourseDetailsPage() {
                       {(chapter.subchapters || []).map((subchapter) => (
                         <div
                           key={subchapter.id}
-                          className={`p-4 rounded-lg border-2 ${
+                          className={`p-3 sm:p-4 rounded-lg border-2 ${
                             subchapter.isVisible
                               ? "border-blue-200 bg-white hover:bg-blue-50"
                               : "border-gray-200 bg-gray-50"
                           }`}
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex items-start gap-2 min-w-0">
                               {subchapter.isVisible ? (
-                                <CheckCircle className="h-5 w-5 text-green-600" />
+                                <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
                               ) : (
-                                <Lock className="h-5 w-5 text-gray-400" />
+                                <Lock className="h-5 w-5 text-gray-400 flex-shrink-0" />
                               )}
-                              <span className="font-semibold">
+                              <span className="font-semibold break-words">
                                 {chapter.order}.{subchapter.order}{" "}
                                 {subchapter.title}
                               </span>
                             </div>
                             {!subchapter.isVisible && (
-                              <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded">
+                              <span className="text-xs text-gray-500 bg-gray-200 px-2 py-1 rounded flex-shrink-0">
                                 Zablokowany
                               </span>
                             )}
@@ -419,7 +420,7 @@ export default function StudentCourseDetailsPage() {
                                   {submissions[subchapter.id] ? (
                                     // Praca już przesłana - pokaż informacje o pliku
                                     <div className="space-y-3">
-                                      <div className="flex items-start justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                                      <div className="flex flex-col gap-3 p-3 bg-green-50 border border-green-200 rounded-lg sm:flex-row sm:items-start sm:justify-between">
                                         <div className="flex items-start gap-3 flex-1">
                                           <FileText className="h-5 w-5 text-green-600 flex-shrink-0 mt-0.5" />
                                           <div className="flex-1 min-w-0">
@@ -463,7 +464,7 @@ export default function StudentCourseDetailsPage() {
                                             </p>
                                           </div>
                                         </div>
-                                        <div className="flex gap-2 ml-3">
+                                        <div className="flex gap-2 sm:ml-3">
                                           <Button
                                             variant="outline"
                                             size="sm"
@@ -474,7 +475,7 @@ export default function StudentCourseDetailsPage() {
                                                 "_blank"
                                               )
                                             }
-                                            className="gap-2"
+                                            className="gap-2 flex-1 sm:flex-none"
                                           >
                                             <Download className="h-4 w-4" />
                                             Pobierz
@@ -495,7 +496,7 @@ export default function StudentCourseDetailsPage() {
                                                 deletingSubmission ===
                                                 subchapter.id
                                               }
-                                              className="gap-2"
+                                              className="gap-2 flex-1 sm:flex-none"
                                             >
                                               <Trash2 className="h-4 w-4" />
                                               {deletingSubmission ===
@@ -525,7 +526,7 @@ export default function StudentCourseDetailsPage() {
                                           `/dashboard/student/courses/${params.courseId}/subchapters/${subchapter.id}/submit`
                                         )
                                       }
-                                      className="gap-2 border-blue-300 text-blue-700 hover:bg-blue-50"
+                                      className="gap-2 w-full sm:w-auto border-blue-300 text-blue-700 hover:bg-blue-50"
                                     >
                                       <Upload className="h-4 w-4" />
                                       Prześlij pracę domową

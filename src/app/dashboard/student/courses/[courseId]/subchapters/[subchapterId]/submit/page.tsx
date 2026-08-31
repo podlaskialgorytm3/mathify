@@ -299,7 +299,7 @@ export default function SubmitHomeworkPage() {
 
       setPdfStatus({ type: "error", code, message });
 
-      // Kompresja się udała, ale plik i tak nie doszedł na serwer —
+      // Kompresja się udała, ale plik i tak nie doszedł na serwer,
       // wtedy proponujemy ręczną kompresję zewnętrznym narzędziem.
       setShowExternalCompressorHint(
         code === "FILE_TOO_LARGE" ||
@@ -381,7 +381,7 @@ export default function SubmitHomeworkPage() {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div>
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-1/4"></div>
           <div className="h-64 bg-gray-200 rounded"></div>
@@ -392,7 +392,7 @@ export default function SubmitHomeworkPage() {
 
   if (!subchapter) {
     return (
-      <div className="p-8">
+      <div>
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-gray-500">
@@ -406,7 +406,7 @@ export default function SubmitHomeworkPage() {
 
   if (!subchapter.isVisible) {
     return (
-      <div className="p-8">
+      <div>
         <Card>
           <CardContent className="pt-6 text-center space-y-4">
             <AlertCircle className="h-12 w-12 text-gray-400 mx-auto" />
@@ -433,7 +433,7 @@ export default function SubmitHomeworkPage() {
 
   if (!subchapter.allowSubmissions) {
     return (
-      <div className="p-8">
+      <div>
         <Card>
           <CardContent className="pt-6 text-center space-y-4">
             <AlertCircle className="h-12 w-12 text-gray-400 mx-auto" />
@@ -460,7 +460,7 @@ export default function SubmitHomeworkPage() {
 
   if (!subchapter.canSubmit) {
     return (
-      <div className="p-8">
+      <div>
         <Card>
           <CardContent className="pt-6 text-center space-y-4">
             <AlertCircle className="h-12 w-12 text-yellow-400 mx-auto" />
@@ -511,12 +511,13 @@ export default function SubmitHomeworkPage() {
     };
 
     return (
-      <div className="p-8 space-y-6">
+      <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-start gap-3 sm:gap-4">
           <Button
             variant="outline"
             size="icon"
+            className="flex-shrink-0"
             onClick={() =>
               router.push(`/dashboard/student/courses/${params.courseId}`)
             }
@@ -524,7 +525,7 @@ export default function SubmitHomeworkPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Przesłana praca domowa</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Przesłana praca domowa</h1>
             <p className="text-gray-500">
               {subchapter?.chapterOrder}.{subchapter?.order} {subchapter?.title}
             </p>
@@ -536,7 +537,7 @@ export default function SubmitHomeworkPage() {
             <CardTitle>Szczegóły pracy</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-500">Nazwa pliku</p>
                 <p className="font-medium">{existingSubmission.fileName}</p>
@@ -567,7 +568,7 @@ export default function SubmitHomeworkPage() {
               </div>
             </div>
 
-            <div className="flex gap-2 pt-4">
+            <div className="flex flex-col gap-2 pt-4 sm:flex-row">
               <Button
                 variant="outline"
                 className="gap-2"
@@ -601,12 +602,13 @@ export default function SubmitHomeworkPage() {
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-start gap-3 sm:gap-4">
         <Button
           variant="outline"
           size="icon"
+          className="flex-shrink-0"
           onClick={() =>
             router.push(`/dashboard/student/courses/${params.courseId}`)
           }
@@ -614,7 +616,7 @@ export default function SubmitHomeworkPage() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">Prześlij pracę domową</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Prześlij pracę domową</h1>
           <p className="text-gray-500">
             {subchapter.chapterOrder}.{subchapter.order} {subchapter.title}
           </p>
@@ -628,7 +630,7 @@ export default function SubmitHomeworkPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Toggle between PDF and Images */}
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div className="flex flex-wrap items-center justify-center gap-3 p-4 bg-gray-50 rounded-lg sm:justify-between">
             <div className="flex items-center gap-3">
               <FileText
                 className={`h-5 w-5 ${
@@ -668,7 +670,7 @@ export default function SubmitHomeworkPage() {
           {/* PDF Upload */}
           {uploadMode === "pdf" && (
             <>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 sm:p-8 text-center">
                 <input
                   type="file"
                   id="file-upload"
@@ -691,17 +693,18 @@ export default function SubmitHomeworkPage() {
 
               {selectedFile && (
                 <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <FileText className="h-5 w-5 text-blue-600" />
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-900">
+                  <FileText className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 break-words">
                       {selectedFile.name}
                     </p>
                     <p className="text-sm text-gray-600">
                       {formatFileSize(selectedFile.size)}
                       {selectedFile.size > MAX_PDF_SIZE_BYTES && (
                         <span className="ml-2 text-amber-700">
-                          — plik przekracza {formatFileSize(MAX_PDF_SIZE_BYTES)}
-                          , zostanie automatycznie skompresowany
+                          {`(plik przekracza ${formatFileSize(
+                            MAX_PDF_SIZE_BYTES
+                          )}, zostanie automatycznie skompresowany)`}
                         </span>
                       )}
                     </p>
@@ -734,11 +737,12 @@ export default function SubmitHomeworkPage() {
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <div>
                     <p className="font-semibold">
-                      Plik jest większy niż {formatFileSize(MAX_PDF_SIZE_BYTES)}
-                      . Trwa automatyczna kompresja...
+                      {`Plik jest większy niż ${formatFileSize(
+                        MAX_PDF_SIZE_BYTES
+                      )}. Trwa automatyczna kompresja...`}
                     </p>
                     <p>
-                      Kompresowanie pliku — próba {pdfStatus.attempt} z{" "}
+                      Kompresowanie pliku, próba {pdfStatus.attempt} z{" "}
                       {pdfStatus.maxAttempts}
                     </p>
                   </div>
@@ -770,7 +774,7 @@ export default function SubmitHomeworkPage() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 font-semibold underline"
                       >
-                        iLovePDF — Compress PDF
+                        iLovePDF Compress PDF
                         <ExternalLink className="h-3 w-3" />
                       </a>
                     </p>
@@ -783,7 +787,7 @@ export default function SubmitHomeworkPage() {
           {/* Images Upload */}
           {uploadMode === "images" && (
             <>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 sm:p-8 text-center">
                 <input
                   type="file"
                   id="images-upload"
@@ -811,7 +815,7 @@ export default function SubmitHomeworkPage() {
                   <p className="text-sm font-medium text-gray-700">
                     Wybrane zdjęcia ({selectedImages.length}/10):
                   </p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {selectedImages.map((image, index) => (
                       <div
                         key={index}
@@ -842,7 +846,7 @@ export default function SubmitHomeworkPage() {
             </>
           )}
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row">
             <Button
               onClick={handleSubmit}
               disabled={
@@ -856,12 +860,13 @@ export default function SubmitHomeworkPage() {
                 ? pdfStatus.type === "validating"
                   ? "Sprawdzanie pliku..."
                   : pdfStatus.type === "compressing"
-                  ? `Kompresowanie — próba ${pdfStatus.attempt} z ${pdfStatus.maxAttempts}...`
+                  ? `Kompresowanie, próba ${pdfStatus.attempt} z ${pdfStatus.maxAttempts}...`
                   : "Przesyłanie..."
                 : "Prześlij pracę"}
             </Button>
             <Button
               variant="outline"
+              className="w-full sm:w-auto"
               onClick={() =>
                 router.push(`/dashboard/student/courses/${params.courseId}`)
               }
@@ -885,7 +890,7 @@ export default function SubmitHomeworkPage() {
                     <li>Możesz przesłać jeden plik PDF z pracą domową</li>
                     <li>
                       Maksymalny rozmiar przesyłanego pliku to{" "}
-                      {formatFileSize(MAX_PDF_SIZE_BYTES)} — większy plik
+                      {formatFileSize(MAX_PDF_SIZE_BYTES)}, większy plik
                       zostanie automatycznie skompresowany (do{" "}
                       {MAX_COMPRESSION_ATTEMPTS} prób)
                     </li>

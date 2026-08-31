@@ -87,7 +87,7 @@ export function StrengthsRadar({ chapters }: Props) {
         </p>
       </CardHeader>
       <CardContent>
-        <div className="h-96">
+        <div className="h-72 sm:h-96">
           <Radar data={data} options={options} />
         </div>
       </CardContent>

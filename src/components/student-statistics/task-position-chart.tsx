@@ -65,7 +65,7 @@ export function TaskPositionChart({ positions, pattern }: Props) {
             ten profil.
           </p>
         ) : (
-          <div className="h-80">
+          <div className="h-64 sm:h-80">
             <Bar data={data} options={options} />
           </div>
         )}

@@ -137,16 +137,14 @@ export default function StudentStatisticsPage() {
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="animate-pulse space-y-6">
-          <div className="h-8 w-1/4 rounded bg-gray-200" />
-          <div className="grid gap-6 md:grid-cols-4">
-            {[...Array(4)].map((_, index) => (
-              <div key={index} className="h-32 rounded bg-gray-200" />
-            ))}
-          </div>
-          <div className="h-96 rounded bg-gray-200" />
+      <div className="animate-pulse space-y-6">
+        <div className="h-8 w-1/2 rounded bg-gray-200 sm:w-1/4" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, index) => (
+            <div key={index} className="h-32 rounded bg-gray-200" />
+          ))}
         </div>
+        <div className="h-96 rounded bg-gray-200" />
       </div>
     );
   }
@@ -155,10 +153,10 @@ export default function StudentStatisticsPage() {
   const hasGradedData = (overview?.gradedSubmissions ?? 0) > 0;
 
   return (
-    <div className="space-y-8 p-8">
+    <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
             Statystyki moich wyników
           </h1>
           <p className="mt-2 text-gray-500">
@@ -166,9 +164,9 @@ export default function StudentStatisticsPage() {
           </p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row">
           <Select value={courseId} onValueChange={setCourseId}>
-            <SelectTrigger className="w-56">
+            <SelectTrigger className="w-full sm:w-56">
               <SelectValue placeholder="Kurs" />
             </SelectTrigger>
             <SelectContent>
@@ -182,7 +180,7 @@ export default function StudentStatisticsPage() {
           </Select>
 
           <Select value={range} onValueChange={setRange}>
-            <SelectTrigger className="w-44">
+            <SelectTrigger className="w-full sm:w-44">
               <SelectValue placeholder="Zakres" />
             </SelectTrigger>
             <SelectContent>
@@ -219,7 +217,7 @@ export default function StudentStatisticsPage() {
           {overview && <StatsKpiRow overview={overview} />}
 
           <Tabs defaultValue="diagnosis">
-            <TabsList className="flex-wrap">
+            <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:inline-flex sm:h-10 sm:w-auto sm:grid-cols-none sm:flex-wrap">
               <TabsTrigger value="diagnosis">Diagnoza</TabsTrigger>
               <TabsTrigger value="progress">Postęp</TabsTrigger>
               <TabsTrigger value="errors">Błędy</TabsTrigger>

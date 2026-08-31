@@ -70,25 +70,25 @@ export default function StudentCoursesPage() {
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-64 bg-gray-200 rounded"></div>
-        </div>
+      <div className="animate-pulse space-y-4">
+        <div className="h-8 bg-gray-200 rounded w-1/2 sm:w-1/4"></div>
+        <div className="h-64 bg-gray-200 rounded"></div>
       </div>
     );
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Moje Kursy</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
+          Moje Kursy
+        </h1>
         <p className="text-gray-600 mt-1">Kursy, na które jesteś zapisany</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -169,11 +169,11 @@ export default function StudentCoursesPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 sm:gap-6">
           {courses.map((course) => (
             <Card
               key={course.id}
-              className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105"
+              className="cursor-pointer transition-all duration-200 hover:shadow-lg active:scale-[0.99] lg:hover:scale-105"
               onClick={() =>
                 router.push(`/dashboard/student/courses/${course.id}`)
               }

@@ -36,9 +36,9 @@ export function WeaknessList({ chapters }: Props) {
       <CardContent className="space-y-5">
         {chapters.map((chapter) => (
           <div key={chapter.chapterId} className="space-y-2">
-            <div className="flex items-baseline justify-between gap-4">
-              <div>
-                <p className="font-medium text-gray-900">
+            <div className="flex items-baseline justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-medium text-gray-900 break-words">
                   {chapter.chapterTitle}
                 </p>
                 <p className="text-xs text-gray-500">
@@ -51,7 +51,7 @@ export function WeaknessList({ chapters }: Props) {
                   )}
                 </p>
               </div>
-              <span className="text-lg font-semibold">
+              <span className="flex-shrink-0 text-lg font-semibold">
                 {chapter.percentage}%
               </span>
             </div>

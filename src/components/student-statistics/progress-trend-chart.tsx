@@ -103,7 +103,7 @@ export function ProgressTrendChart({ points, summary }: Props) {
         <p className="text-sm text-gray-500">{summary.message}</p>
       </CardHeader>
       <CardContent>
-        <div className="h-80">
+        <div className="h-64 sm:h-80">
           <Line data={data} options={options} />
         </div>
       </CardContent>
