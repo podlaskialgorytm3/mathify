@@ -1,21 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileCode, Loader2, X } from "lucide-react";
+import {
+  LatexTemplatePicker,
+  type LatexTemplateOption,
+} from "./latex-template-picker";
 
 interface LatexFilenameDialogProps {
-  onConfirm: (title: string) => void;
+  onConfirm: (title: string, templateId: string | null) => void;
   onClose: () => void;
   isCreating?: boolean;
 }
 
 /**
- * Dialog asking for a document name before opening the LaTeX editor.
- * Used as the entry point from the Dashboard sidebar.
+ * Dialog asking for a document name (and optionally a starting template)
+ * before opening the LaTeX editor. Used as the entry point from the Dashboard.
  */
 export function LatexFilenameDialog({
   onConfirm,
@@ -23,11 +27,29 @@ export function LatexFilenameDialog({
   isCreating = false,
 }: LatexFilenameDialogProps) {
   const [title, setTitle] = useState("");
+  const [templates, setTemplates] = useState<LatexTemplateOption[]>([]);
+  const [templateId, setTemplateId] = useState<string | null>(null);
+
+  // Templates are optional — the picker is hidden when the teacher has none
+  useEffect(() => {
+    const fetchTemplates = async () => {
+      try {
+        const res = await fetch("/api/teacher/latex-templates");
+        if (res.ok) {
+          const data = await res.json();
+          setTemplates(data.templates ?? []);
+        }
+      } catch {
+        // ignore — picker simply stays hidden
+      }
+    };
+    fetchTemplates();
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
-    onConfirm(title.trim());
+    onConfirm(title.trim(), templateId);
   };
 
   return (
@@ -73,6 +95,15 @@ export function LatexFilenameDialog({
                 Ta nazwa będzie widoczna w edytorze i jako tytuł materiału po opublikowaniu.
               </p>
             </div>
+
+            {templates.length > 0 && (
+              <LatexTemplatePicker
+                templates={templates}
+                value={templateId}
+                onChange={setTemplateId}
+                disabled={isCreating}
+              />
+            )}
 
             <div className="flex gap-2 justify-end pt-2">
               <Button

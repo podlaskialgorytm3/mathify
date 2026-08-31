@@ -1,6 +1,11 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+} from "react";
 
 interface LatexCodePanelProps {
   value: string;
@@ -8,12 +13,41 @@ interface LatexCodePanelProps {
   onSave?: () => void;
 }
 
+export interface LatexCodePanelHandle {
+  /** Inserts a snippet at the current cursor position (replacing any selection). */
+  insertAtCursor: (snippet: string) => void;
+}
+
 /**
  * Left panel of the LaTeX editor — a styled textarea for writing LaTeX code.
  * Uses monospace font, supports Ctrl+S to trigger save, and adjusts tab behavior.
  */
-export function LatexCodePanel({ value, onChange, onSave }: LatexCodePanelProps) {
+export const LatexCodePanel = forwardRef<
+  LatexCodePanelHandle,
+  LatexCodePanelProps
+>(function LatexCodePanel({ value, onChange, onSave }, ref) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useImperativeHandle(ref, () => ({
+    insertAtCursor(snippet: string) {
+      const textarea = textareaRef.current;
+      // Fallback: append at the end when the textarea is not mounted
+      const start = textarea ? textarea.selectionStart : value.length;
+      const end = textarea ? textarea.selectionEnd : value.length;
+
+      const newValue = value.substring(0, start) + snippet + value.substring(end);
+      onChange(newValue);
+
+      const cursorAfter = start + snippet.length;
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.focus();
+          textareaRef.current.selectionStart = cursorAfter;
+          textareaRef.current.selectionEnd = cursorAfter;
+        }
+      }, 0);
+    },
+  }));
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -101,4 +135,4 @@ export function LatexCodePanel({ value, onChange, onSave }: LatexCodePanelProps)
       </div>
     </div>
   );
-}
+});

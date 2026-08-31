@@ -41,12 +41,19 @@ export default function LatexEditorPage() {
     fetchDocuments();
   }, []);
 
-  const handleCreateDocument = async (title: string) => {
+  const handleCreateDocument = async (
+    title: string,
+    templateId: string | null,
+  ) => {
     setIsCreating(true);
     const res = await fetch("/api/teacher/latex-documents", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, sourceCode: "" }),
+      body: JSON.stringify({
+        title,
+        sourceCode: "",
+        ...(templateId ? { templateId } : {}),
+      }),
     });
 
     if (res.ok) {

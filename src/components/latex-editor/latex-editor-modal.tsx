@@ -2,7 +2,7 @@
 
 import { createPortal } from "react-dom";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { LatexCodePanel } from "./latex-code-panel";
+import { LatexCodePanel, type LatexCodePanelHandle } from "./latex-code-panel";
 import { LatexPreviewPanel } from "./latex-preview-panel";
 import { LatexToolbar } from "./latex-toolbar";
 import { Input } from "@/components/ui/input";
@@ -402,10 +402,17 @@ function PublishDialog({
 // ─── Main Editor Modal ────────────────────────────────────────────────────────
 
 interface LatexEditorModalProps {
-  documentId: string; // The LatexDocument.id to work with
+  /** LatexDocument.id — kept for backwards compatibility with existing callers. */
+  documentId?: string;
+  /** Entity being edited: a material document or a reusable template. */
+  entityType?: "document" | "template";
+  /** Id of the entity — falls back to `documentId` when omitted. */
+  entityId?: string;
   subchapterId?: string; // Pre-set when opened from "Dodaj Materiał"
   onClose: () => void;
   onPublished?: (pdfUrl: string) => void;
+  /** Called after a successful save — used by the template manager to refresh its list. */
+  onSaved?: () => void;
 }
 
 const DEFAULT_TEMPLATE = `\\documentclass{article}
@@ -433,10 +440,19 @@ Tutaj wpisz swój tekst.
 
 export function LatexEditorModal({
   documentId,
+  entityType = "document",
+  entityId,
   subchapterId,
   onClose,
   onPublished,
+  onSaved,
 }: LatexEditorModalProps) {
+  const isTemplate = entityType === "template";
+  const resourceId = entityId ?? documentId ?? "";
+  const apiBase = isTemplate
+    ? "/api/teacher/latex-templates"
+    : "/api/teacher/latex-documents";
+
   const [isMounted, setIsMounted] = useState(false);
   const [sourceCode, setSourceCode] = useState("");
   const [documentTitle, setDocumentTitle] = useState("");
@@ -453,29 +469,30 @@ export function LatexEditorModal({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const savedCodeRef = useRef<string>("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const codePanelRef = useRef<LatexCodePanelHandle>(null);
 
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-  // ── Load document on mount ──────────────────────────────────────────────────
+  // ── Load document / template on mount ───────────────────────────────────────
   useEffect(() => {
-    const loadDocument = async () => {
+    const loadEntity = async () => {
       setLoading(true);
-      const res = await fetch(`/api/teacher/latex-documents/${documentId}`);
+      const res = await fetch(`${apiBase}/${resourceId}`);
       if (res.ok) {
         const data = await res.json();
-        const doc = data.document;
-        const code = doc.sourceCode || DEFAULT_TEMPLATE;
+        const entity = isTemplate ? data.template : data.document;
+        const code = entity.sourceCode || DEFAULT_TEMPLATE;
         setSourceCode(code);
-        setDocumentTitle(doc.title);
-        setHasExistingMaterial(!!doc.materialId);
+        setDocumentTitle(entity.title);
+        setHasExistingMaterial(!isTemplate && !!entity.materialId);
         savedCodeRef.current = code;
       }
       setLoading(false);
     };
-    loadDocument();
-  }, [documentId]);
+    loadEntity();
+  }, [apiBase, resourceId, isTemplate]);
 
   // ── Track unsaved changes ──────────────────────────────────────────────────
   useEffect(() => {
@@ -488,14 +505,11 @@ export function LatexEditorModal({
       setIsCompiling(true);
       setCompileResult(null);
 
-      const res = await fetch(
-        `/api/teacher/latex-documents/${documentId}/compile`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sourceCode: code ?? sourceCode }),
-        },
-      );
+      const res = await fetch(`${apiBase}/${resourceId}/compile`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ sourceCode: code ?? sourceCode }),
+      });
 
       const data = await res.json();
       setIsCompiling(false);
@@ -510,7 +524,7 @@ export function LatexEditorModal({
         });
       }
     },
-    [documentId, sourceCode],
+    [apiBase, resourceId, sourceCode],
   );
 
   // ── Save (PUT) + compile ───────────────────────────────────────────────────
@@ -522,7 +536,7 @@ export function LatexEditorModal({
       clearTimeout(debounceRef.current);
     }
 
-    const res = await fetch(`/api/teacher/latex-documents/${documentId}`, {
+    const res = await fetch(`${apiBase}/${resourceId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ sourceCode }),
@@ -531,12 +545,28 @@ export function LatexEditorModal({
     if (res.ok) {
       savedCodeRef.current = sourceCode;
       setHasUnsavedChanges(false);
+      onSaved?.();
     }
     setIsSaving(false);
 
     // Compile for preview
     await compile(sourceCode);
-  }, [documentId, sourceCode, compile]);
+
+    return res.ok;
+  }, [apiBase, resourceId, sourceCode, compile, onSaved]);
+
+  // ── Templates are never published — the primary button just saves & closes ──
+  const handleSaveTemplateAndClose = useCallback(async () => {
+    const ok = await handleSave();
+    if (ok) {
+      onClose();
+    }
+  }, [handleSave, onClose]);
+
+  // ── Insert an element snippet at the cursor position ───────────────────────
+  const handleInsertElement = useCallback((snippetCode: string) => {
+    codePanelRef.current?.insertAtCursor(snippetCode);
+  }, []);
 
   // ── Debounced auto-compile after 2s of inactivity ─────────────────────────
   const handleCodeChange = useCallback(
@@ -618,9 +648,15 @@ export function LatexEditorModal({
           isCompiling={isCompiling}
           isPublishing={false}
           onSave={handleSave}
-          onPublish={() => setShowPublishDialog(true)}
+          onPublish={
+            isTemplate
+              ? handleSaveTemplateAndClose
+              : () => setShowPublishDialog(true)
+          }
           onClose={handleClose}
           hasUnsavedChanges={hasUnsavedChanges}
+          entityType={entityType}
+          onInsertElement={handleInsertElement}
         />
 
         {/* Split editor */}
@@ -628,6 +664,7 @@ export function LatexEditorModal({
           {/* Left: code */}
           <div className="w-1/2 flex flex-col border-r border-gray-700 overflow-hidden">
             <LatexCodePanel
+              ref={codePanelRef}
               value={sourceCode}
               onChange={handleCodeChange}
               onSave={handleSave}
@@ -645,9 +682,9 @@ export function LatexEditorModal({
       </div>
 
       {/* Publish dialog — rendered on top of editor */}
-      {showPublishDialog && (
+      {showPublishDialog && !isTemplate && (
         <PublishDialog
-          documentId={documentId}
+          documentId={resourceId}
           subchapterId={subchapterId}
           hasExistingMaterial={hasExistingMaterial}
           currentTitle={documentTitle}

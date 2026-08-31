@@ -7,6 +7,30 @@ const updateTemplateSchema = z.object({
   sourceCode: z.string().min(1).optional(),
 });
 
+// GET /api/teacher/latex-templates/[id]
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await auth();
+  if (!session || session.user.role !== "TEACHER") {
+    return new Response("Brak dostępu", { status: 403 });
+  }
+
+  const { id } = await params;
+  const template = await prisma.latexTemplate.findUnique({ where: { id } });
+
+  if (!template) {
+    return Response.json({ error: "Nie znaleziono szablonu" }, { status: 404 });
+  }
+
+  if (template.ownerId !== session.user.id) {
+    return new Response("Brak dostępu", { status: 403 });
+  }
+
+  return Response.json({ template });
+}
+
 // PUT /api/teacher/latex-templates/[id]
 export async function PUT(
   req: Request,

@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Save, FileDown, Loader2, FileCode, X } from "lucide-react";
+import { LatexElementPicker } from "./latex-element-picker";
 
 interface LatexToolbarProps {
   documentTitle: string;
@@ -12,11 +13,15 @@ interface LatexToolbarProps {
   onPublish: () => void;
   onClose: () => void;
   hasUnsavedChanges: boolean;
+  /** "document" publishes to materials, "template" only saves the template. */
+  entityType?: "document" | "template";
+  /** Inserts an element snippet at the cursor position in the code panel. */
+  onInsertElement?: (snippetCode: string) => void;
 }
 
 /**
  * Toolbar at the top of the LaTeX editor modal.
- * Contains: document title, Save (Ctrl+S), Publish to materials, Close.
+ * Contains: document title, Save (Ctrl+S), element picker, Publish/Save template, Close.
  */
 export function LatexToolbar({
   documentTitle,
@@ -27,8 +32,11 @@ export function LatexToolbar({
   onPublish,
   onClose,
   hasUnsavedChanges,
+  entityType = "document",
+  onInsertElement,
 }: LatexToolbarProps) {
   const busy = isSaving || isCompiling || isPublishing;
+  const isTemplate = entityType === "template";
 
   return (
     <div className="flex items-center gap-3 px-4 py-2.5 bg-gray-900 border-b border-gray-700 flex-shrink-0">
@@ -75,22 +83,37 @@ export function LatexToolbar({
           </span>
         </Button>
 
-        {/* Publish as PDF */}
+        {/* Insert element at cursor */}
+        {onInsertElement && (
+          <LatexElementPicker onInsert={onInsertElement} disabled={busy} />
+        )}
+
+        {/* Publish as PDF (documents) / Save template */}
         <Button
-          id="latex-toolbar-publish"
+          id={isTemplate ? "latex-toolbar-save-template" : "latex-toolbar-publish"}
           size="sm"
           onClick={onPublish}
           disabled={busy}
           className="bg-blue-600 hover:bg-blue-700 text-white border-0"
-          title="Zapisz jako PDF i wstaw do materiałów"
+          title={
+            isTemplate
+              ? "Zapisz szablon"
+              : "Zapisz jako PDF i wstaw do materiałów"
+          }
         >
           {isPublishing ? (
             <Loader2 className="w-4 h-4 animate-spin" />
+          ) : isTemplate ? (
+            <Save className="w-4 h-4" />
           ) : (
             <FileDown className="w-4 h-4" />
           )}
           <span className="ml-1.5 hidden sm:block">
-            {isPublishing ? "Publikowanie..." : "Zapisz jako PDF i wstaw"}
+            {isTemplate
+              ? "Zapisz szablon"
+              : isPublishing
+                ? "Publikowanie..."
+                : "Zapisz jako PDF i wstaw"}
           </span>
         </Button>
 

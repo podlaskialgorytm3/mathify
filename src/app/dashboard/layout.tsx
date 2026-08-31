@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { signOut } from "@/lib/auth";
+import { LatexMenuItem } from "@/components/dashboard/sidebar/latex-menu-item";
 import {
   LogOut,
   Home,
@@ -16,7 +17,6 @@ import {
   Award,
   HardDrive,
   Eye,
-  FileCode,
 } from "lucide-react";
 
 export default async function DashboardLayout({
@@ -73,11 +73,6 @@ export default async function DashboardLayout({
         name: "Wyświetlenia",
         href: "/dashboard/teacher/views",
         icon: Eye,
-      },
-      {
-        name: "Edycja i Kompilacja Materiałów",
-        href: "/dashboard/teacher/latex-editor",
-        icon: FileCode,
       },
     ],
     STUDENT: [
@@ -171,6 +166,7 @@ export default async function DashboardLayout({
                 {item.name}
               </Link>
             ))}
+            {user.role === "TEACHER" && <LatexMenuItem />}
           </nav>
         </aside>
 

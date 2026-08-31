@@ -29,12 +29,22 @@ export async function POST(req: Request) {
 
   // If templateId provided — COPY the source code from the template (never reference live)
   if (templateId) {
-    const template = await prisma.latexTemplate.findFirst({
-      where: { id: templateId, ownerId: session.user.id },
+    const template = await prisma.latexTemplate.findUnique({
+      where: { id: templateId },
     });
-    if (template) {
-      sourceCode = template.sourceCode;
+
+    if (!template) {
+      return Response.json(
+        { error: "Nie znaleziono szablonu" },
+        { status: 404 }
+      );
     }
+
+    if (template.ownerId !== session.user.id) {
+      return new Response("Brak dostępu", { status: 403 });
+    }
+
+    sourceCode = template.sourceCode;
   }
 
   try {
