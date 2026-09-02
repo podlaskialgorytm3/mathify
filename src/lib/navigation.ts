@@ -72,6 +72,7 @@ export const DASHBOARD_NAVIGATION: Record<UserRole, NavigationItem[]> = {
     },
     { name: "Dysk", href: "/dashboard/teacher/disk", icon: "HardDrive" },
     { name: "Wyświetlenia", href: "/dashboard/teacher/views", icon: "Eye" },
+    { name: "Aplikacja", href: "/dashboard/teacher/app", icon: "Smartphone" },
   ],
   STUDENT: [
     { name: "Panel główny", href: "/dashboard", icon: "Home", primary: true },
@@ -93,6 +94,7 @@ export const DASHBOARD_NAVIGATION: Record<UserRole, NavigationItem[]> = {
       icon: "BarChart",
       primary: true,
     },
+    { name: "Aplikacja", href: "/dashboard/student/app", icon: "Smartphone" },
   ],
 };
 
