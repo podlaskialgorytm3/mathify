@@ -26,4 +26,4 @@ RUN mkdir -p /tmp/tectonic-cache /tmp/latex-warmup && \
 # Expose port and start development server
 EXPOSE 3000
 # Re-generate Prisma client on every start to pick up schema changes without image rebuild
-CMD sh -c "npx prisma generate && npm run dev"
+CMD sh -c "npx prisma generate && rm -rf .next && npm run dev"
