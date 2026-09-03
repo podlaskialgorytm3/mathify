@@ -162,7 +162,8 @@ export function DiskList({ materials, isOwner = true, onDelete }: DiskListProps)
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-      <table className="w-full">
+      <div className="overflow-x-auto scroll-touch">
+      <table className="w-full min-w-[720px]">
         <thead className="bg-gray-50 border-b border-gray-200">
           <tr>
             <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wide">Nazwa</th>
@@ -178,6 +179,7 @@ export function DiskList({ materials, isOwner = true, onDelete }: DiskListProps)
           ))}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

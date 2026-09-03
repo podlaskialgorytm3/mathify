@@ -234,12 +234,10 @@ export default function StudentSubmissionsPage() {
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+      <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/2 sm:w-1/4"></div>
           <div className="h-64 bg-gray-200 rounded"></div>
         </div>
-      </div>
     );
   }
 
@@ -247,14 +245,14 @@ export default function StudentSubmissionsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900">Moje Prace</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Moje Prace</h1>
         <p className="text-gray-600 mt-1">
           Historia przesłanych prac i ich oceny
         </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
@@ -332,7 +330,7 @@ export default function StudentSubmissionsPage() {
             Filtry
           </CardTitle>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <CardContent className="grid grid-cols-1 gap-4 md:grid-cols-3">
           <div>
             <Label htmlFor="search">Szukaj</Label>
             <div className="relative">
@@ -409,19 +407,19 @@ export default function StudentSubmissionsPage() {
                 className="hover:shadow-md transition-shadow"
               >
                 <CardContent className="pt-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="h-10 w-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start gap-3 mb-2">
+                        <div className="h-10 w-10 flex-shrink-0 bg-blue-100 rounded-lg flex items-center justify-center">
                           <FileText className="h-5 w-5 text-blue-600" />
                         </div>
-                        <div>
-                          <h3 className="font-semibold text-lg">
+                        <div className="min-w-0">
+                          <h3 className="font-semibold text-base sm:text-lg break-words">
                             {submission.fileName}
                           </h3>
-                          <div className="flex items-center gap-2 text-sm text-gray-600">
-                            <BookOpen className="h-3 w-3" />
-                            <span>
+                          <div className="flex items-start gap-2 text-sm text-gray-600">
+                            <BookOpen className="h-3 w-3 flex-shrink-0 mt-1" />
+                            <span className="break-words">
                               {submission.subchapter.chapter.course.title} →{" "}
                               {submission.subchapter.chapter.title} →{" "}
                               {submission.subchapter.title}
@@ -430,7 +428,7 @@ export default function StudentSubmissionsPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-4 mt-3">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3">
                         <span
                           className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${statusConfig.color}`}
                         >
@@ -462,7 +460,7 @@ export default function StudentSubmissionsPage() {
                         variant="outline"
                         size="sm"
                         onClick={() => openSubmissionDetails(submission)}
-                        className="gap-2"
+                        className="gap-2 w-full sm:w-auto"
                       >
                         <Eye className="h-4 w-4" />
                         Szczegóły
@@ -479,7 +477,7 @@ export default function StudentSubmissionsPage() {
       {/* Details Modal */}
       {selectedSubmission && (
         <Dialog open={showDetailsModal} onOpenChange={setShowDetailsModal}>
-          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto scroll-touch">
             <DialogHeader>
               <DialogTitle>Szczegóły pracy</DialogTitle>
             </DialogHeader>
@@ -507,7 +505,7 @@ export default function StudentSubmissionsPage() {
                     {getStatusConfig(selectedSubmission.status).label}
                   </p>
                 </div>
-                <div className="flex gap-2 mt-3">
+                <div className="flex flex-col gap-2 mt-3 sm:flex-row">
                   <Button
                     variant="outline"
                     size="sm"
@@ -544,7 +542,7 @@ export default function StudentSubmissionsPage() {
                         key={task.taskNumber}
                         className="p-4 border rounded-lg"
                       >
-                        <div className="flex items-center justify-between mb-2">
+                        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                           <span className="font-semibold">
                             Zadanie {task.taskNumber}
                           </span>

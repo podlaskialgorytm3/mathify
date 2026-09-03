@@ -78,7 +78,7 @@ export default async function AdminDiskPage({
   return (
     <div>
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 bg-gray-800 rounded-xl flex items-center justify-center">
+        <div className="w-10 h-10 flex-shrink-0 bg-gray-800 rounded-xl flex items-center justify-center">
           <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
               d="M5 19a2 2 0 01-2-2V7a2 2 0 012-2h4l2 2h4a2 2 0 012 2v1M5 19h14a2 2 0 002-2v-5a2 2 0 00-2-2H9a2 2 0 00-2 2v5a2 2 0 01-2 2z"
@@ -86,7 +86,7 @@ export default async function AdminDiskPage({
           </svg>
         </div>
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Dysk — Widok Admina</h1>
+          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">Dysk, widok admina</h1>
           <p className="text-sm text-gray-500">
             Wszystkie materiały w systemie ({materials.length} łącznie)
           </p>
@@ -94,13 +94,13 @@ export default async function AdminDiskPage({
       </div>
 
       {/* Filters (server-side via URL params) */}
-      <form method="GET" className="flex flex-wrap gap-3 mb-6 bg-white border border-gray-200 rounded-xl p-4">
+      <form method="GET" className="grid grid-cols-1 gap-3 mb-6 bg-white border border-gray-200 rounded-xl p-4 sm:grid-cols-2 lg:flex lg:flex-wrap">
         <div>
           <label className="block text-xs font-semibold text-gray-600 mb-1">Nauczyciel</label>
           <select
             name="teacherId"
             defaultValue={teacherId || ""}
-            className="border border-gray-300 rounded-lg text-sm px-3 py-2"
+            className="w-full border border-gray-300 rounded-lg text-sm px-3 py-2"
           >
             <option value="">Wszyscy</option>
             {teachers.map((t) => (
@@ -115,7 +115,7 @@ export default async function AdminDiskPage({
           <select
             name="source"
             defaultValue={source || ""}
-            className="border border-gray-300 rounded-lg text-sm px-3 py-2"
+            className="w-full border border-gray-300 rounded-lg text-sm px-3 py-2"
           >
             <option value="">Wszystkie</option>
             <option value="COURSE">Kurs</option>
@@ -127,16 +127,16 @@ export default async function AdminDiskPage({
           <select
             name="view"
             defaultValue={view}
-            className="border border-gray-300 rounded-lg text-sm px-3 py-2"
+            className="w-full border border-gray-300 rounded-lg text-sm px-3 py-2"
           >
             <option value="list">Lista</option>
             <option value="grid">Kafelki</option>
           </select>
         </div>
-        <div className="flex items-end">
+        <div className="flex items-end sm:col-span-2 lg:col-span-1">
           <button
             type="submit"
-            className="bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+            className="w-full lg:w-auto bg-blue-600 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
           >
             Filtruj
           </button>

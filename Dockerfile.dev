@@ -1,6 +1,6 @@
 FROM node:20-alpine
 
-RUN apk add --no-cache libc6-compat openssl
+RUN apk add --no-cache libc6-compat openssl curl tectonic
 
 WORKDIR /app
 
@@ -13,6 +13,17 @@ RUN npm install
 # We just need to generate the Prisma client during image build
 RUN npx prisma generate
 
+# Pre-warm the tectonic LaTeX package cache during image build.
+# This downloads common packages (amsmath, fontenc, babel, geometry, etc.) once,
+# so first user compilation is fast instead of timing out on downloads.
+RUN mkdir -p /tmp/tectonic-cache /tmp/latex-warmup && \
+    printf '\\documentclass{article}\n\\usepackage[utf8]{inputenc}\n\\usepackage[T1]{fontenc}\n\\usepackage[polish]{babel}\n\\usepackage{amsmath}\n\\usepackage{amssymb}\n\\usepackage{geometry}\n\\geometry{a4paper,margin=2.5cm}\n\\begin{document}\nWarmup\n\\end{document}\n' \
+      > /tmp/latex-warmup/warmup.tex && \
+    XDG_CACHE_HOME=/tmp/tectonic-cache tectonic --untrusted --outdir /tmp/latex-warmup /tmp/latex-warmup/warmup.tex || true && \
+    rm -rf /tmp/latex-warmup
+
+
 # Expose port and start development server
 EXPOSE 3000
-CMD ["npm", "run", "dev"]
+# Re-generate Prisma client on every start to pick up schema changes without image rebuild
+CMD sh -c "npx prisma generate && rm -rf .next && npm run dev"

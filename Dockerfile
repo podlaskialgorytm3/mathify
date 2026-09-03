@@ -1,5 +1,9 @@
 FROM node:20-alpine AS base
-RUN apk add --no-cache libc6-compat openssl
+RUN apk add --no-cache libc6-compat openssl curl wget \
+    && wget -qO- https://drop.implicitcadence.com/tectonic/releases/latest/tectonic-x86_64-unknown-linux-musl.tar.gz \
+       | tar -xz -C /usr/local/bin \
+    && chmod +x /usr/local/bin/tectonic \
+    && tectonic --version 2>/dev/null || true
 
 # Install dependencies only when needed
 FROM base AS deps

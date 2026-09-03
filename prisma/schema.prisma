@@ -96,6 +96,9 @@ model User {
   verificationTokens  VerificationToken[]
   ownedMaterials      Material[]         @relation("OwnedMaterials")
   materialViews       MaterialView[]
+  latexDocuments      LatexDocument[]    @relation("OwnerLatexDocuments")
+  latexTemplates      LatexTemplate[]    @relation("OwnerLatexTemplates")
+  latexElements       LatexElement[]     @relation("OwnerLatexElements")
 
   @@index([email])
   @@index([username])
@@ -260,8 +263,9 @@ model Material {
   updatedAt   DateTime       @updatedAt
 
   // Relations
-  owner       User?              @relation("OwnedMaterials", fields: [ownerId], references: [id])
-  subchapters MaterialSubchapter[]
+  owner         User?              @relation("OwnedMaterials", fields: [ownerId], references: [id])
+  subchapters   MaterialSubchapter[]
+  latexDocument LatexDocument?
   views       MaterialView[]
 
   @@index([ownerId])
@@ -441,3 +445,47 @@ model MaterialView {
   @@index([materialId, studentId])
 }
 
+model LatexDocument {
+  id           String   @id @default(cuid())
+  title        String                     // nazwa pliku, podawana przy tworzeniu z Dashboardu
+  sourceCode   String   @db.Text          // aktualny kod LaTeX
+  ownerId      String
+  owner        User     @relation("OwnerLatexDocuments", fields: [ownerId], references: [id])
+
+  materialId   String?  @unique           // NULL dopóki nie "wstawiono do materiałów"; 1:1 z Material po publikacji
+  material     Material? @relation(fields: [materialId], references: [id], onDelete: SetNull)
+
+  templateId   String?                    // z jakiego szablonu wystartował (informacyjnie, kod i tak skopiowany)
+  template     LatexTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([ownerId])
+}
+
+model LatexTemplate {
+  id          String   @id @default(cuid())
+  title       String
+  sourceCode  String   @db.Text
+  ownerId     String
+  owner       User     @relation("OwnerLatexTemplates", fields: [ownerId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  documents   LatexDocument[]   // tylko informacyjnie "kto z tego korzystał", nie wpływa na ich treść
+
+  @@index([ownerId])
+}
+
+model LatexElement {
+  id           String   @id @default(cuid())
+  name         String                 // widoczna nazwa w UI ("Kratka do liczb")
+  snippetCode  String   @db.Text      // fragment LaTeX wstawiany do edytora
+  ownerId      String
+  owner        User     @relation("OwnerLatexElements", fields: [ownerId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([ownerId])
+}

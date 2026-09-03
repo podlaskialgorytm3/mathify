@@ -191,11 +191,72 @@ export default function UsersPage() {
     return colors[status] || "bg-gray-100 text-gray-800";
   };
 
+  const renderActions = (user: User) => (
+    <>
+      {user.status === "PENDING" && (
+        <>
+          <Button
+            size="sm"
+            onClick={() => updateUserStatus(user.id, "ACTIVE")}
+            className="bg-green-600 hover:bg-green-700"
+          >
+            Zatwierdź
+          </Button>
+          <Button
+            size="sm"
+            variant="destructive"
+            onClick={() => updateUserStatus(user.id, "INACTIVE")}
+          >
+            Odrzuć
+          </Button>
+        </>
+      )}
+      {user.status === "ACTIVE" && (
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => updateUserStatus(user.id, "INACTIVE")}
+        >
+          Dezaktywuj
+        </Button>
+      )}
+      {user.status === "INACTIVE" && (
+        <Button size="sm" onClick={() => updateUserStatus(user.id, "ACTIVE")}>
+          Aktywuj
+        </Button>
+      )}
+      <Button size="sm" variant="outline" onClick={() => setEditingUser(user)}>
+        Edytuj
+      </Button>
+      <Button
+        size="sm"
+        variant="destructive"
+        onClick={() => deleteUser(user.id)}
+      >
+        Usuń
+      </Button>
+    </>
+  );
+
+  const renderStats = (user: User) => (
+    <>
+      {user.role === "TEACHER" && <span>Kursy: {user._count.createdCourses}</span>}
+      {user.role === "STUDENT" && (
+        <>
+          <span>Kursy: {user._count.enrolledCourses}</span>
+          <span>Rozwiązania: {user._count.submissions}</span>
+        </>
+      )}
+    </>
+  );
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Zarządzanie Użytkownikami</h1>
-        <p className="text-gray-600 mt-2">
+        <h1 className="text-2xl font-bold sm:text-3xl">
+          Zarządzanie Użytkownikami
+        </h1>
+        <p className="text-gray-600 mt-2 text-sm sm:text-base">
           Przeglądaj, zatwierdź i zarządzaj kontami użytkowników
         </p>
       </div>
@@ -205,7 +266,7 @@ export default function UsersPage() {
         <CardHeader>
           <CardTitle>Filtry</CardTitle>
         </CardHeader>
-        <CardContent className="flex gap-4">
+        <CardContent className="flex flex-col gap-4 sm:flex-row">
           <div className="flex-1">
             <Label htmlFor="status-filter">Status</Label>
             <select
@@ -247,7 +308,39 @@ export default function UsersPage() {
               Brak użytkowników do wyświetlenia
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="divide-y divide-gray-200 md:hidden">
+              {users.map((user) => (
+                <div key={user.id} className="space-y-3 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-semibold text-gray-900 break-words">
+                        {user.firstName} {user.lastName}
+                      </p>
+                      <p className="text-xs text-gray-500">@{user.username}</p>
+                      <p className="text-xs text-gray-500 break-all">
+                        {user.email}
+                      </p>
+                    </div>
+                    <span
+                      className={`px-2 py-1 inline-flex flex-shrink-0 text-xs leading-5 font-semibold rounded-full ${getStatusColor(
+                        user.status
+                      )}`}
+                    >
+                      {getStatusLabel(user.status)}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                    <span>{getRoleLabel(user.role)}</span>
+                    {renderStats(user)}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {renderActions(user)}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="hidden overflow-x-auto md:block">
               <table className="w-full">
                 <thead className="bg-gray-50 border-b">
                   <tr>
@@ -305,89 +398,26 @@ export default function UsersPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         <div className="flex flex-col text-xs">
-                          {user.role === "TEACHER" && (
-                            <span>Kursy: {user._count.createdCourses}</span>
-                          )}
-                          {user.role === "STUDENT" && (
-                            <>
-                              <span>Kursy: {user._count.enrolledCourses}</span>
-                              <span>
-                                Rozwiązania: {user._count.submissions}
-                              </span>
-                            </>
-                          )}
+                          {renderStats(user)}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                        {user.status === "PENDING" && (
-                          <>
-                            <Button
-                              size="sm"
-                              onClick={() =>
-                                updateUserStatus(user.id, "ACTIVE")
-                              }
-                              className="bg-green-600 hover:bg-green-700"
-                            >
-                              Zatwierdź
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() =>
-                                updateUserStatus(user.id, "INACTIVE")
-                              }
-                            >
-                              Odrzuć
-                            </Button>
-                          </>
-                        )}
-                        {user.status === "ACTIVE" && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                              updateUserStatus(user.id, "INACTIVE")
-                            }
-                          >
-                            Dezaktywuj
-                          </Button>
-                        )}
-                        {user.status === "INACTIVE" && (
-                          <Button
-                            size="sm"
-                            onClick={() => updateUserStatus(user.id, "ACTIVE")}
-                          >
-                            Aktywuj
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => setEditingUser(user)}
-                        >
-                          Edytuj
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => deleteUser(user.id)}
-                        >
-                          Usuń
-                        </Button>
+                        {renderActions(user)}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </CardContent>
       </Card>
 
       {/* Edit User Modal */}
       {editingUser && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal p-4">
+          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto scroll-touch">
             <CardHeader>
               <CardTitle>Edytuj Użytkownika</CardTitle>
             </CardHeader>
@@ -447,7 +477,7 @@ export default function UsersPage() {
                     <option value="STUDENT">Uczeń</option>
                   </select>
                 </div>
-                <div className="flex gap-2 justify-end">
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                   <Button
                     type="button"
                     variant="outline"
@@ -465,3 +495,4 @@ export default function UsersPage() {
     </div>
   );
 }
+

@@ -9,6 +9,8 @@ import {
   uploadBufferToCloudinary,
   deleteFromCloudinary,
 } from "@/lib/cloudinary";
+import { MAX_PDF_SIZE_BYTES } from "@/lib/pdf-compression/constants";
+import { hasPdfSignature } from "@/lib/pdf-compression/validation";
 
 export async function GET() {
   try {
@@ -152,6 +154,32 @@ export async function POST(request: NextRequest) {
       fileName = file.name;
       const bytes = await file.arrayBuffer();
       finalPdfBuffer = Buffer.from(bytes);
+
+      // Backend nie ufa walidacji frontendowej — sprawdzamy niezależnie
+      // rozmiar oraz rzeczywisty format pliku (sygnatura "%PDF-").
+      if (finalPdfBuffer.length === 0) {
+        return NextResponse.json(
+          { error: "Plik jest pusty lub uszkodzony" },
+          { status: 400 }
+        );
+      }
+
+      if (finalPdfBuffer.length > MAX_PDF_SIZE_BYTES) {
+        return NextResponse.json(
+          {
+            error:
+              "Plik PDF przekracza dozwolony limit 3 MB. Skompresuj plik i spróbuj ponownie.",
+          },
+          { status: 413 }
+        );
+      }
+
+      if (!hasPdfSignature(new Uint8Array(bytes))) {
+        return NextResponse.json(
+          { error: "Przesłany plik nie jest poprawnym dokumentem PDF" },
+          { status: 400 }
+        );
+      }
     } else if (uploadMode === "images") {
       const images = formData.getAll("images") as File[];
 

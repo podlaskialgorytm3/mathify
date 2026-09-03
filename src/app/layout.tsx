@@ -1,12 +1,45 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { HydrationFix } from "@/components/HydrationFix";
+import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { OfflineIndicator } from "@/components/pwa/offline-indicator";
+import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 
 export const metadata: Metadata = {
   title: "Mathify - Aplikacja do śledzenia rozwoju matematycznego",
   description:
     "System do zarządzania kursami matematyki i automatycznego sprawdzania prac domowych",
+  applicationName: "Mathify",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Mathify",
+    statusBarStyle: "default",
+  },
+  formatDetection: {
+    telephone: false,
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+};
+
+/**
+ * Ustawienia okna dla aplikacji instalowalnej.
+ * `viewportFit: "cover"` razem z klasami safe-area sprawia, że treść
+ * nie chowa się pod wcięciem aparatu ani paskiem gestów na telefonie.
+ */
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  viewportFit: "cover",
+  themeColor: "#2563eb",
 };
 
 export default function RootLayout({
@@ -33,7 +66,10 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <HydrationFix />
+        <ServiceWorkerRegister />
+        <OfflineIndicator />
         {children}
+        <InstallPrompt />
         <Toaster />
       </body>
     </html>

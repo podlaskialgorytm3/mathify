@@ -28,12 +28,13 @@ services:
       - DATABASE_URL=postgresql://mathify:mathify_password@postgres:5432/mathify?schema=public
       - NEXTAUTH_URL=http://localhost:3000
       - AUTH_TRUST_HOST=true
+      - WATCHPACK_POLLING=true
+      - CHOKIDAR_USEPOLLING=true
     depends_on:
       - postgres
     volumes:
       - .:/app
       - /app/node_modules
-      - /app/.next
       - uploads:/app/uploads
     networks:
       - mathify-network

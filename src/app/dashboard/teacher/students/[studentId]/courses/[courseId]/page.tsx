@@ -423,7 +423,7 @@ export default function StudentCourseVisibilityPage() {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div>
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-1/4"></div>
           <div className="h-64 bg-gray-200 rounded"></div>
@@ -434,7 +434,7 @@ export default function StudentCourseVisibilityPage() {
 
   if (error) {
     return (
-      <div className="p-8">
+      <div>
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-red-500">Wystąpił błąd: {error}</p>
@@ -446,7 +446,7 @@ export default function StudentCourseVisibilityPage() {
 
   if (!data) {
     return (
-      <div className="p-8">
+      <div>
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-gray-500">Nie znaleziono danych</p>
@@ -459,30 +459,31 @@ export default function StudentCourseVisibilityPage() {
   const hasChanges = Object.keys(changes).length > 0;
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-start gap-3 sm:gap-4">
           <Button
             variant="outline"
             size="icon"
+            className="flex-shrink-0"
             onClick={() =>
               router.push(`/dashboard/teacher/students/${params.studentId}`)
             }
           >
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold">
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold sm:text-3xl break-words">
               {data.student.firstName} {data.student.lastName}
             </h1>
-            <p className="text-gray-500">{data.course.title}</p>
+            <p className="text-gray-500 break-words">{data.course.title}</p>
           </div>
         </div>
         <Button
           onClick={saveChanges}
           disabled={!hasChanges || saving}
-          className="gap-2"
+          className="gap-2 w-full lg:w-auto"
         >
           <Save className="h-4 w-4" />
           {saving
@@ -522,17 +523,17 @@ export default function StudentCourseVisibilityPage() {
             return (
               <Card key={chapter.id} className="overflow-hidden">
                 <CardHeader className="bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <BookOpen className="h-5 w-5" />
-                      <span>
+                  <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                    <CardTitle className="flex items-start gap-2 min-w-0">
+                      <BookOpen className="h-5 w-5 flex-shrink-0" />
+                      <span className="break-words">
                         {chapter.order}. {chapter.title}
                       </span>
                     </CardTitle>
-                    <div className="flex items-center gap-3">
+                    <div className="flex flex-wrap items-center gap-3">
                       {/* Bulk actions for subchapters */}
                       {chapter.subchapters.length > 0 && (
-                        <div className="flex items-center gap-2 mr-2 pr-3 border-r">
+                        <div className="flex flex-wrap items-center gap-2 lg:mr-2 lg:pr-3 lg:border-r">
                           <span className="text-xs text-gray-500">
                             Wszystkie podrozdziały:
                           </span>
@@ -597,11 +598,11 @@ export default function StudentCourseVisibilityPage() {
                         return (
                           <div
                             key={subchapter.id}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                            className="flex flex-col gap-3 p-3 bg-gray-50 rounded-lg xl:flex-row xl:items-center xl:justify-between"
                           >
-                            <div className="flex items-center gap-2">
-                              <ChevronRight className="h-4 w-4 text-gray-400" />
-                              <span className="text-sm font-medium">
+                            <div className="flex flex-wrap items-center gap-2 min-w-0">
+                              <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                              <span className="text-sm font-medium break-words">
                                 {chapter.order}.{subchapter.order}{" "}
                                 {subchapter.title}
                               </span>
@@ -611,9 +612,9 @@ export default function StudentCourseVisibilityPage() {
                                 </span>
                               )}
                             </div>
-                            <div className="flex items-center gap-4">
+                            <div className="flex flex-wrap items-center gap-3 sm:gap-4">
                               {/* Widoczność */}
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
                                 {subchapterVisible ? (
                                   <Eye className="h-4 w-4 text-green-600" />
                                 ) : (
@@ -641,7 +642,7 @@ export default function StudentCourseVisibilityPage() {
 
                               {/* Możliwość wysyłania pracy */}
                               {subchapter.allowSubmissions && (
-                                <div className="flex items-center gap-2 pl-4 border-l">
+                                <div className="flex flex-wrap items-center gap-2 sm:pl-4 sm:border-l">
                                   {canSubmit ? (
                                     <Upload className="h-4 w-4 text-blue-600" />
                                   ) : (
@@ -695,7 +696,7 @@ export default function StudentCourseVisibilityPage() {
 
       {/* Dialog wstawiania pracy domowej */}
       <Dialog open={homeworkDialogOpen} onOpenChange={setHomeworkDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto scroll-touch">
           <DialogHeader>
             <DialogTitle>Wstaw pracę domową za ucznia</DialogTitle>
             <DialogDescription>
@@ -712,7 +713,7 @@ export default function StudentCourseVisibilityPage() {
 
           <div className="space-y-6">
             {/* Toggle PDF / Zdjęcia */}
-            <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+            <div className="flex flex-wrap items-center justify-center gap-3 p-4 bg-gray-50 rounded-lg sm:justify-between">
               <div className="flex items-center gap-3">
                 <FileText
                   className={`h-5 w-5 ${
@@ -754,7 +755,7 @@ export default function StudentCourseVisibilityPage() {
             {/* Upload PDF */}
             {uploadMode === "pdf" && (
               <>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 sm:p-8 text-center">
                   <input
                     type="file"
                     id="teacher-file-upload"
@@ -802,7 +803,7 @@ export default function StudentCourseVisibilityPage() {
             {/* Upload zdjęć */}
             {uploadMode === "images" && (
               <>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 sm:p-8 text-center">
                   <input
                     type="file"
                     id="teacher-images-upload"
@@ -833,7 +834,7 @@ export default function StudentCourseVisibilityPage() {
                     <p className="text-sm font-medium text-gray-700">
                       Wybrane zdjęcia ({selectedImages.length}/10):
                     </p>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                       {selectedImages.map((image, index) => (
                         <div
                           key={index}
@@ -877,7 +878,7 @@ export default function StudentCourseVisibilityPage() {
             </div>
 
             {/* Przyciski */}
-            <div className="flex gap-3">
+            <div className="flex flex-col-reverse gap-3 sm:flex-row">
               <Button
                 onClick={handleHomeworkSubmit}
                 disabled={
@@ -891,6 +892,7 @@ export default function StudentCourseVisibilityPage() {
               </Button>
               <Button
                 variant="outline"
+                className="w-full sm:w-auto"
                 onClick={() => setHomeworkDialogOpen(false)}
                 disabled={uploading}
               >

@@ -95,7 +95,7 @@ export default function EditStudentPage() {
         >
           <ArrowLeft className="w-5 h-5" />
         </Button>
-        <h1 className="text-3xl font-bold text-gray-900">Edytuj ucznia</h1>
+        <h1 className="text-2xl font-bold sm:text-3xl text-gray-900">Edytuj ucznia</h1>
       </div>
 
       <Card>
@@ -104,7 +104,7 @@ export default function EditStudentPage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="firstName">Imię</Label>
                 <Input
@@ -146,7 +146,7 @@ export default function EditStudentPage() {
               </select>
             </div>
 
-            <div className="pt-4 flex justify-end gap-3">
+            <div className="pt-4 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <Button
                 type="button"
                 variant="outline"

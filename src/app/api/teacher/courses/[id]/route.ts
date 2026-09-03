@@ -40,7 +40,13 @@ export async function GET(
               include: {
                 materialSubchapters: {
                   include: {
-                    material: true,
+                    material: {
+                      include: {
+                        latexDocument: {
+                          select: { id: true },
+                        },
+                      },
+                    },
                   },
                   orderBy: {
                     order: "asc",

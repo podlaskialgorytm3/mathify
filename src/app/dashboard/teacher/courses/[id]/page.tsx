@@ -10,6 +10,7 @@ import { useToast } from "@/components/ui/use-toast";
 import FileUpload from "@/components/FileUpload";
 import { CopySubchapterDialog } from "@/components/course-management/copy-subchapter-dialog";
 import { CopyMaterialDialog } from "@/components/course-management/copy-material-dialog";
+import { LatexEditorModal } from "@/components/latex-editor/latex-editor-modal";
 import {
   ArrowLeft,
   Plus,
@@ -32,6 +33,7 @@ import {
   Square,
   Copy,
   HardDrive,
+  FileCode,
 } from "lucide-react";
 
 interface Material {
@@ -41,6 +43,7 @@ interface Material {
   type: "PDF" | "LINK";
   content: string;
   source?: "COURSE" | "HOMEWORK";
+  latexDocument?: { id: string } | null;
 }
 
 interface MaterialSubchapterEntry {
@@ -148,6 +151,8 @@ export default function CourseDetailsPage({
   const [showCopySubchapterDialog, setShowCopySubchapterDialog] = useState(false);
   const [showCopyMaterialDialog, setShowCopyMaterialDialog] = useState(false);
   const [copyTargetSubchapterId, setCopyTargetSubchapterId] = useState<string | null>(null);
+  const [latexEditorDocumentId, setLatexEditorDocumentId] = useState<string | null>(null);
+  const [latexEditorSubchapterId, setLatexEditorSubchapterId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const canEdit = course?.computedAccessType === 'OWNER' || course?.computedAccessType === 'OPEN_SOURCE';
@@ -829,18 +834,21 @@ export default function CourseDetailsPage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-start gap-3 sm:gap-4">
           <Button
             variant="outline"
             size="sm"
+            className="flex-shrink-0"
             onClick={() => router.push("/dashboard/teacher/courses")}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Powrót
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold">{course.title}</h1>
+          <div className="min-w-0">
+            <h1 className="text-2xl font-bold sm:text-3xl break-words">
+              {course.title}
+            </h1>
             <p className="text-gray-600 mt-1">
               {course.description || "Brak opisu"}
             </p>
@@ -849,13 +857,20 @@ export default function CourseDetailsPage({
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setShowEnrollModal(true)}>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button
+            variant="outline"
+            className="w-full sm:w-auto"
+            onClick={() => setShowEnrollModal(true)}
+          >
             <UserPlus className="w-4 h-4 mr-2" />
             Dodaj ucznia
           </Button>
           {canEdit && (
-            <Button onClick={() => setShowChapterModal(true)}>
+            <Button
+              className="w-full sm:w-auto"
+              onClick={() => setShowChapterModal(true)}
+            >
               <Plus className="w-4 h-4 mr-2" />
               Nowy Rozdział
             </Button>
@@ -918,17 +933,17 @@ export default function CourseDetailsPage({
           {(course.chapters || []).map((chapter) => (
             <Card key={chapter.id} className="overflow-hidden">
               <div
-                className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
+                className="flex flex-col gap-3 p-4 cursor-pointer hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
                 onClick={() => toggleChapter(chapter.id)}
               >
-                <div className="flex items-center gap-3 flex-1">
+                <div className="flex items-start gap-3 flex-1 min-w-0">
                   {expandedChapters.has(chapter.id) ? (
-                    <ChevronDown className="w-5 h-5 text-gray-400" />
+                    <ChevronDown className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
                   ) : (
-                    <ChevronRight className="w-5 h-5 text-gray-400" />
+                    <ChevronRight className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
                   )}
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="font-semibold text-gray-500">
                         {chapter.order}.
                       </span>
@@ -953,7 +968,7 @@ export default function CourseDetailsPage({
                 </div>
                 {canEdit && (
                   <div
-                    className="flex items-center gap-2"
+                    className="flex flex-wrap items-center gap-2"
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Button
@@ -1011,9 +1026,9 @@ export default function CourseDetailsPage({
                           key={subchapter.id}
                           className="bg-white rounded-lg border"
                         >
-                          <div className="flex items-center justify-between p-3">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2">
+                          <div className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-sm font-medium text-gray-500">
                                   {chapter.order}.{subchapter.order}
                                 </span>
@@ -1042,7 +1057,7 @@ export default function CourseDetailsPage({
                               </p>
                             </div>
                             {canEdit && (
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -1053,6 +1068,29 @@ export default function CourseDetailsPage({
                                 >
                                   <Plus className="w-4 h-4 mr-1" />
                                   Materiał
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  title="Stwórz własny materiał PDF z edytora LaTeX"
+                                  onClick={async () => {
+                                    // Create a new LatexDocument for this subchapter
+                                    const res = await fetch("/api/teacher/latex-documents", {
+                                      method: "POST",
+                                      headers: { "Content-Type": "application/json" },
+                                      body: JSON.stringify({ title: "Nowy dokument LaTeX", sourceCode: "" }),
+                                    });
+                                    if (res.ok) {
+                                      const data = await res.json();
+                                      setLatexEditorSubchapterId(subchapter.id);
+                                      setLatexEditorDocumentId(data.document.id);
+                                    } else {
+                                      toast({ title: "Błąd", description: "Nie udało się utworzyć dokumentu LaTeX", variant: "destructive" });
+                                    }
+                                  }}
+                                >
+                                  <FileCode className="w-4 h-4 mr-1" />
+                                  Stwórz własne
                                 </Button>
                                 <Button
                                   size="sm"
@@ -1104,11 +1142,11 @@ export default function CourseDetailsPage({
                           {subchapter.materialSubchapters &&
                             subchapter.materialSubchapters.length > 0 && (
                               <div className="border-t px-3 py-2 bg-gray-50">
-                                <div className="flex items-center justify-between mb-2">
+                                <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                                   <p className="text-xs font-semibold text-gray-600">
                                     Materiały:
                                   </p>
-                                  <div className="flex items-center gap-2">
+                                  <div className="flex flex-wrap items-center gap-2">
                                     {canEdit && (
                                       <>
                                         {!selectionMode ? (
@@ -1171,7 +1209,7 @@ export default function CourseDetailsPage({
                                   {subchapter.materialSubchapters.map(({ material }) => (
                                     <div
                                       key={material.id}
-                                      className="flex items-center justify-between p-2 bg-white rounded border text-sm"
+                                      className="flex flex-wrap items-center justify-between gap-2 p-2 bg-white rounded border text-sm"
                                     >
                                       <div className="flex items-center gap-2 flex-1 min-w-0">
                                         {selectionMode && (
@@ -1239,18 +1277,34 @@ export default function CourseDetailsPage({
                                           )}
                                           {canEdit && (
                                             <>
-                                              <Button
-                                                size="sm"
-                                                variant="ghost"
-                                                onClick={() =>
-                                                  setEditingMaterial({
-                                                    subchapterId: subchapter.id,
-                                                    material,
-                                                  })
-                                                }
-                                              >
-                                                <Pencil className="w-3 h-3" />
-                                              </Button>
+                                              {material.latexDocument ? (
+                                                // LaTeX material — open in LaTeX editor
+                                                <Button
+                                                  size="sm"
+                                                  variant="ghost"
+                                                  title="Edytuj w edytorze LaTeX"
+                                                  onClick={() => {
+                                                    setLatexEditorSubchapterId(subchapter.id);
+                                                    setLatexEditorDocumentId(material.latexDocument!.id);
+                                                  }}
+                                                >
+                                                  <FileCode className="w-3 h-3 text-blue-500" />
+                                                </Button>
+                                              ) : (
+                                                // Classic material — open classic edit modal
+                                                <Button
+                                                  size="sm"
+                                                  variant="ghost"
+                                                  onClick={() =>
+                                                    setEditingMaterial({
+                                                      subchapterId: subchapter.id,
+                                                      material,
+                                                    })
+                                                  }
+                                                >
+                                                  <Pencil className="w-3 h-3" />
+                                                </Button>
+                                              )}
                                               <Button
                                                 size="sm"
                                                 variant="ghost"
@@ -1384,6 +1438,23 @@ export default function CourseDetailsPage({
           }}
         />
       )}
+
+      {/* LaTeX Editor Modal */}
+      {latexEditorDocumentId && (
+        <LatexEditorModal
+          documentId={latexEditorDocumentId}
+          subchapterId={latexEditorSubchapterId ?? undefined}
+          onClose={() => {
+            setLatexEditorDocumentId(null);
+            setLatexEditorSubchapterId(null);
+          }}
+          onPublished={() => {
+            setLatexEditorDocumentId(null);
+            setLatexEditorSubchapterId(null);
+            fetchCourse();
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -1401,8 +1472,8 @@ function ChapterModal({
   defaultValues?: any;
 }) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal p-4">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto scroll-touch">
         <CardHeader>
           <CardTitle>{title}</CardTitle>
         </CardHeader>
@@ -1441,7 +1512,7 @@ function ChapterModal({
                 <option value="PROGRESS_BASED">Bazująca na postępie</option>
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="visibleFromDate">Widoczny od</Label>
                 <Input
@@ -1677,7 +1748,7 @@ function MaterialModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal p-4">
       <Card className="w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -1910,7 +1981,7 @@ function EditMaterialModal({
   if (!defaultValues) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal p-4">
       <Card className="w-full max-w-lg">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -1987,8 +2058,8 @@ function SubchapterModal({
   defaultValues?: any;
 }) {
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal p-4">
+      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto scroll-touch">
         <CardHeader>
           <CardTitle>{title}</CardTitle>
         </CardHeader>
@@ -2027,7 +2098,7 @@ function SubchapterModal({
                 <option value="PROGRESS_BASED">Bazująca na postępie</option>
               </select>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="visibleFromDate">Widoczny od</Label>
                 <Input
@@ -2125,7 +2196,7 @@ function EnrollStudentModal({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal p-4">
       <Card className="w-full max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
         <CardHeader>
           <div className="flex items-center justify-between">
@@ -2236,3 +2307,5 @@ function EnrollStudentModal({
     </div>
   );
 }
+
+

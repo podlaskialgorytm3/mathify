@@ -125,7 +125,7 @@ export function CopySubchapterDialog({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-modal flex items-center justify-center bg-black/50">
       <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-lg font-semibold text-gray-900">
@@ -256,3 +256,4 @@ export function CopySubchapterDialog({
     </div>
   );
 }
+

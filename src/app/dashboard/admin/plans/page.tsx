@@ -243,21 +243,21 @@ export default function PlansPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Zarządzanie planami</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Zarządzanie planami</h1>
           <p className="text-gray-600 mt-1">
             Twórz i zarządzaj planami subskrypcyjnymi dla nauczycieli
           </p>
         </div>
-        <div className="flex gap-3">
-          <Button asChild variant="outline">
+        <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+          <Button asChild variant="outline" className="w-full sm:w-auto">
             <Link href="/dashboard/admin/plans/assign">
               <UserCog className="h-4 w-4 mr-2" />
               Przypisz plan
             </Link>
           </Button>
-          <Button onClick={() => handleOpenModal()}>
+          <Button className="w-full sm:w-auto" onClick={() => handleOpenModal()}>
             <Plus className="h-4 w-4 mr-2" />
             Dodaj nowy plan
           </Button>
@@ -273,7 +273,7 @@ export default function PlansPage() {
               <p className="text-gray-600 text-lg mb-4">
                 Nie utworzono jeszcze żadnych planów
               </p>
-              <Button onClick={() => handleOpenModal()}>
+              <Button className="w-full sm:w-auto" onClick={() => handleOpenModal()}>
                 <Plus className="h-4 w-4 mr-2" />
                 Utwórz pierwszy plan
               </Button>
@@ -281,7 +281,7 @@ export default function PlansPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 sm:gap-6">
           {plans.map((plan) => (
             <Card key={plan.id} className="relative">
               <CardHeader>
@@ -306,7 +306,7 @@ export default function PlansPage() {
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-center">
                   <div className="flex items-center justify-center gap-2">
                     <DollarSign className="h-5 w-5 text-blue-600" />
-                    <span className="text-3xl font-bold text-blue-600">
+                    <span className="text-2xl font-bold sm:text-3xl text-blue-600">
                       {plan.price}
                     </span>
                     <span className="text-lg text-blue-600">
@@ -369,7 +369,7 @@ export default function PlansPage() {
 
       {/* Create/Edit Modal */}
       <Dialog open={showModal} onOpenChange={handleCloseModal}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto scroll-touch">
           <DialogHeader>
             <DialogTitle>
               {editingPlan ? "Edytuj plan" : "Utwórz nowy plan"}
@@ -389,7 +389,7 @@ export default function PlansPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="maxSubchapters">
                   Maks. podrozdziałów <span className="text-red-500">*</span>
@@ -421,7 +421,7 @@ export default function PlansPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="price">
                   Cena <span className="text-red-500">*</span>

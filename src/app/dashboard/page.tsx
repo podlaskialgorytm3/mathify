@@ -63,11 +63,11 @@ async function AdminDashboardContent({ user }: any) {
   ]);
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-8">Witaj, {user.name}!</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold sm:text-3xl">Witaj, {user.name}!</h1>
 
       {/* Main Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
@@ -128,7 +128,7 @@ async function AdminDashboardContent({ user }: any) {
       </div>
 
       {/* Additional Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 sm:gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Szybki dostęp</CardTitle>
@@ -136,7 +136,7 @@ async function AdminDashboardContent({ user }: any) {
           <CardContent className="space-y-3">
             <Link
               href="/dashboard/admin/users"
-              className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between gap-3 rounded-lg border p-3 transition-colors hover:bg-gray-50"
             >
               <div className="flex items-center gap-3">
                 <Users className="h-5 w-5 text-blue-600" />
@@ -151,7 +151,7 @@ async function AdminDashboardContent({ user }: any) {
 
             <Link
               href="/dashboard/admin/courses"
-              className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between gap-3 rounded-lg border p-3 transition-colors hover:bg-gray-50"
             >
               <div className="flex items-center gap-3">
                 <BookOpen className="h-5 w-5 text-green-600" />
@@ -164,7 +164,7 @@ async function AdminDashboardContent({ user }: any) {
 
             <Link
               href="/dashboard/admin/plans"
-              className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 transition-colors"
+              className="flex items-center justify-between gap-3 rounded-lg border p-3 transition-colors hover:bg-gray-50"
             >
               <div className="flex items-center gap-3">
                 <Award className="h-5 w-5 text-purple-600" />
@@ -393,10 +393,10 @@ async function TeacherDashboardContent({
   });
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-8">Witaj, {userName}!</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold sm:text-3xl">Witaj, {userName}!</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
@@ -474,7 +474,7 @@ async function TeacherDashboardContent({
                 return (
                   <div
                     key={submission.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                    className="flex flex-col gap-3 rounded-lg border p-4 hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex-1">
                       <h4 className="font-semibold text-gray-900">
@@ -499,7 +499,7 @@ async function TeacherDashboardContent({
                         )}
                       </p>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex w-full items-center justify-between gap-4 sm:w-auto sm:justify-end">
                       {submission.tasks.length > 0 && (
                         <div className="text-right">
                           <div className="text-2xl font-bold text-gray-900">
@@ -556,7 +556,7 @@ async function TeacherDashboardContent({
                 return (
                   <div
                     key={submission.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                    className="flex flex-col gap-3 rounded-lg border p-4 hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex-1">
                       <h4 className="font-semibold text-gray-900">
@@ -580,7 +580,7 @@ async function TeacherDashboardContent({
                           : "Niedawno"}
                       </p>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex w-full items-center justify-between gap-4 sm:w-auto sm:justify-end">
                       {submission.tasks.length > 0 && (
                         <div className="text-right">
                           <div className="text-2xl font-bold text-gray-900">
@@ -614,7 +614,7 @@ async function TeacherDashboardContent({
       )}
 
       {/* Szybkie akcje */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3 sm:gap-6">
         <Link href="/dashboard/teacher/courses">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <CardHeader>
@@ -781,10 +781,10 @@ async function StudentDashboardContent({
   const approvedCount = allSubmissions.length;
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-8">Witaj, {userName}!</h1>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold sm:text-3xl">Witaj, {userName}!</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4 sm:gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-600">
@@ -866,7 +866,7 @@ async function StudentDashboardContent({
                 return (
                   <div
                     key={submission.id}
-                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50"
+                    className="flex flex-col gap-3 rounded-lg border p-4 hover:bg-gray-50 sm:flex-row sm:items-center sm:justify-between"
                   >
                     <div className="flex-1">
                       <h4 className="font-semibold text-gray-900">
@@ -887,7 +887,7 @@ async function StudentDashboardContent({
                         )}
                       </p>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex w-full items-center justify-between gap-4 sm:w-auto sm:justify-end">
                       {(submission.tasks || []).length > 0 && (
                         <div className="text-right">
                           <div className="text-2xl font-bold text-gray-900">
@@ -940,7 +940,7 @@ async function StudentDashboardContent({
       )}
 
       {/* Szybkie akcje */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3 sm:gap-6">
         <Link href="/dashboard/student/courses">
           <Card className="hover:shadow-lg transition-shadow cursor-pointer">
             <CardHeader>

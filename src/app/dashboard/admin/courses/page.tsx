@@ -211,27 +211,27 @@ export default function CoursesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Zarządzanie Kursami</h1>
-          <p className="text-gray-600 mt-2">
+          <h1 className="text-2xl font-bold sm:text-3xl">Zarządzanie Kursami</h1>
+          <p className="text-gray-600 mt-2 text-sm sm:text-base">
             Twórz i zarządzaj kursami matematyki
           </p>
         </div>
-        <Button onClick={() => setShowCreateModal(true)}>
+        <Button className="w-full sm:w-auto" onClick={() => setShowCreateModal(true)}>
           <Plus className="w-4 h-4 mr-2" />
           Nowy Kurs
         </Button>
       </div>
 
       {/* Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:gap-6">
         <Card>
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Wszystkie kursy</p>
-                <p className="text-3xl font-bold">{courses.length}</p>
+                <p className="text-2xl font-bold sm:text-3xl">{courses.length}</p>
               </div>
               <BookOpen className="w-8 h-8 text-blue-600" />
             </div>
@@ -242,7 +242,7 @@ export default function CoursesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Wszystkie rozdziały</p>
-                <p className="text-3xl font-bold">
+                <p className="text-2xl font-bold sm:text-3xl">
                   {courses.reduce((sum, c) => sum + c._count.chapters, 0)}
                 </p>
               </div>
@@ -255,7 +255,7 @@ export default function CoursesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Wszystkie zapisy</p>
-                <p className="text-3xl font-bold">
+                <p className="text-2xl font-bold sm:text-3xl">
                   {courses.reduce((sum, c) => sum + c._count.enrollments, 0)}
                 </p>
               </div>
@@ -273,14 +273,14 @@ export default function CoursesPage() {
           <CardContent className="py-12 text-center">
             <BookOpen className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600 mb-4">Brak kursów do wyświetlenia</p>
-            <Button onClick={() => setShowCreateModal(true)}>
+            <Button className="w-full sm:w-auto" onClick={() => setShowCreateModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               Utwórz pierwszy kurs
             </Button>
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 sm:gap-6">
           {courses.map((course) => (
             <Card key={course.id} className="hover:shadow-lg transition-shadow">
               <CardHeader>
@@ -300,7 +300,7 @@ export default function CoursesPage() {
                   {course.description || "Brak opisu"}
                 </p>
 
-                <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 mb-4">
                   <div className="flex items-center gap-1">
                     <FileText className="w-4 h-4" />
                     <span>{course._count.chapters} rozdz.</span>
@@ -337,8 +337,8 @@ export default function CoursesPage() {
 
       {/* Create Course Modal */}
       {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal p-4">
+          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto scroll-touch">
             <CardHeader>
               <CardTitle>Utwórz Nowy Kurs</CardTitle>
             </CardHeader>
@@ -378,7 +378,7 @@ export default function CoursesPage() {
                     ))}
                   </select>
                 </div>
-                <div className="flex gap-2 justify-end">
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                   <Button
                     type="button"
                     variant="outline"
@@ -396,8 +396,8 @@ export default function CoursesPage() {
 
       {/* Edit Course Modal */}
       {editingCourse && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <Card className="w-full max-w-md">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-modal p-4">
+          <Card className="w-full max-w-md max-h-[90vh] overflow-y-auto scroll-touch">
             <CardHeader>
               <CardTitle>Edytuj Kurs</CardTitle>
             </CardHeader>
@@ -437,7 +437,7 @@ export default function CoursesPage() {
                     ))}
                   </select>
                 </div>
-                <div className="flex gap-2 justify-end">
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
                   <Button
                     type="button"
                     variant="outline"
@@ -455,3 +455,4 @@ export default function CoursesPage() {
     </div>
   );
 }
+

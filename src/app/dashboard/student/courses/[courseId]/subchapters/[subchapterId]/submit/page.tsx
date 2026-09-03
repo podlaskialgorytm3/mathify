@@ -14,7 +14,22 @@ import {
   Trash2,
   Download,
   Image,
+  Loader2,
+  ExternalLink,
 } from "lucide-react";
+import {
+  COMPRESSION_LIMIT_MESSAGE,
+  EXTERNAL_COMPRESSOR_URL,
+  MAX_COMPRESSION_ATTEMPTS,
+  MAX_PDF_SIZE_BYTES,
+  formatFileSize,
+  getSizeReductionPercent,
+  isPdfUploadError,
+  preparePdfForUpload,
+  uploadHomeworkPdf,
+  validatePdfFile,
+  type PdfUploadStatus,
+} from "@/lib/pdf-compression";
 
 interface SubchapterInfo {
   id: string;
@@ -49,6 +64,9 @@ export default function SubmitHomeworkPage() {
   const [existingSubmission, setExistingSubmission] =
     useState<Submission | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [pdfStatus, setPdfStatus] = useState<PdfUploadStatus>({ type: "idle" });
+  const [showExternalCompressorHint, setShowExternalCompressorHint] =
+    useState(false);
 
   useEffect(() => {
     fetchSubchapterInfo();
@@ -136,21 +154,34 @@ export default function SubmitHomeworkPage() {
     }
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
-    if (file) {
-      // Sprawdź rozmiar pliku (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        toast({
-          title: "Błąd",
-          description: "Plik jest za duży. Maksymalny rozmiar to 10MB.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setSelectedFile(file);
+    if (!file) {
+      return;
     }
+
+    setPdfStatus({ type: "validating" });
+    setShowExternalCompressorHint(false);
+
+    try {
+      await validatePdfFile(file);
+    } catch (error) {
+      setPdfStatus({ type: "idle" });
+      event.target.value = "";
+      toast({
+        title: "Błąd",
+        description: isPdfUploadError(error)
+          ? error.message
+          : "Wybrany plik nie jest poprawnym dokumentem PDF",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPdfStatus({ type: "idle" });
+    setSelectedFile(file);
   };
 
   const handleImagesSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,8 +227,8 @@ export default function SubmitHomeworkPage() {
     setSelectedImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async () => {
-    if (uploadMode === "pdf" && !selectedFile) {
+  const handlePdfSubmit = async () => {
+    if (!selectedFile) {
       toast({
         title: "Błąd",
         description: "Wybierz plik PDF do przesłania",
@@ -206,7 +237,97 @@ export default function SubmitHomeworkPage() {
       return;
     }
 
-    if (uploadMode === "images" && selectedImages.length === 0) {
+    setUploading(true);
+    setShowExternalCompressorHint(false);
+
+    const startedAt = Date.now();
+
+    try {
+      setPdfStatus({ type: "validating" });
+      const validatedFile = await validatePdfFile(selectedFile);
+
+      // Kompresja tylko wtedy, gdy plik faktycznie przekracza limit.
+      const { compressPdf } = await import("@/lib/pdf-compression/compressor");
+
+      const prepared = await preparePdfForUpload(validatedFile, {
+        compress: (file, attempt) => compressPdf(file, attempt),
+        onAttemptStart: (attempt, maxAttempts) =>
+          setPdfStatus({ type: "compressing", attempt, maxAttempts }),
+      });
+
+      if (prepared.compressed) {
+        toast({
+          title: "Plik został przygotowany",
+          description: `Rozmiar zmniejszony z ${formatFileSize(
+            prepared.originalSize
+          )} do ${formatFileSize(prepared.file.size)} (-${getSizeReductionPercent(
+            prepared.originalSize,
+            prepared.file.size
+          )}%).`,
+        });
+      }
+
+      setPdfStatus({ type: "uploading" });
+
+      await uploadHomeworkPdf({
+        file: prepared.file,
+        subchapterId: params.subchapterId as string,
+      });
+
+      console.info("[pdf-upload]", {
+        originalSize: prepared.originalSize,
+        finalSize: prepared.file.size,
+        attempts: prepared.attempts,
+        durationMs: Date.now() - startedAt,
+      });
+
+      setPdfStatus({ type: "success" });
+
+      toast({
+        title: "Sukces",
+        description: "Praca domowa została przesłana",
+      });
+
+      router.push(`/dashboard/student/courses/${params.courseId}`);
+    } catch (error) {
+      console.error("Error uploading homework:", error);
+
+      const code = isPdfUploadError(error) ? error.code : "UPLOAD_FAILED";
+      const message = isPdfUploadError(error)
+        ? error.message
+        : "Nie udało się przesłać pracy domowej";
+
+      setPdfStatus({ type: "error", code, message });
+
+      // Kompresja się udała, ale plik i tak nie doszedł na serwer,
+      // wtedy proponujemy ręczną kompresję zewnętrznym narzędziem.
+      setShowExternalCompressorHint(
+        code === "FILE_TOO_LARGE" ||
+          code === "SERVER_ERROR" ||
+          code === "NETWORK_ERROR" ||
+          code === "UPLOAD_FAILED"
+      );
+
+      toast({
+        title:
+          code === "COMPRESSION_LIMIT_REACHED"
+            ? "Plik jest za duży"
+            : "Błąd przesyłania",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (uploadMode === "pdf") {
+      await handlePdfSubmit();
+      return;
+    }
+
+    if (selectedImages.length === 0) {
       toast({
         title: "Błąd",
         description: "Wybierz przynajmniej jedno zdjęcie",
@@ -220,14 +341,10 @@ export default function SubmitHomeworkPage() {
     try {
       const formData = new FormData();
 
-      if (uploadMode === "pdf") {
-        formData.append("file", selectedFile!);
-      } else {
-        // Dodaj wszystkie zdjęcia
-        selectedImages.forEach((image) => {
-          formData.append("images", image);
-        });
-      }
+      // Dodaj wszystkie zdjęcia
+      selectedImages.forEach((image) => {
+        formData.append("images", image);
+      });
 
       formData.append("subchapterId", params.subchapterId as string);
       formData.append("uploadMode", uploadMode);
@@ -264,7 +381,7 @@ export default function SubmitHomeworkPage() {
 
   if (loading) {
     return (
-      <div className="p-8">
+      <div>
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-1/4"></div>
           <div className="h-64 bg-gray-200 rounded"></div>
@@ -275,7 +392,7 @@ export default function SubmitHomeworkPage() {
 
   if (!subchapter) {
     return (
-      <div className="p-8">
+      <div>
         <Card>
           <CardContent className="pt-6">
             <p className="text-center text-gray-500">
@@ -289,7 +406,7 @@ export default function SubmitHomeworkPage() {
 
   if (!subchapter.isVisible) {
     return (
-      <div className="p-8">
+      <div>
         <Card>
           <CardContent className="pt-6 text-center space-y-4">
             <AlertCircle className="h-12 w-12 text-gray-400 mx-auto" />
@@ -316,7 +433,7 @@ export default function SubmitHomeworkPage() {
 
   if (!subchapter.allowSubmissions) {
     return (
-      <div className="p-8">
+      <div>
         <Card>
           <CardContent className="pt-6 text-center space-y-4">
             <AlertCircle className="h-12 w-12 text-gray-400 mx-auto" />
@@ -343,7 +460,7 @@ export default function SubmitHomeworkPage() {
 
   if (!subchapter.canSubmit) {
     return (
-      <div className="p-8">
+      <div>
         <Card>
           <CardContent className="pt-6 text-center space-y-4">
             <AlertCircle className="h-12 w-12 text-yellow-400 mx-auto" />
@@ -394,12 +511,13 @@ export default function SubmitHomeworkPage() {
     };
 
     return (
-      <div className="p-8 space-y-6">
+      <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-start gap-3 sm:gap-4">
           <Button
             variant="outline"
             size="icon"
+            className="flex-shrink-0"
             onClick={() =>
               router.push(`/dashboard/student/courses/${params.courseId}`)
             }
@@ -407,7 +525,7 @@ export default function SubmitHomeworkPage() {
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <h1 className="text-3xl font-bold">Przesłana praca domowa</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Przesłana praca domowa</h1>
             <p className="text-gray-500">
               {subchapter?.chapterOrder}.{subchapter?.order} {subchapter?.title}
             </p>
@@ -419,7 +537,7 @@ export default function SubmitHomeworkPage() {
             <CardTitle>Szczegóły pracy</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <p className="text-sm text-gray-500">Nazwa pliku</p>
                 <p className="font-medium">{existingSubmission.fileName}</p>
@@ -450,7 +568,7 @@ export default function SubmitHomeworkPage() {
               </div>
             </div>
 
-            <div className="flex gap-2 pt-4">
+            <div className="flex flex-col gap-2 pt-4 sm:flex-row">
               <Button
                 variant="outline"
                 className="gap-2"
@@ -484,12 +602,13 @@ export default function SubmitHomeworkPage() {
   }
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-start gap-3 sm:gap-4">
         <Button
           variant="outline"
           size="icon"
+          className="flex-shrink-0"
           onClick={() =>
             router.push(`/dashboard/student/courses/${params.courseId}`)
           }
@@ -497,7 +616,7 @@ export default function SubmitHomeworkPage() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">Prześlij pracę domową</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold">Prześlij pracę domową</h1>
           <p className="text-gray-500">
             {subchapter.chapterOrder}.{subchapter.order} {subchapter.title}
           </p>
@@ -511,7 +630,7 @@ export default function SubmitHomeworkPage() {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Toggle between PDF and Images */}
-          <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+          <div className="flex flex-wrap items-center justify-center gap-3 p-4 bg-gray-50 rounded-lg sm:justify-between">
             <div className="flex items-center gap-3">
               <FileText
                 className={`h-5 w-5 ${
@@ -551,7 +670,7 @@ export default function SubmitHomeworkPage() {
           {/* PDF Upload */}
           {uploadMode === "pdf" && (
             <>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 sm:p-8 text-center">
                 <input
                   type="file"
                   id="file-upload"
@@ -565,29 +684,101 @@ export default function SubmitHomeworkPage() {
                     Kliknij, aby wybrać plik PDF
                   </p>
                   <p className="text-sm text-gray-500 mt-2">
-                    Maksymalny rozmiar: 10MB
+                    Zalecany rozmiar: do{" "}
+                    {formatFileSize(MAX_PDF_SIZE_BYTES)}. Większe pliki
+                    spróbujemy skompresować automatycznie.
                   </p>
                 </label>
               </div>
 
               {selectedFile && (
                 <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                  <FileText className="h-5 w-5 text-blue-600" />
-                  <div className="flex-1">
-                    <p className="font-semibold text-gray-900">
+                  <FileText className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 break-words">
                       {selectedFile.name}
                     </p>
                     <p className="text-sm text-gray-600">
-                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                      {formatFileSize(selectedFile.size)}
+                      {selectedFile.size > MAX_PDF_SIZE_BYTES && (
+                        <span className="ml-2 text-amber-700">
+                          {`(plik przekracza ${formatFileSize(
+                            MAX_PDF_SIZE_BYTES
+                          )}, zostanie automatycznie skompresowany)`}
+                        </span>
+                      )}
                     </p>
                   </div>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setSelectedFile(null)}
+                    disabled={uploading}
+                    onClick={() => {
+                      setSelectedFile(null);
+                      setPdfStatus({ type: "idle" });
+                      setShowExternalCompressorHint(false);
+                    }}
                   >
                     Usuń
                   </Button>
+                </div>
+              )}
+
+              {/* Status procesu przygotowania i wysyłki PDF */}
+              {pdfStatus.type === "validating" && (
+                <div className="flex items-center gap-3 p-4 bg-gray-50 border border-gray-200 rounded-lg text-sm text-gray-700">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Sprawdzanie pliku...
+                </div>
+              )}
+
+              {pdfStatus.type === "compressing" && (
+                <div className="flex items-center gap-3 p-4 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-900">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <div>
+                    <p className="font-semibold">
+                      {`Plik jest większy niż ${formatFileSize(
+                        MAX_PDF_SIZE_BYTES
+                      )}. Trwa automatyczna kompresja...`}
+                    </p>
+                    <p>
+                      Kompresowanie pliku, próba {pdfStatus.attempt} z{" "}
+                      {pdfStatus.maxAttempts}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {pdfStatus.type === "uploading" && (
+                <div className="flex items-center gap-3 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-900">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Plik został przygotowany. Trwa przesyłanie...
+                </div>
+              )}
+
+              {pdfStatus.type === "error" && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-900 space-y-2">
+                  <p className="font-semibold">
+                    {pdfStatus.code === "COMPRESSION_LIMIT_REACHED"
+                      ? COMPRESSION_LIMIT_MESSAGE
+                      : pdfStatus.message}
+                  </p>
+                  {(showExternalCompressorHint ||
+                    pdfStatus.code === "COMPRESSION_LIMIT_REACHED") && (
+                    <p>
+                      Spróbuj skompresować plik ręcznie, a następnie prześlij go
+                      ponownie:{" "}
+                      <a
+                        href={EXTERNAL_COMPRESSOR_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 font-semibold underline"
+                      >
+                        iLovePDF Compress PDF
+                        <ExternalLink className="h-3 w-3" />
+                      </a>
+                    </p>
+                  )}
                 </div>
               )}
             </>
@@ -596,7 +787,7 @@ export default function SubmitHomeworkPage() {
           {/* Images Upload */}
           {uploadMode === "images" && (
             <>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 sm:p-8 text-center">
                 <input
                   type="file"
                   id="images-upload"
@@ -624,7 +815,7 @@ export default function SubmitHomeworkPage() {
                   <p className="text-sm font-medium text-gray-700">
                     Wybrane zdjęcia ({selectedImages.length}/10):
                   </p>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     {selectedImages.map((image, index) => (
                       <div
                         key={index}
@@ -655,7 +846,7 @@ export default function SubmitHomeworkPage() {
             </>
           )}
 
-          <div className="flex gap-3 pt-4">
+          <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row">
             <Button
               onClick={handleSubmit}
               disabled={
@@ -665,10 +856,17 @@ export default function SubmitHomeworkPage() {
               }
               className="flex-1"
             >
-              {uploading ? "Przesyłanie..." : "Prześlij pracę"}
+              {uploading
+                ? pdfStatus.type === "validating"
+                  ? "Sprawdzanie pliku..."
+                  : pdfStatus.type === "compressing"
+                  ? `Kompresowanie, próba ${pdfStatus.attempt} z ${pdfStatus.maxAttempts}...`
+                  : "Przesyłanie..."
+                : "Prześlij pracę"}
             </Button>
             <Button
               variant="outline"
+              className="w-full sm:w-auto"
               onClick={() =>
                 router.push(`/dashboard/student/courses/${params.courseId}`)
               }
@@ -690,6 +888,24 @@ export default function SubmitHomeworkPage() {
                 {uploadMode === "pdf" ? (
                   <>
                     <li>Możesz przesłać jeden plik PDF z pracą domową</li>
+                    <li>
+                      Maksymalny rozmiar przesyłanego pliku to{" "}
+                      {formatFileSize(MAX_PDF_SIZE_BYTES)}, większy plik
+                      zostanie automatycznie skompresowany (do{" "}
+                      {MAX_COMPRESSION_ATTEMPTS} prób)
+                    </li>
+                    <li>
+                      Jeśli kompresja nie wystarczy, możesz zmniejszyć plik
+                      ręcznie na{" "}
+                      <a
+                        href={EXTERNAL_COMPRESSOR_URL}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="underline font-semibold"
+                      >
+                        iLovePDF
+                      </a>
+                    </li>
                     <li>
                       Po przesłaniu pracy, nauczyciel otrzyma powiadomienie i
                       będzie mógł ją ocenić

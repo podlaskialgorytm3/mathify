@@ -24,11 +24,23 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4">
-      <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl w-full h-full max-w-6xl max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 bg-black bg-opacity-75 z-modal flex items-center justify-center p-0 sm:p-4">
+      <div className="bg-white dark:bg-gray-900 shadow-xl w-full h-full max-w-6xl sm:rounded-lg sm:max-h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b dark:border-gray-700">
-          <h2 className="text-lg font-semibold truncate">{title}</h2>
+        <div className="flex flex-col gap-3 p-3 border-b dark:border-gray-700 sm:flex-row sm:items-center sm:justify-between sm:p-4 safe-top">
+          <div className="flex items-center justify-between gap-2">
+            <h2 className="text-base sm:text-lg font-semibold truncate">
+              {title}
+            </h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="sm:hidden flex-shrink-0"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -49,18 +61,28 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
             >
               <ZoomIn className="w-4 h-4" />
             </Button>
-            <Button variant="outline" size="sm" onClick={handleDownload}>
-              <Download className="w-4 h-4 mr-2" />
-              Pobierz
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownload}
+              className="ml-auto sm:ml-0"
+            >
+              <Download className="w-4 h-4 sm:mr-2" />
+              <span className="hidden sm:inline">Pobierz</span>
             </Button>
-            <Button variant="ghost" size="sm" onClick={onClose}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="hidden sm:inline-flex"
+            >
               <X className="w-4 h-4" />
             </Button>
           </div>
         </div>
 
         {/* PDF Viewer */}
-        <div className="flex-1 overflow-auto bg-gray-100 dark:bg-gray-800 p-4">
+        <div className="flex-1 overflow-auto scroll-touch bg-gray-100 dark:bg-gray-800 p-2 sm:p-4 safe-bottom">
           <div
             className="mx-auto bg-white shadow-lg"
             style={{
@@ -80,3 +102,4 @@ export default function PDFViewer({ url, title, onClose }: PDFViewerProps) {
     </div>
   );
 }
+

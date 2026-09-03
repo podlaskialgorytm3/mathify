@@ -1,102 +1,126 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
-import {
-  BarChart,
-  TrendingUp,
-  Award,
-  Target,
-  Calendar,
-  BookOpen,
-} from "lucide-react";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  LineElement,
-  PointElement,
-} from "chart.js";
-import { Bar, Line } from "react-chartjs-2";
-
-// Rejestracja komponentów Chart.js
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  LineElement,
-  PointElement,
-  Title,
-  Tooltip,
-  Legend
-);
-
-interface Task {
-  taskNumber: number;
-  pointsEarned: number;
-  maxPoints: number;
-  comment: string | null;
-  teacherComment: string | null;
-  teacherEdited: boolean;
-}
-
-interface Submission {
-  id: string;
-  fileName: string;
-  status: string;
-  submittedAt: string;
-  subchapter: {
-    title: string;
-    chapter: {
-      title: string;
-      course: {
-        id: string;
-        title: string;
-      };
-    };
-  };
-  tasks: Task[];
-  review: {
-    approved: boolean;
-    generalComment: string | null;
-    reviewedAt: string;
-  } | null;
-}
+import { ActivityHeatmap } from "@/components/student-statistics/activity-heatmap";
+import { ErrorCategories } from "@/components/student-statistics/error-categories";
+import { MaterialImpactCard } from "@/components/student-statistics/material-impact-card";
+import { NextStepsCard } from "@/components/student-statistics/next-steps-card";
+import { ProgressTrendChart } from "@/components/student-statistics/progress-trend-chart";
+import { StatsKpiRow } from "@/components/student-statistics/stats-kpi-row";
+import { StrengthsRadar } from "@/components/student-statistics/strengths-radar";
+import { TaskPositionChart } from "@/components/student-statistics/task-position-chart";
+import { WeaknessList } from "@/components/student-statistics/weakness-list";
+import type {
+  ActivitySummary,
+  ChapterPerformance,
+  ErrorCategorySummary,
+  MaterialImpactSummary,
+  Recommendation,
+  StatisticsOverview,
+  TaskPositionPerformance,
+} from "@/lib/student-analytics";
+import { BookOpen } from "lucide-react";
 
 interface Course {
   id: string;
   title: string;
 }
 
+interface StatisticsState {
+  overview: StatisticsOverview | null;
+  chapters: ChapterPerformance[];
+  positions: TaskPositionPerformance[];
+  pattern: { pattern: string; message: string };
+  categories: ErrorCategorySummary[];
+  activity: ActivitySummary | null;
+  materialImpact: MaterialImpactSummary | null;
+  recommendations: Recommendation[];
+  courses: Course[];
+}
+
+const EMPTY_STATE: StatisticsState = {
+  overview: null,
+  chapters: [],
+  positions: [],
+  pattern: { pattern: "unknown", message: "" },
+  categories: [],
+  activity: null,
+  materialImpact: null,
+  recommendations: [],
+  courses: [],
+};
+
+const RANGE_LABELS: Record<string, string> = {
+  all: "Cały okres",
+  "90d": "Ostatnie 90 dni",
+  "30d": "Ostatnie 30 dni",
+};
+
 export default function StudentStatisticsPage() {
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [state, setState] = useState<StatisticsState>(EMPTY_STATE);
   const [loading, setLoading] = useState(true);
+  const [courseId, setCourseId] = useState<string>("all");
+  const [range, setRange] = useState<string>("all");
   const { toast } = useToast();
 
-  useEffect(() => {
-    fetchSubmissions();
-  }, []);
+  const queryString = useMemo(() => {
+    const params = new URLSearchParams();
+    if (courseId !== "all") {
+      params.set("courseId", courseId);
+    }
+    params.set("range", range);
+    return params.toString();
+  }, [courseId, range]);
 
-  const fetchSubmissions = async () => {
+  const fetchStatistics = useCallback(async () => {
+    setLoading(true);
+
     try {
-      setLoading(true);
-      const response = await fetch("/api/student/submissions");
-      const data = await response.json();
+      const endpoints = [
+        "overview",
+        "by-chapter",
+        "by-task-number",
+        "errors",
+        "activity",
+        "recommendations",
+      ];
 
-      if (response.ok) {
-        setSubmissions(data.submissions || []);
-        setCourses(data.courses || []);
-      } else {
-        throw new Error(data.error);
+      const responses = await Promise.all(
+        endpoints.map((endpoint) =>
+          fetch(`/api/student/statistics/${endpoint}?${queryString}`)
+        )
+      );
+
+      if (responses.some((response) => !response.ok)) {
+        throw new Error("Failed to fetch statistics");
       }
+
+      const [overview, byChapter, byTaskNumber, errors, activity, next] =
+        await Promise.all(responses.map((response) => response.json()));
+
+      setState({
+        overview: overview.overview,
+        chapters: byChapter.chapters ?? [],
+        positions: byTaskNumber.positions ?? [],
+        pattern: byTaskNumber.pattern ?? { pattern: "unknown", message: "" },
+        categories: errors.categories ?? [],
+        activity: activity.activity ?? null,
+        materialImpact: activity.materialImpact ?? null,
+        recommendations: next.recommendations ?? [],
+        courses: overview.courses ?? [],
+      });
     } catch (error) {
-      console.error("Error fetching submissions:", error);
+      console.error("Error fetching statistics:", error);
       toast({
         title: "Błąd",
         description: "Nie udało się pobrać statystyk",
@@ -105,410 +129,149 @@ export default function StudentStatisticsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [queryString, toast]);
 
-  // Obliczenia statystyczne
-  const calculateStats = () => {
-    // Tylko zaakceptowane prace
-    const approvedSubmissions = submissions.filter(
-      (s) => s.review?.approved === true && s.tasks && s.tasks.length > 0
-    );
-
-    if (approvedSubmissions.length === 0) {
-      return {
-        totalSubmissions: submissions.length,
-        approvedSubmissions: 0,
-        averagePercentage: 0,
-        totalPointsEarned: 0,
-        totalPointsMax: 0,
-        pendingSubmissions: submissions.filter((s) => !s.review).length,
-        personalBest: 0,
-        lowestScore: 0,
-        taskStats: {
-          totalTasks: 0,
-          perfectTasks: 0,
-          failedTasks: 0,
-        },
-      };
-    }
-
-    let totalPointsEarned = 0;
-    let totalPointsMax = 0;
-    let allPercentages: number[] = [];
-
-    // Statystyki zadań
-    let totalTasks = 0;
-    let perfectTasks = 0; // Zadania z pełną punktacją
-    let failedTasks = 0; // Zadania z <50% punktów
-
-    approvedSubmissions.forEach((submission) => {
-      let submissionPointsEarned = 0;
-      let submissionPointsMax = 0;
-
-      submission.tasks.forEach((task) => {
-        totalPointsEarned += task.pointsEarned;
-        totalPointsMax += task.maxPoints;
-        submissionPointsEarned += task.pointsEarned;
-        submissionPointsMax += task.maxPoints;
-
-        totalTasks++;
-
-        // Analiza pojedynczych zadań
-        const taskPercentage =
-          task.maxPoints > 0 ? (task.pointsEarned / task.maxPoints) * 100 : 0;
-        if (taskPercentage === 100) perfectTasks++;
-        if (taskPercentage < 50) failedTasks++;
-      });
-
-      // Procent dla całej pracy
-      if (submissionPointsMax > 0) {
-        allPercentages.push(
-          (submissionPointsEarned / submissionPointsMax) * 100
-        );
-      }
-    });
-
-    const averagePercentage =
-      totalPointsMax > 0 ? (totalPointsEarned / totalPointsMax) * 100 : 0;
-
-    const personalBest =
-      allPercentages.length > 0 ? Math.max(...allPercentages) : 0;
-    const lowestScore =
-      allPercentages.length > 0 ? Math.min(...allPercentages) : 0;
-
-    return {
-      totalSubmissions: submissions.length,
-      approvedSubmissions: approvedSubmissions.length,
-      averagePercentage: Math.round(averagePercentage),
-      totalPointsEarned,
-      totalPointsMax,
-      pendingSubmissions: submissions.filter((s) => !s.review).length,
-      personalBest: Math.round(personalBest),
-      lowestScore: Math.round(lowestScore),
-      taskStats: {
-        totalTasks,
-        perfectTasks,
-        failedTasks,
-      },
-    };
-  };
-
-  // Dane do wykresu słupkowego - procent punktów dla każdej pracy
-  const prepareChartData = () => {
-    const checkedSubmissions = submissions
-      .filter(
-        (s) => s.review?.approved === true && s.tasks && s.tasks.length > 0
-      )
-      .sort(
-        (a, b) =>
-          new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime()
-      );
-
-    const labels = checkedSubmissions.map((submission) => {
-      const date = new Date(submission.submittedAt).toLocaleDateString(
-        "pl-PL",
-        {
-          day: "2-digit",
-          month: "2-digit",
-        }
-      );
-      const shortTitle = submission.subchapter.title.substring(0, 20);
-      return `${date}\n${shortTitle}${
-        submission.subchapter.title.length > 20 ? "..." : ""
-      }`;
-    });
-
-    const percentages = checkedSubmissions.map((submission) => {
-      let pointsEarned = 0;
-      let pointsMax = 0;
-
-      submission.tasks.forEach((task) => {
-        pointsEarned += task.pointsEarned;
-        pointsMax += task.maxPoints;
-      });
-
-      return pointsMax > 0 ? (pointsEarned / pointsMax) * 100 : 0;
-    });
-
-    return {
-      labels,
-      datasets: [
-        {
-          label: "Procent punktów (%)",
-          data: percentages,
-          backgroundColor: percentages.map((p) => {
-            if (p >= 90) return "rgba(34, 197, 94, 0.8)"; // Zielony
-            if (p >= 75) return "rgba(59, 130, 246, 0.8)"; // Niebieski
-            if (p >= 50) return "rgba(251, 146, 60, 0.8)"; // Pomarańczowy
-            return "rgba(239, 68, 68, 0.8)"; // Czerwony
-          }),
-          borderColor: percentages.map((p) => {
-            if (p >= 90) return "rgb(34, 197, 94)";
-            if (p >= 75) return "rgb(59, 130, 246)";
-            if (p >= 50) return "rgb(251, 146, 60)";
-            return "rgb(239, 68, 68)";
-          }),
-          borderWidth: 2,
-        },
-      ],
-    };
-  };
-
-  // Dane do wykresu liniowego - trend postępów w czasie
-  const prepareTrendData = () => {
-    const checkedSubmissions = submissions
-      .filter(
-        (s) => s.review?.approved === true && s.tasks && s.tasks.length > 0
-      )
-      .sort(
-        (a, b) =>
-          new Date(a.submittedAt).getTime() - new Date(b.submittedAt).getTime()
-      );
-
-    const labels = checkedSubmissions.map((submission) => {
-      const shortTitle = submission.subchapter.title.substring(0, 25);
-      return (
-        shortTitle + (submission.subchapter.title.length > 25 ? "..." : "")
-      );
-    });
-
-    const percentages = checkedSubmissions.map((submission) => {
-      let pointsEarned = 0;
-      let pointsMax = 0;
-
-      submission.tasks.forEach((task) => {
-        pointsEarned += task.pointsEarned;
-        pointsMax += task.maxPoints;
-      });
-
-      return pointsMax > 0 ? (pointsEarned / pointsMax) * 100 : 0;
-    });
-
-    return {
-      labels,
-      datasets: [
-        {
-          label: "Postęp (%)",
-          data: percentages,
-          borderColor: "rgb(59, 130, 246)",
-          backgroundColor: "rgba(59, 130, 246, 0.1)",
-          tension: 0.4,
-          fill: true,
-        },
-      ],
-    };
-  };
-
-  const stats = calculateStats();
+  useEffect(() => {
+    fetchStatistics();
+  }, [fetchStatistics]);
 
   if (loading) {
     return (
-      <div className="p-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="grid gap-6 md:grid-cols-4">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-32 bg-gray-200 rounded"></div>
-            ))}
-          </div>
-          <div className="h-96 bg-gray-200 rounded"></div>
+      <div className="animate-pulse space-y-6">
+        <div className="h-8 w-1/2 rounded bg-gray-200 sm:w-1/4" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, index) => (
+            <div key={index} className="h-32 rounded bg-gray-200" />
+          ))}
         </div>
+        <div className="h-96 rounded bg-gray-200" />
       </div>
     );
   }
 
-  const chartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false,
-      },
-      tooltip: {
-        callbacks: {
-          label: function (context: any) {
-            return `${Math.round(context.parsed.y)}%`;
-          },
-        },
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        max: 100,
-        ticks: {
-          callback: function (value: any) {
-            return value + "%";
-          },
-        },
-        title: {
-          display: true,
-          text: "Procent punktów",
-        },
-      },
-      x: {
-        title: {
-          display: true,
-          text: "Praca domowa",
-        },
-      },
-    },
-  };
-
-  const trendOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: {
-        display: false,
-      },
-    },
-    scales: {
-      y: {
-        beginAtZero: true,
-        max: 100,
-        ticks: {
-          callback: function (value: any) {
-            return value + "%";
-          },
-        },
-      },
-    },
-  };
+  const overview = state.overview;
+  const hasGradedData = (overview?.gradedSubmissions ?? 0) > 0;
 
   return (
-    <div className="p-8 space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">
-          Statystyki moich wyników
-        </h1>
-        <p className="text-gray-500 mt-2">
-          Przegląd Twoich postępów i osiągnięć w nauce
-        </p>
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+            Statystyki moich wyników
+          </h1>
+          <p className="mt-2 text-gray-500">
+            Diagnoza: gdzie tracisz punkty, czy się poprawiasz i co zrobić dalej
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <Select value={courseId} onValueChange={setCourseId}>
+            <SelectTrigger className="w-full sm:w-56">
+              <SelectValue placeholder="Kurs" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Wszystkie kursy</SelectItem>
+              {state.courses.map((course) => (
+                <SelectItem key={course.id} value={course.id}>
+                  {course.title}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={range} onValueChange={setRange}>
+            <SelectTrigger className="w-full sm:w-44">
+              <SelectValue placeholder="Zakres" />
+            </SelectTrigger>
+            <SelectContent>
+              {Object.entries(RANGE_LABELS).map(([value, label]) => (
+                <SelectItem key={value} value={value}>
+                  {label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      {/* Karty z podsumowaniem */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Średnia ocen</CardTitle>
-            <Award className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats.averagePercentage}%</div>
-            <p className="text-xs text-gray-500 mt-1">
-              {stats.totalPointsEarned} / {stats.totalPointsMax} punktów
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Personal Best</CardTitle>
-            <Target className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats.personalBest}%</div>
-            <p className="text-xs text-gray-500 mt-1">
-              Najlepszy wynik w historii
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Perfekcyjne zadania
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {stats.taskStats.perfectTasks}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              z {stats.taskStats.totalTasks} zadań (100% punktów)
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Trudne zadania
-            </CardTitle>
-            <Calendar className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">
-              {stats.taskStats.failedTasks}
-            </div>
-            <p className="text-xs text-gray-500 mt-1">
-              zadań z wynikiem &lt;50%
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Wykres słupkowy - wyniki poszczególnych prac */}
-      {stats.approvedSubmissions > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart className="h-5 w-5" />
-              Wyniki poszczególnych prac domowych
-            </CardTitle>
-            <p className="text-sm text-gray-500">
-              Procent zdobytych punktów dla każdej sprawdzonej pracy
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="h-96">
-              <Bar data={prepareChartData()} options={chartOptions} />
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Wykres liniowy - trend postępów */}
-      {stats.approvedSubmissions > 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5" />
-              Trend postępów w czasie
-            </CardTitle>
-            <p className="text-sm text-gray-500">
-              Jak zmieniają się Twoje wyniki w kolejnych pracach
-            </p>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <Line data={prepareTrendData()} options={trendOptions} />
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Komunikat gdy brak danych */}
-      {stats.approvedSubmissions === 0 && (
+      {!hasGradedData ? (
         <Card>
           <CardContent className="pt-6">
-            <div className="text-center space-y-4 py-12">
-              <BookOpen className="h-16 w-16 text-gray-400 mx-auto" />
+            <div className="space-y-4 py-12 text-center">
+              <BookOpen className="mx-auto h-16 w-16 text-gray-400" />
               <div>
                 <h3 className="text-lg font-semibold text-gray-900">
-                  Brak zaakceptowanych prac
+                  Brak sprawdzonych prac w wybranym zakresie
                 </h3>
-                <p className="text-gray-500 mt-2">
-                  Kiedy Twoje prace zostaną sprawdzone i zaakceptowane przez
-                  nauczyciela, tutaj pojawią się szczegółowe statystyki Twoich
-                  postępów.
+                <p className="mt-2 text-gray-500">
+                  Statystyki liczymy wyłącznie z prac sprawdzonych przez
+                  nauczyciela, dzięki czemu diagnoza opiera się na finalnych
+                  punktach.
                 </p>
               </div>
             </div>
           </CardContent>
         </Card>
+      ) : (
+        <>
+          {overview && <StatsKpiRow overview={overview} />}
+
+          <Tabs defaultValue="diagnosis">
+            <TabsList className="grid h-auto w-full grid-cols-2 gap-1 sm:inline-flex sm:h-10 sm:w-auto sm:grid-cols-none sm:flex-wrap">
+              <TabsTrigger value="diagnosis">Diagnoza</TabsTrigger>
+              <TabsTrigger value="progress">Postęp</TabsTrigger>
+              <TabsTrigger value="errors">Błędy</TabsTrigger>
+              <TabsTrigger value="activity">Aktywność</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="diagnosis" className="space-y-6">
+              <NextStepsCard recommendations={state.recommendations} />
+              <StrengthsRadar chapters={state.chapters} />
+              <WeaknessList chapters={state.chapters} />
+            </TabsContent>
+
+            <TabsContent value="progress" className="space-y-6">
+              {overview && (
+                <ProgressTrendChart
+                  points={overview.trendPoints}
+                  summary={overview.trend}
+                />
+              )}
+              <TaskPositionChart
+                positions={state.positions}
+                pattern={state.pattern}
+              />
+            </TabsContent>
+
+            <TabsContent value="errors" className="space-y-6">
+              <ErrorCategories categories={state.categories} />
+              {overview && (
+                <Card>
+                  <CardContent className="space-y-2 pt-6 text-sm text-gray-600">
+                    <p>
+                      Zestawienie powstało z{" "}
+                      <span className="font-semibold">
+                        {overview.totalTasks}
+                      </span>{" "}
+                      sprawdzonych zadań.
+                    </p>
+                    <p>
+                      Wszystkie statystyki liczymy z punktów finalnych, czyli
+                      tych, które widzisz przy sprawdzonej pracy.
+                    </p>
+                  </CardContent>
+                </Card>
+              )}
+            </TabsContent>
+
+            <TabsContent value="activity" className="space-y-6">
+              {state.activity && <ActivityHeatmap activity={state.activity} />}
+              {state.materialImpact && (
+                <MaterialImpactCard impact={state.materialImpact} />
+              )}
+            </TabsContent>
+          </Tabs>
+        </>
       )}
     </div>
   );

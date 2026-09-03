@@ -156,14 +156,14 @@ export default function CreatedStudentsPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col gap-4 mb-6 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Utworzone konta uczniów</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Utworzone konta uczniów</h1>
           <p className="text-gray-600 mt-1">
             Lista wszystkich uczniów utworzonych przez Ciebie
           </p>
         </div>
-        <Button asChild>
+        <Button asChild className="w-full sm:w-auto">
           <Link href="/dashboard/teacher/create-student">
             <UserPlus className="h-4 w-4 mr-2" />
             Utwórz nowe konto
@@ -226,7 +226,7 @@ export default function CreatedStudentsPage() {
                   {/* Student Info */}
                   <div className="flex-1 space-y-3">
                     <div>
-                      <h3 className="text-xl font-semibold">
+                      <h3 className="text-lg sm:text-xl font-semibold break-words">
                         {student.firstName} {student.lastName}
                       </h3>
                       <div className="flex items-center gap-2 mt-1">
@@ -248,7 +248,7 @@ export default function CreatedStudentsPage() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2">
                       <div className="flex items-center gap-2">
                         <User className="h-4 w-4 text-gray-400" />
                         <span className="text-gray-600">Login:</span>
@@ -269,7 +269,7 @@ export default function CreatedStudentsPage() {
                       <div className="flex items-center gap-2">
                         <Mail className="h-4 w-4 text-gray-400" />
                         <span className="text-gray-600">Email:</span>
-                        <span className="font-semibold">{student.email}</span>
+                        <span className="font-semibold break-all">{student.email}</span>
                         <Button
                           size="sm"
                           variant="ghost"
@@ -321,9 +321,10 @@ export default function CreatedStudentsPage() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex flex-col gap-2">
+                  <div className="flex flex-col gap-2 md:w-auto">
                     <Button
                       variant="outline"
+                      className="w-full md:w-auto"
                       onClick={() => handleResetPassword(student.id)}
                       disabled={resettingPasswordId === student.id}
                     >

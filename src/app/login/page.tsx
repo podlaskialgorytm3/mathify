@@ -18,8 +18,6 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { LogIn } from "lucide-react";
 
-import { checkUserStatus } from "./actions";
-
 export default function LoginPage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -34,9 +32,12 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // Sprawdź status konta przed logowaniem, żeby zapobiec maskowaniu błędów przez NextAuth
-      const userCheck = await checkUserStatus(formData.username);
-      
+      // Sprawdź status konta przed logowaniem przez API (nie Server Action — stabilne URL)
+      const statusRes = await fetch(
+        `/api/auth/check-status?username=${encodeURIComponent(formData.username)}`
+      );
+      const userCheck = await statusRes.json();
+
       if (userCheck.status === "PENDING" || userCheck.status === "INACTIVE") {
         toast({
           title: "Informacja o koncie",

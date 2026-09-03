@@ -204,7 +204,7 @@ export default function CreateStudentPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="bg-green-50 border border-green-200 rounded-lg p-6 space-y-4">
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 sm:p-6 space-y-4">
               <div>
                 <Label className="text-sm text-gray-600">Imię i nazwisko</Label>
                 <p className="text-lg font-semibold">
@@ -214,8 +214,8 @@ export default function CreateStudentPage() {
 
               <div>
                 <Label className="text-sm text-gray-600">Email</Label>
-                <div className="flex items-center gap-2">
-                  <p className="text-lg font-semibold">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-lg font-semibold break-all">
                     {createdStudent.email}
                   </p>
                   <Button
@@ -232,8 +232,8 @@ export default function CreateStudentPage() {
 
               <div>
                 <Label className="text-sm text-gray-600">Login</Label>
-                <div className="flex items-center gap-2">
-                  <p className="text-lg font-semibold">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-lg font-semibold break-all">
                     {createdStudent.username}
                   </p>
                   <Button
@@ -252,8 +252,8 @@ export default function CreateStudentPage() {
                 <Label className="text-sm text-gray-600">
                   Hasło tymczasowe
                 </Label>
-                <div className="flex items-center gap-2">
-                  <p className="text-lg font-semibold font-mono">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-lg font-semibold break-all font-mono">
                     {createdStudent.password}
                   </p>
                   <Button
@@ -289,12 +289,12 @@ export default function CreateStudentPage() {
               </p>
             </div>
 
-            <div className="flex justify-center gap-3">
-              <Button onClick={handleCreateAnother}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <Button onClick={handleCreateAnother} className="w-full sm:w-auto">
                 <UserPlus className="h-4 w-4 mr-2" />
                 Utwórz kolejne konto
               </Button>
-              <Button asChild variant="outline">
+              <Button asChild variant="outline" className="w-full sm:w-auto">
                 <Link href="/dashboard/teacher/created-students">
                   <Users className="h-4 w-4 mr-2" />
                   Zobacz wszystkie utworzone konta
@@ -309,9 +309,9 @@ export default function CreateStudentPage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold">Tworzenie kont uczniom</h1>
-        <Button asChild variant="outline">
+      <div className="flex flex-col gap-3 mb-4 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-bold sm:text-3xl">Tworzenie kont uczniom</h1>
+        <Button asChild variant="outline" className="w-full sm:w-auto">
           <Link href="/dashboard/teacher/created-students">
             <Users className="h-4 w-4 mr-2" />
             Zobacz utworzone konta
@@ -428,7 +428,7 @@ export default function CreateStudentPage() {
             </div>
 
             {/* Submit Button */}
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <Button
                 type="button"
                 variant="outline"
