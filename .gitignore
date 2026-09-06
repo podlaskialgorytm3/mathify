@@ -36,8 +36,8 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# prisma
-prisma/migrations
+# prisma - migrations must be committed for production deploy
+# prisma/migrations  ← REMOVED: migrations must be in git for prisma migrate deploy
 
 # uploads
 /uploads
